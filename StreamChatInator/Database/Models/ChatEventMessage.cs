@@ -25,6 +25,8 @@ namespace StreamChatInator.Database.Models
         /// </summary>
         public required string? EmoteReplacedMessage { get; set; }
 
+        public bool HasEmotes { get { return EmoteReplacedMessage != null; } }
+
         /// <summary>
         /// Unique message identifier assigned by Twitch
         /// </summary>
@@ -79,5 +81,7 @@ namespace StreamChatInator.Database.Models
         /// if this is a reply, this will hold the message id of the replied to message
         /// </summary>
         public required string? ReplyParentMessageTwitchMessageId { get; set; }
+
+        public bool IsReply { get { return ReplyParentMessageTwitchMessageId != null; } }
     }
 }

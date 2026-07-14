@@ -125,6 +125,7 @@ namespace StreamChatInator.Controllers
             var db = _services.GetRequiredService<DatabaseContext>();
             db.SetSettingsValue(SettingValue.SettingOAuthToken, payload.Token);
             db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
+            db.SaveChanges();
 
             return Ok();
         }

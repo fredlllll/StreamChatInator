@@ -12,13 +12,11 @@ namespace StreamChatInator.Services
     {
         private readonly ILogger<ChatReaderService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly ILoggerFactory _loggerFactory;
 
-        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, ILoggerFactory loggerFactory)
+        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
             this._scopeFactory = scopeFactory;
-            this._loggerFactory = loggerFactory;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -36,12 +34,13 @@ namespace StreamChatInator.Services
                     db.Dispose();
                     db = null;
 
-                    var reader = new ChatReader(channelName,oauthToken, _scopeFactory, _loggerFactory);
+                    var reader = new ChatReader(channelName,oauthToken, _scopeFactory);
+                    await reader.ConnectAsync();
                     await reader.Run(stoppingToken);
                 }
-                catch
+                catch(Exception ex)
                 {
-                    //no value found
+                    _logger.LogWarning("could not create chat reader");
                 }
                 finally
                 {
