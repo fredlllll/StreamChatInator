@@ -9,6 +9,7 @@ namespace StreamChatInator.Database
         public DbSet<SettingValue> SettingValues { get; set; }
         public DbSet<ChatEvent> ChatEvents { get; set; }
         public DbSet<ChatEventMessage> ChatEventsMessages { get; set; }
+        public DbSet<ChatEventFilter> EventFilters { get; set; }
 
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
@@ -17,6 +18,7 @@ namespace StreamChatInator.Database
             modelBuilder.Entity<SettingValue>().ToTable(nameof(SettingValues));
             modelBuilder.Entity<ChatEvent>().ToTable(nameof(ChatEvents));
             modelBuilder.Entity<ChatEventMessage>().ToTable(nameof(ChatEventsMessages));
+            modelBuilder.Entity<ChatEventFilter>().ToTable(nameof(EventFilters));
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)

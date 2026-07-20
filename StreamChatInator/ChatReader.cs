@@ -1,7 +1,10 @@
-﻿using StreamChatInator.Database;
+﻿using Microsoft.AspNetCore.SignalR;
+using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
+using StreamChatInator.Hubs;
 using System.Text.Json;
 using TwitchLib.Client;
+using TwitchLib.Client.Enums;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 
@@ -15,7 +18,7 @@ namespace StreamChatInator
         private readonly string _userName;
         private readonly IServiceScope _scope;
         private readonly ILogger<ChatReader> _logger;
-        private readonly WsChannelManager _channelManager;
+        private readonly IHubContext<ChatHub> _hub;
 
         public ChatReader(string userName, string oauthToken, IServiceScopeFactory scopeFactory)
         {
@@ -24,7 +27,7 @@ namespace StreamChatInator
             this._scopeFactory = scopeFactory;
             var loggerFactory = _scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
             _logger = loggerFactory.CreateLogger<ChatReader>();
-            _channelManager = _scope.ServiceProvider.GetRequiredService<WsChannelManager>();
+            _hub = _scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
 
             var credentials = new ConnectionCredentials(userName, oauthToken);
             _client = new TwitchClient(loggerFactory: loggerFactory);
@@ -65,6 +68,17 @@ namespace StreamChatInator
                 using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
                 var msg = e.ChatMessage;
 
+
+                UserDetails userDetails = UserDetails.None;
+                var field = msg.UserDetail.GetType().GetField("_flags", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field == null)
+                {
+                    _logger.LogWarning("could not get field _flags from userdetail, leaving empty");
+                }
+                else
+                {
+                    userDetails = (UserDetails)(field.GetValue(msg.UserDetail) ?? throw new InvalidDataException("_flags field returned null"));
+                }
                 var chatMessage = new ChatEventMessage()
                 {
                     Id = Model.GetNewId<ChatEventMessage>(),
@@ -81,8 +95,13 @@ namespace StreamChatInator
                     Noisy = msg.Noisy,
                     ReplyParentMessageTwitchMessageId = msg.ChatReply?.ParentMsgId,
                     SubscribedMonthCount = msg.SubscribedMonthCount,
-                    TmiSent = msg.TmiSent,
+                    TmiSent = msg.TmiSent.UtcDateTime,
                     TwitchMessageId = msg.Id,
+                    DisplayName = msg.DisplayName,
+                    UserId = msg.UserId,
+                    Username = msg.Username,
+                    UserFlags = userDetails,
+                    HexColor = msg.HexColor,
                 };
 
                 var chatEvent = new ChatEvent()
@@ -96,8 +115,11 @@ namespace StreamChatInator
                 db.ChatEvents.Add(chatEvent);
                 await db.SaveChangesAsync();
 
-                var frame = new WsMessageFrame<ChatEventMessage>() { MessageType = MessageType.ChatMessage, Message = chatMessage };
-                await _channelManager.Broadcast("messages", frame, CancellationToken.None);
+                await _hub.Clients.All.SendAsync("ReceiveEvent", new
+                {
+                    Type = chatEvent.ChatEventType.ToString(),
+                    Data = chatMessage,
+                });
             }
         }
 

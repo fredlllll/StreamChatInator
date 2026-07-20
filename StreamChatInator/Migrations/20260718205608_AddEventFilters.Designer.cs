@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StreamChatInator.Database;
 
@@ -10,9 +11,11 @@ using StreamChatInator.Database;
 namespace StreamChatInator.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260718205608_AddEventFilters")]
+    partial class AddEventFilters
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -38,30 +41,6 @@ namespace StreamChatInator.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ChatEvents", (string)null);
-                });
-
-            modelBuilder.Entity("StreamChatInator.Database.Models.ChatEventFilter", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("EventFilters", (string)null);
                 });
 
             modelBuilder.Entity("StreamChatInator.Database.Models.ChatEventMessage", b =>
@@ -120,7 +99,7 @@ namespace StreamChatInator.Migrations
                     b.Property<int>("SubscribedMonthCount")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("TmiSent")
+                    b.Property<DateTimeOffset>("TmiSent")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TwitchMessageId")
@@ -144,6 +123,33 @@ namespace StreamChatInator.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ChatEventsMessages", (string)null);
+                });
+
+            modelBuilder.Entity("StreamChatInator.Database.Models.EventFilter", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConditionsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FilterType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EventFilters", (string)null);
                 });
 
             modelBuilder.Entity("StreamChatInator.Database.Models.SettingValue", b =>

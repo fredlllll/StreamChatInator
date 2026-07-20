@@ -1,3 +1,7 @@
 <Solution>
   <Project Path="StreamChatInator/StreamChatInator.csproj" />
+  <Project Path="streamchatinatorfrontend/streamchatinatorfrontend.esproj">
+    <Build />
+    <Deploy />
+  </Project>
 </Solution>

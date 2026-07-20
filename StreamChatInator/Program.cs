@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using StreamChatInator.Database;
+using StreamChatInator.Hubs;
 using StreamChatInator.Services;
 
 namespace StreamChatInator
 {
     public class Program
     {
+        const int vitePort = 53401;
+        const int port = 17455;
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -15,7 +19,15 @@ namespace StreamChatInator
             builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite($"Data Source=db.sqlite").ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
             builder.Services.AddControllers();
             builder.Services.AddHostedService<ChatReaderService>();
-            builder.WebHost.UseUrls("http://0.0.0.0:17455");
+            builder.Services.AddSignalR();
+            builder.Services.AddCors(options => {
+                options.AddPolicy("AllowReact", builder =>
+                    builder.WithOrigins("http://localhost:"+vitePort)
+                           .AllowAnyHeader()
+                           .AllowAnyMethod()
+                           .AllowCredentials());
+            });
+            builder.WebHost.UseUrls("http://0.0.0.0:"+port);
 
             var app = builder.Build();
 
@@ -34,9 +46,11 @@ namespace StreamChatInator
             }
 
             app.UseRouting();
+            app.UseCors("AllowReact");
             app.MapStaticAssets();
             app.MapRazorPages().WithStaticAssets();
             app.MapControllers();
+            app.MapHub<ChatHub>("/hubs/chat");
 
             app.Run();
         }
