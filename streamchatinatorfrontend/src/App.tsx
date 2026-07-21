@@ -11,6 +11,8 @@ function App() {
                 <Link to="/filters">Filters</Link>
                 {" | "}
                 <Link to="/dashboard">Dashboard</Link>
+                {" | "}
+                <Link to="/api/auth/login">Twitch Login</Link>
             </nav>
 
             <Routes>

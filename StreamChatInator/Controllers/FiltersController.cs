@@ -138,7 +138,7 @@ namespace StreamChatInator.Controllers
         {
             return chatEvent.ChatEventType switch
             {
-                ChatEventType.ChatMessage => _db.ChatEventsMessages.Find(chatEvent.EventId),
+                ChatEventType.ChatMessage => _db.ChatEventAnnouncements.Find(chatEvent.EventId),
                 // ChatEventType.Ban => _db.ChatEventBans.Find(chatEvent.EventId),
                 // ChatEventType.Timeout => _db.ChatEventTimeouts.Find(chatEvent.EventId),
                 _ => null, // not implemented yet - skip rather than crash

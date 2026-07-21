@@ -3,7 +3,7 @@ using TwitchLib.Client.Models;
 
 namespace StreamChatInator.Database.Models
 {
-    public class ChatEventMessage : Model
+    public class ChatEventChatMessage : Model
     {
         /// <summary>
         /// If viewer sent bits in their message, total amount will be here. 
@@ -113,10 +113,36 @@ namespace StreamChatInator.Database.Models
         /// UserFlags broken out into individual flag names, for easy client-side filtering
         /// (e.g. userFlagNames.includes("Moderator")) instead of dealing with the raw bitmask.
         /// </summary>
-        public string[] UserFlagNames => UserFlags
-            .ToString()
-            .Split(", ", StringSplitOptions.RemoveEmptyEntries)
-            .Where(f => f != "None")
-            .ToArray();
+        public string[] UserFlagsNames => Util.FlagEnumNames(UserFlags);
+
+        public static ChatEventChatMessage FromChatMessage(ChatMessage msg)
+        {
+            var chatMessage = new ChatEventChatMessage()
+            {
+                Id = GetNewId<ChatEventChatMessage>(),
+                Bits = msg.Bits,
+                BitsInDollars = msg.BitsInDollars,
+                CustomRewardId = msg.CustomRewardId,
+                Message = msg.Message,
+                EmoteReplacedMessage = msg.EmoteReplacedMessage,
+                IsBroadcaster = msg.IsBroadcaster,
+                IsFirstMessage = msg.IsFirstMessage,
+                IsHighlighted = msg.IsHighlighted,
+                IsMe = msg.IsMe,
+                IsSkippingSubMode = msg.IsSkippingSubMode,
+                Noisy = msg.Noisy,
+                ReplyParentMessageTwitchMessageId = msg.ChatReply?.ParentMsgId,
+                SubscribedMonthCount = msg.SubscribedMonthCount,
+                TmiSent = msg.TmiSent.UtcDateTime,
+                TwitchMessageId = msg.Id,
+                DisplayName = msg.DisplayName,
+                UserId = msg.UserId,
+                Username = msg.Username,
+                UserFlags = Util.GetPrivateFieldNotNull<UserDetails>(msg.UserDetail, "_flags"),
+                HexColor = msg.HexColor,
+            };
+
+            return chatMessage;
+        }
     }
 }

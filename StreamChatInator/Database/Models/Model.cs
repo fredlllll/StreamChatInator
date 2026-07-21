@@ -3,7 +3,7 @@ using UUIDNext;
 
 namespace StreamChatInator.Database.Models
 {
-    public class Model : IEquatable<Model?>
+    public abstract class Model : IEquatable<Model?>
     {
         public Model()
         {
