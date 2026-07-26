@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import * as signalR from "@microsoft/signalr";
-import type { EventEnvelope } from "./types";
+import type { FrontEndEventData } from "./types";
 
 export function useChatConnection() {
-    const [events, setEvents] = useState<EventEnvelope[]>([]);
+    const [events, setEvents] = useState<FrontEndEventData[]>([]);
     const [connectedAt, setConnectedAt] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -12,7 +12,7 @@ export function useChatConnection() {
             .withAutomaticReconnect()
             .build();
 
-        connection.on("ReceiveEvent", (envelope: EventEnvelope) => {
+        connection.on("ReceiveEvent", (envelope: FrontEndEventData) => {
             setEvents((prev) => [...prev, envelope]);
         });
 

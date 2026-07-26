@@ -1,9 +1,9 @@
 import { Virtuoso } from "react-virtuoso";
 import ChatEventItem from "./ChatEventItem";
-import type { EventEnvelope } from "../types";
+import type { FrontEndEventData } from "../types";
 
 type ChatEventListProps = {
-    events: EventEnvelope[];
+    events: FrontEndEventData[];
     onStartReached?: () => void;
 };
 

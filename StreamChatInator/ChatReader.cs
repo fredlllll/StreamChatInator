@@ -70,7 +70,7 @@ namespace StreamChatInator
 
                 var chatMessage = ChatEventChatMessage.FromChatMessage(e.ChatMessage);
 
-                await EndEventHandler(db, chatMessage, ChatEventType.ChatMessage);
+                await EndEventHandler(db, ChatEventType.ChatMessage, chatMessage);
             }
         }
 
@@ -84,8 +84,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Announcement);
                 var eventData = ChatEventAnnouncement.FromAnnouncement(e.Announcement, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -99,8 +98,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.AnonGiftPaidUpgrade);
                 var eventData = ChatEventAnonGiftPaidUpgrade.FromAnonGiftPaidUpgrade(e.AnonGiftPaidUpgrade, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -114,8 +112,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.BitsBadgeTier);
                 var eventData = ChatEventBitsBadgeTier.FromBitsBadgeTier(e.BitsBadgeTier, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -129,8 +126,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.CommunityPayForward);
                 var eventData = ChatEventCommunityPayForward.FromBitsBadgeTier(e.CommunityPayForward, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -144,8 +140,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.GiftedSubscription);
                 var eventData = ChatEventCommunitySubscription.FromCommunitySubscription(e.GiftedSubscription, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -159,8 +154,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.ContinuedGiftedSubscription);
                 var eventData = ChatEventContinuedGiftedSubscription.FromContinuedGiftedSubscription(e.ContinuedGiftedSubscription, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -174,8 +168,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.GiftedSubscription);
                 var eventData = ChatEventGiftedSubscription.FromGiftedSubscription(e.GiftedSubscription, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -189,8 +182,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Subscriber);
                 var eventData = ChatEventNewSubscriber.FromNewSubscriber(e.Subscriber, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -203,8 +195,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventMessageCleared.FromMessageCleared(e);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData);
             }
         }
 
@@ -218,8 +209,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.PrimePaidSubscriber);
                 var eventData = ChatEventPrimePaidSubscriber.FromPrimePaidSubscriber(e.PrimePaidSubscriber, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -233,8 +223,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.ReSubscriber);
                 var eventData = ChatEventReSubscriber.FromReSubscriber(e.ReSubscriber, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -248,8 +237,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Ritual);
                 var eventData = ChatEventRitual.FromRitual(e.Ritual, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -263,8 +251,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.StandardPayForward);
                 var eventData = ChatEventStandardPayForward.FromStandardPayForward(e.StandardPayForward, cunb.Id);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
             }
         }
 
@@ -277,8 +264,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserBanned.FromUserBanned(e.UserBan);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData);
             }
         }
 
@@ -291,8 +277,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserJoined.FromUserJoined(e);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData);
             }
         }
 
@@ -305,8 +290,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserLeft.FromUserLeft(e);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData);
             }
         }
 
@@ -319,15 +303,30 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserTimedout.FromUserTimedout(e.UserTimeout);
 
-                //TODO: now event data doesnt contain all the stuff from cunb, we need to merge this before sending it out
-                await EndEventHandler(db, eventData, ChatEventType.Announcement);
+                await EndEventHandler(db, ChatEventType.Announcement, eventData);
             }
         }
 
-        
+
         #region nonEventStuff
 
-        private async Task EndEventHandler<T>(DatabaseContext db, T eventData, ChatEventType chatEventType) where T : Model
+        private async Task EndEventHandler<T, U>(DatabaseContext db, ChatEventType chatEventType, T eventData, U eventSubData) where T : Model where U : Model
+        {
+            var chatEvent = new ChatEvent()
+            {
+                Id = Model.GetNewId<ChatEvent>(),
+                ChatEventType = chatEventType,
+                EventId = eventData.Id,
+            };
+            db.Add(eventData);
+            db.Add(eventSubData);
+            db.ChatEvents.Add(chatEvent);
+            await db.SaveChangesAsync();
+
+            await SendEventToFrontend(chatEvent, eventData, eventSubData);
+        }
+
+        private async Task EndEventHandler<T>(DatabaseContext db, ChatEventType chatEventType, T eventData) where T : Model
         {
             var chatEvent = new ChatEvent()
             {
@@ -339,11 +338,17 @@ namespace StreamChatInator
             db.ChatEvents.Add(chatEvent);
             await db.SaveChangesAsync();
 
-            await _hub.Clients.All.SendAsync("ReceiveEvent", new
-            {
-                Type = chatEvent.ChatEventType.ToString(),
-                Data = eventData,
-            });
+            await SendEventToFrontend(chatEvent, eventData);
+        }
+
+        private async Task SendEventToFrontend(ChatEvent chatEvent, Model data)
+        {
+            await _hub.Clients.All.SendAsync("ReceiveEvent", Util.ToFrontendData(chatEvent, data));
+        }
+
+        private async Task SendEventToFrontend(ChatEvent chatEvent, Model data, Model subData)
+        {
+            await _hub.Clients.All.SendAsync("ReceiveEvent", Util.ToFrontendData(chatEvent, data, subData));
         }
 
         public async Task ConnectAsync()

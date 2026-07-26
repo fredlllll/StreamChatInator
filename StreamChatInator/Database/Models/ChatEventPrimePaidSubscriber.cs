@@ -10,6 +10,8 @@ namespace StreamChatInator.Database.Models
         /// </summary>
         public required SubscriptionPlan MsgParamSubPlan { get; set; }
 
+        public string MsgParamSubPlanName => MsgParamSubPlan.ToString();
+
         public required string ResubMessage { get; set; }
 
         public static ChatEventPrimePaidSubscriber FromPrimePaidSubscriber(PrimePaidSubscriber primePaidSubscriber, string chatUserNoticeBaseId)

@@ -15,10 +15,9 @@ namespace StreamChatInator
             _engine.Execute($"function __matches(eventType, eventData) {{ {code} }}");
         }
 
-        public bool Matches(string eventType, object eventData)
+        public bool Matches(FrontEndEventData eventData)
         {
             var json = JsonSerializer.Serialize(eventData, _jsonOptions);
-            _engine.SetValue("__eventType", eventType);
             _engine.SetValue("__eventDataJson", json);
             _engine.Execute("var __eventData = JSON.parse(__eventDataJson);");
 

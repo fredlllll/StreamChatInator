@@ -75,15 +75,10 @@ namespace StreamChatInator.Controllers
             public required string Code { get; set; }
         }
 
-        public class EventEnvelope
-        {
-            public required string Type { get; set; }
-            public required object Data { get; set; }
-        }
 
         public class HistoryResponse
         {
-            public required List<EventEnvelope> Events { get; set; }
+            public required List<FrontEndEventData> Events { get; set; }
             public required DateTime NextCursor { get; set; }
             public required bool HasMore { get; set; }
         }
@@ -96,7 +91,7 @@ namespace StreamChatInator.Controllers
 
             var evaluator = new JsFilterEvaluator(filter.Code);
             var scanCursor = before ?? DateTime.UtcNow;
-            var matches = new List<EventEnvelope>();
+            var matches = new List<FrontEndEventData>();
             bool exhausted = false;
 
             const int batchSize = 200;
@@ -119,10 +114,10 @@ namespace StreamChatInator.Controllers
                     var eventData = LoadEventData(chatEvent);
                     if (eventData == null) continue; // event type not implemented yet
 
-                    var eventType = chatEvent.ChatEventType.ToString();
-                    if (evaluator.Matches(eventType, eventData))
+                    var frontendData = new FrontEndEventData() { EventId = chatEvent.EventId , ChatEventType = chatEvent.ChatEventType,ChatEventData = eventData};
+                    if (evaluator.Matches(frontendData))
                     {
-                        matches.Add(new EventEnvelope { Type = eventType, Data = eventData });
+                        matches.Add(frontendData);
                         if (matches.Count >= take) break;
                     }
                 }
@@ -136,13 +131,44 @@ namespace StreamChatInator.Controllers
 
         private object? LoadEventData(ChatEvent chatEvent)
         {
+            var db = _db;
             return chatEvent.ChatEventType switch
             {
-                ChatEventType.ChatMessage => _db.ChatEventAnnouncements.Find(chatEvent.EventId),
-                // ChatEventType.Ban => _db.ChatEventBans.Find(chatEvent.EventId),
-                // ChatEventType.Timeout => _db.ChatEventTimeouts.Find(chatEvent.EventId),
+                ChatEventType.Announcement => FindWithChatUserNoticeBase(db.ChatEventAnnouncements.Find(chatEvent.EventId)),
+                ChatEventType.AnonGiftPaidUpgrade => FindWithChatUserNoticeBase(db.ChatEventAnonGiftPaidUpgrades.Find(chatEvent.EventId)),
+                ChatEventType.BitsBadgeTier => FindWithChatUserNoticeBase(db.ChatEventBitsBadgeTiers.Find(chatEvent.EventId)),
+                ChatEventType.ChatMessage => db.ChatEventChatMessages.Find(chatEvent.EventId),
+                ChatEventType.CommunityPayForward => FindWithChatUserNoticeBase(db.ChatEventCommunityPayForwards.Find(chatEvent.EventId)),
+                ChatEventType.CommunitySubscription => FindWithChatUserNoticeBase(db.ChatEventCommunitySubscriptions.Find(chatEvent.EventId)),
+                ChatEventType.ContinuedGiftedSubscription => FindWithChatUserNoticeBase(db.ChatEventContinuedGiftedSubscriptions.Find(chatEvent.EventId)),
+                ChatEventType.GiftedSubscription => FindWithChatUserNoticeBase(db.ChatEventGiftedSubscriptions.Find(chatEvent.EventId)),
+                ChatEventType.MessageCleared => db.ChatEventMessageCleareds.Find(chatEvent.EventId),
+                ChatEventType.NewSubscriber => FindWithChatUserNoticeBase(db.ChatEventNewSubscribers.Find(chatEvent.EventId)),
+                ChatEventType.PrimePaidSubscriber => FindWithChatUserNoticeBase(db.ChatEventPrimePaidSubscribers.Find(chatEvent.EventId)),
+                ChatEventType.ReSubscriber => FindWithChatUserNoticeBase(db.ChatEventReSubscribers.Find(chatEvent.EventId)),
+                ChatEventType.Ritual => FindWithChatUserNoticeBase(db.ChatEventRituals.Find(chatEvent.EventId)),
+                ChatEventType.StandardPayForward => FindWithChatUserNoticeBase(db.ChatEventStandardPayForwards.Find(chatEvent.EventId)),
+                ChatEventType.UserBanned => db.ChatEventUserBanneds.Find(chatEvent.EventId),
+                ChatEventType.UserJoined => db.ChatEventUserJoineds.Find(chatEvent.EventId),
+                ChatEventType.UserLeft => db.ChatEventUserLefts.Find(chatEvent.EventId),
+                ChatEventType.UserTimedout => db.ChatEventUserTimedouts.Find(chatEvent.EventId),
                 _ => null, // not implemented yet - skip rather than crash
             };
+        }
+
+        private object FindWithChatUserNoticeBase(ModelWithUserNoticeBase? mwunb)
+        {
+            if(mwunb == null)
+            {
+                throw new ArgumentException();
+            }
+            var db = _db;
+            var cunb = db.ChatUserNoticeBases.Find(mwunb.ChatUserNoticeBaseId);
+            if(cunb == null)
+            {
+                throw new InvalidDataException();
+            }
+            return Util.MergeObjects(cunb, mwunb);
         }
     }
 }

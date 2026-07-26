@@ -1,11 +1,11 @@
-import type { EventEnvelope, ChatMessageData } from "../types";
+import type { FrontEndEventData, ChatMessageData } from "../types";
 
 type ChatMessageItemProps = {
-    event: EventEnvelope<ChatMessageData>;
+    event: FrontEndEventData<ChatMessageData>;
 };
 
 function ChatMessageItem({ event }: ChatMessageItemProps) {
-    const message = event.data;
+    const message = event.chatEventData;
 
     return (
         <div className="chat-message">

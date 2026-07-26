@@ -35,8 +35,8 @@ function FiltersPage() {
             await updateFilter(editingId, name, code);
         } else {
             await createFilter(name, code);
+            startNew(); // only reset to blank after creating something new, not after editing
         }
-        startNew();
         await refresh();
     }
 
@@ -85,6 +85,7 @@ function FiltersPage() {
 
                 <div>
                     <button type="submit">{editingId ? "Save" : "Create"}</button>
+                    <button type="button" onClick={startNew}>+ New Filter</button>
                     {editingId && <button type="button" onClick={startNew}>Cancel</button>}
                 </div>
             </form>

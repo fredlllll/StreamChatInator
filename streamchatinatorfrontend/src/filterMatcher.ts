@@ -1,8 +1,10 @@
-export function compileFilter(code: string): (eventType: string, eventData: unknown) => boolean {
-    const fn = new Function("eventType", "eventData", code) as (eventType: string, eventData: unknown) => boolean;
-    return (eventType, eventData) => {
+import type { FrontEndEventData } from "./types";
+
+export function compileFilter(code: string): (eventData: FrontEndEventData) => boolean {
+    const fn = new Function("eventData", code) as (eventData: FrontEndEventData) => boolean;
+    return (eventData) => {
         try {
-            return !!fn(eventType, eventData);
+            return !!fn(eventData);
         } catch (err) {
             console.error("Filter code threw an error:", err);
             return false;

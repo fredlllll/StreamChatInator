@@ -2,11 +2,11 @@ import { useEffect, useState, useMemo } from "react";
 import { useChatConnection } from "./useChatConnection";
 import { getFilterById, getFilterHistory } from "./api/filtersApi";
 import { compileFilter } from "./filterMatcher";
-import type { EventEnvelope, EventFilter } from "./types";
+import type { FrontEndEventData, EventFilter } from "./types";
 
 export function useFilteredEvents(filterId: string | undefined) {
     const [filter, setFilter] = useState<EventFilter | null>(null);
-    const [history, setHistory] = useState<EventEnvelope[]>([]);
+    const [history, setHistory] = useState<FrontEndEventData[]>([]);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
     const { events: liveEvents, connectedAt } = useChatConnection();
@@ -37,7 +37,7 @@ export function useFilteredEvents(filterId: string | undefined) {
         () => (filter ? compileFilter(filter.code) : null),
         [filter?.code]
     );
-    const filteredLive = matcher ? liveEvents.filter((e) => matcher(e.type, e.data)) : [];
+    const filteredLive = matcher ? liveEvents.filter((e) => matcher(e)) : [];
     const allEvents = [...history, ...filteredLive];
 
     return { filter, allEvents, hasMore, loadOlder };

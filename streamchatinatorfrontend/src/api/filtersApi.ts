@@ -1,4 +1,4 @@
-import type { EventFilter, EventEnvelope } from "../types";
+import type { EventFilter, FrontEndEventData } from "../types";
 
 const BASE_URL = "/api/filters";
 
@@ -39,7 +39,7 @@ export async function getFilterById(id: string): Promise<EventFilter> {
 }
 
 export interface HistoryResponse {
-    events: EventEnvelope[];
+    events: FrontEndEventData[];
     nextCursor: string;
     hasMore: boolean;
 }
