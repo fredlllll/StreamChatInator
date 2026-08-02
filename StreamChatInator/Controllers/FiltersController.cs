@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
+using System.Text.Json;
 
 namespace StreamChatInator.Controllers
 {
@@ -9,10 +10,12 @@ namespace StreamChatInator.Controllers
     public class FiltersController : ControllerBase
     {
         private readonly DatabaseContext _db;
+        private readonly ILogger<FiltersController> _logger;
 
-        public FiltersController(DatabaseContext db)
+        public FiltersController(DatabaseContext db, ILogger<FiltersController> logger)
         {
             _db = db;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -112,9 +115,13 @@ namespace StreamChatInator.Controllers
                     scanCursor = chatEvent.Created;
 
                     var eventData = LoadEventData(chatEvent);
-                    if (eventData == null) continue; // event type not implemented yet
+                    if (eventData == null)
+                    {
+                        _logger.LogWarning("event type not implemented yet: " + chatEvent.ChatEventType);
+                        continue; // event type not implemented yet
+                    }
 
-                    var frontendData = new FrontEndEventData() { EventId = chatEvent.EventId , ChatEventType = chatEvent.ChatEventType,ChatEventData = eventData};
+                    var frontendData = new FrontEndEventData() { EventId = chatEvent.EventId, ChatEventType = chatEvent.ChatEventType, ChatEventData = eventData };
                     if (evaluator.Matches(frontendData))
                     {
                         matches.Add(frontendData);
@@ -158,17 +165,17 @@ namespace StreamChatInator.Controllers
 
         private object FindWithChatUserNoticeBase(ModelWithUserNoticeBase? mwunb)
         {
-            if(mwunb == null)
+            if (mwunb == null)
             {
                 throw new ArgumentException();
             }
             var db = _db;
             var cunb = db.ChatUserNoticeBases.Find(mwunb.ChatUserNoticeBaseId);
-            if(cunb == null)
+            if (cunb == null)
             {
                 throw new InvalidDataException();
             }
-            return Util.MergeObjects(cunb, mwunb);
+            return Util.MergeObjects(JsonNamingPolicy.CamelCase, cunb, mwunb);
         }
     }
 }

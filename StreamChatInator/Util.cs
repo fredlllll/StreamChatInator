@@ -1,13 +1,14 @@
 ﻿using StreamChatInator.Database.Models;
+using System.Text.Json;
 using TwitchLib.Client.Enums;
 
 namespace StreamChatInator
 {
     public static class Util
     {
-        public static async Task RetryAsync(Func<bool>method,int tries, int delay=500, bool useExponentialBackoff=false, int maxDelay = 5000)
+        public static async Task RetryAsync(Func<bool> method, int tries, int delay = 500, bool useExponentialBackoff = false, int maxDelay = 5000)
         {
-            while(tries-- > 0)
+            while (tries-- > 0)
             {
                 if (method())
                 {
@@ -17,7 +18,7 @@ namespace StreamChatInator
                 if (useExponentialBackoff)
                 {
                     delay *= 2;
-                    if(delay > maxDelay)
+                    if (delay > maxDelay)
                     {
                         delay = maxDelay;
                         useExponentialBackoff = false;
@@ -50,13 +51,17 @@ namespace StreamChatInator
             .ToArray();
         }
 
-        public static dynamic MergeObjects(params object[] objects)
+        public static dynamic MergeObjects(JsonNamingPolicy? namingPolicy = null, params object[] objects)
         {
             // Merge public properties/fields and dictionary entries from multiple objects
             // into a single ExpandoObject. Later objects overwrite earlier values for the same key.
             if (objects is null)
             {
                 throw new ArgumentNullException(nameof(objects));
+            }
+            if (namingPolicy == null)
+            {
+                namingPolicy = new JsonNoChangeNamingPolicy();
             }
 
             var result = new System.Dynamic.ExpandoObject();
@@ -72,7 +77,8 @@ namespace StreamChatInator
                 {
                     foreach (var kvp in genDict)
                     {
-                        resultDict[kvp.Key] = kvp.Value;
+                        var name = namingPolicy.ConvertName(kvp.Key);
+                        resultDict[name] = kvp.Value;
                     }
 
                     continue;
@@ -84,6 +90,7 @@ namespace StreamChatInator
                     foreach (System.Collections.DictionaryEntry entry in dict)
                     {
                         var key = entry.Key?.ToString() ?? string.Empty;
+                        key = namingPolicy.ConvertName(key);
                         resultDict[key] = entry.Value;
                     }
 
@@ -103,7 +110,7 @@ namespace StreamChatInator
                     if (prop.GetIndexParameters().Length > 0)
                         continue; // skip indexers
 
-                    var name = prop.Name;
+                    var name = namingPolicy.ConvertName(prop.Name);
                     var value = prop.GetValue(obj);
                     resultDict[name] = value;
                 }
@@ -112,7 +119,7 @@ namespace StreamChatInator
                 var fields = type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
                 foreach (var field in fields)
                 {
-                    var name = field.Name;
+                    var name = namingPolicy.ConvertName(field.Name);
                     var value = field.GetValue(obj);
                     resultDict[name] = value;
                 }
@@ -137,7 +144,7 @@ namespace StreamChatInator
             {
                 EventId = chatEvent.Id,
                 ChatEventType = chatEvent.ChatEventType,
-                ChatEventData =  MergeObjects(eventSubData, eventData)
+                ChatEventData = MergeObjects(JsonNamingPolicy.CamelCase, eventSubData, eventData)
             };
         }
     }
