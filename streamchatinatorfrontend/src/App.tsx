@@ -2,6 +2,7 @@ import { Routes, Route, Link, Navigate } from "react-router-dom";
 import FiltersPage from "./pages/FiltersPage";
 import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
+import ConnectionIndicator from "./components/ConnectionIndicator";
 import "./App.css";
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
                 {" | "}
                 <Link to="/dashboard">Dashboard</Link>
                 {" | "}
-                <Link to="/api/auth/login">Twitch Login</Link>
+                <Link to="/api/auth/login" reloadDocument>Twitch Login<ConnectionIndicator/></Link>
             </nav>
 
             <Routes>
