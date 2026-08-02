@@ -4,6 +4,7 @@ import type { FrontEndEventData } from "./types";
 
 export function useChatConnection() {
     const [events, setEvents] = useState<FrontEndEventData[]>([]);
+    const [connected, setConnected] = useState<boolean>(true);
     const [connectedAt, setConnectedAt] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -16,6 +17,13 @@ export function useChatConnection() {
             setEvents((prev) => [...prev, envelope]);
         });
 
+        connection.on("Connection", () => {
+            setConnected(true);
+        });
+        connection.on("NoConnection", () => {
+            setConnected(false);
+        });
+
         connection
             .start()
             .then(() => setConnectedAt(new Date()))
@@ -26,5 +34,5 @@ export function useChatConnection() {
         };
     }, []); // empty array = connect once, when this hook's component mounts
 
-    return { events, connectedAt };
+    return { events, connected, connectedAt };
 }

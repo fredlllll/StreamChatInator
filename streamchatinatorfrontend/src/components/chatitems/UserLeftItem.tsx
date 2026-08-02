@@ -9,7 +9,7 @@ function UserLeftItem({ event }: UserLeftItemProps) {
 
     return (
         <div className="chat-message">
-            <span className="text">{JSON.stringify(message)}</span>
+            <span className="text">SYSTEM: User {message.username} left</span>
         </div>
     );
 }

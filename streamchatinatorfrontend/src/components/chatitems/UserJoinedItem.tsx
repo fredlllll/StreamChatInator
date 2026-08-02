@@ -9,7 +9,7 @@ function UserJoinedItem({ event }: UserJoinedItemProps) {
 
     return (
         <div className="chat-message">
-            <span className="text">{JSON.stringify(message)}</span>
+            <span className="text">SYSTEM: User {message.username} joined</span>
         </div>
     );
 }
