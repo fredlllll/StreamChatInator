@@ -98,7 +98,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.AnonGiftPaidUpgrade);
                 var eventData = ChatEventAnonGiftPaidUpgrade.FromAnonGiftPaidUpgrade(e.AnonGiftPaidUpgrade, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.AnonGiftPaidUpgrade, eventData, cunb);
             }
         }
 
@@ -112,7 +112,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.BitsBadgeTier);
                 var eventData = ChatEventBitsBadgeTier.FromBitsBadgeTier(e.BitsBadgeTier, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.BitsBadgeTier, eventData, cunb);
             }
         }
 
@@ -126,7 +126,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.CommunityPayForward);
                 var eventData = ChatEventCommunityPayForward.FromBitsBadgeTier(e.CommunityPayForward, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.CommunityPayForward, eventData, cunb);
             }
         }
 
@@ -140,7 +140,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.GiftedSubscription);
                 var eventData = ChatEventCommunitySubscription.FromCommunitySubscription(e.GiftedSubscription, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.CommunitySubscription, eventData, cunb);
             }
         }
 
@@ -154,7 +154,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.ContinuedGiftedSubscription);
                 var eventData = ChatEventContinuedGiftedSubscription.FromContinuedGiftedSubscription(e.ContinuedGiftedSubscription, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.ContinuedGiftedSubscription, eventData, cunb);
             }
         }
 
@@ -168,7 +168,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.GiftedSubscription);
                 var eventData = ChatEventGiftedSubscription.FromGiftedSubscription(e.GiftedSubscription, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.GiftedSubscription, eventData, cunb);
             }
         }
 
@@ -182,7 +182,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Subscriber);
                 var eventData = ChatEventNewSubscriber.FromNewSubscriber(e.Subscriber, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.NewSubscriber, eventData, cunb);
             }
         }
 
@@ -195,7 +195,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventMessageCleared.FromMessageCleared(e);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData);
+                await EndEventHandler(db, ChatEventType.MessageCleared, eventData);
             }
         }
 
@@ -209,7 +209,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.PrimePaidSubscriber);
                 var eventData = ChatEventPrimePaidSubscriber.FromPrimePaidSubscriber(e.PrimePaidSubscriber, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.PrimePaidSubscriber, eventData, cunb);
             }
         }
 
@@ -223,7 +223,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.ReSubscriber);
                 var eventData = ChatEventReSubscriber.FromReSubscriber(e.ReSubscriber, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.ReSubscriber, eventData, cunb);
             }
         }
 
@@ -237,7 +237,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Ritual);
                 var eventData = ChatEventRitual.FromRitual(e.Ritual, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.Ritual, eventData, cunb);
             }
         }
 
@@ -251,7 +251,7 @@ namespace StreamChatInator
                 var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.StandardPayForward);
                 var eventData = ChatEventStandardPayForward.FromStandardPayForward(e.StandardPayForward, cunb.Id);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
+                await EndEventHandler(db, ChatEventType.StandardPayForward, eventData, cunb);
             }
         }
 
@@ -264,7 +264,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserBanned.FromUserBanned(e.UserBan);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData);
+                await EndEventHandler(db, ChatEventType.UserBanned, eventData);
             }
         }
 
@@ -277,7 +277,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserJoined.FromUserJoined(e);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData);
+                await EndEventHandler(db, ChatEventType.UserJoined, eventData);
             }
         }
 
@@ -290,7 +290,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserLeft.FromUserLeft(e);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData);
+                await EndEventHandler(db, ChatEventType.UserLeft, eventData);
             }
         }
 
@@ -303,7 +303,7 @@ namespace StreamChatInator
 
                 var eventData = ChatEventUserTimedout.FromUserTimedout(e.UserTimeout);
 
-                await EndEventHandler(db, ChatEventType.Announcement, eventData);
+                await EndEventHandler(db, ChatEventType.UserTimedout, eventData);
             }
         }
 
@@ -359,15 +359,14 @@ namespace StreamChatInator
         async Task Client_OnConnected(object? sender, OnConnectedEventArgs e)
         {
             _logger.LogInformation("twitch client connected as " + e.BotUsername);
-            await _client.JoinChannelAsync(_userName);
+            // await _client.JoinChannelAsync(_userName);
+            await _client.JoinChannelAsync("staceylucia");
         }
 
         private async Task Client_OnJoinedChannel(object? sender, OnJoinedChannelArgs e)
         {
             _logger.LogInformation("twitch client joined channel " + e.Channel + " as " + e.BotUsername);
         }
-
-
 
         async Task Client_OnChatCommandReceived(object? sender, OnChatCommandReceivedArgs e)
         {
