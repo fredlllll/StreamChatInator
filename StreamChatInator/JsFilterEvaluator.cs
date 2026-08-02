@@ -12,7 +12,7 @@ namespace StreamChatInator
         public JsFilterEvaluator(string code)
         {
             _engine = new Engine();
-            _engine.Execute($"function __matches(eventType, eventData) {{ {code} }}");
+            _engine.Execute($"function __matches(eventData) {{ {code} }}");
         }
 
         public bool Matches(FrontEndEventData eventData)
@@ -23,7 +23,7 @@ namespace StreamChatInator
 
             try
             {
-                return _engine.Evaluate("__matches(__eventType, __eventData)").AsBoolean();
+                return _engine.Evaluate("__matches(__eventData)").AsBoolean();
             }
             catch
             {
