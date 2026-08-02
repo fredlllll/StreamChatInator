@@ -1,4 +1,4 @@
-import type { FrontEndEventData, ChatMessageData } from "../types";
+import type { FrontEndEventData, ChatMessageData } from "../../types";
 
 type ChatMessageItemProps = {
     event: FrontEndEventData<ChatMessageData>;
