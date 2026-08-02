@@ -115,6 +115,14 @@ namespace StreamChatInator.Database.Models
         /// </summary>
         public string[] UserFlagsNames => Util.FlagEnumNames(UserFlags);
 
+
+        /// <summary>
+        /// User type can be viewer, moderator, global mod, admin, or staff
+        /// </summary>
+        public required UserType UserType { get; set; }
+
+        public string UserTypeName { get { return UserType.ToString(); } }
+
         public static ChatEventChatMessage FromChatMessage(ChatMessage msg)
         {
             var chatMessage = new ChatEventChatMessage()
@@ -139,6 +147,7 @@ namespace StreamChatInator.Database.Models
                 UserId = msg.UserId,
                 Username = msg.Username,
                 UserFlags = Util.GetPrivateFieldNotNull<UserDetails>(msg.UserDetail, "_flags"),
+                UserType = msg.UserType,
                 HexColor = msg.HexColor,
             };
 

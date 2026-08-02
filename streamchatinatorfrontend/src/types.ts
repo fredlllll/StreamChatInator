@@ -46,6 +46,7 @@ export interface ChatMessageData extends Model {
     isBroadcaster: boolean;
     tmiSent: string; // ISO date string - we'll parse it when we need to display it
     userFlagNames: UserFlagName[];
+    userTypeName: UserTypeName;
 }
 
 export interface ChatUserNoticeBase extends Model {
