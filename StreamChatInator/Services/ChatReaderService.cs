@@ -1,10 +1,13 @@
-﻿using StreamChatInator.Database;
+﻿using Microsoft.AspNetCore.SignalR;
+using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
+using StreamChatInator.Hubs;
 using System.Threading.Channels;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Interfaces;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace StreamChatInator.Services
 {
@@ -26,6 +29,7 @@ namespace StreamChatInator.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                var hub = scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
 
                 try
                 {
@@ -36,11 +40,14 @@ namespace StreamChatInator.Services
 
                     var reader = new ChatReader(channelName,oauthToken, _scopeFactory);
                     await reader.ConnectAsync();
+                    await hub.Clients.All.SendAsync("Connection");
                     await reader.Run(stoppingToken);
+                    await hub.Clients.All.SendAsync("NoConnection");
                 }
                 catch(Exception ex)
                 {
                     _logger.LogWarning("could not create chat reader");
+                    await hub.Clients.All.SendAsync("NoConnection");
                 }
                 finally
                 {
