@@ -16,16 +16,14 @@ namespace StreamChatInator.Database.Models
         public required double BitsInDollars { get; set; }
 
         /// <summary>
+        /// the emote set string of this message
+        /// </summary>
+        public required string? Emotes { get; set; }
+
+        /// <summary>
         /// If a custom reward is present with the message, the ID will be set (null by default)
         /// </summary>
         public required string? CustomRewardId { get; set; }
-
-        /// <summary>
-        /// Text after emotes have been handled (if desired). Will be null if replaceEmotes is false.
-        /// </summary>
-        public required string? EmoteReplacedMessage { get; set; }
-
-        public bool HasEmotes { get { return EmoteReplacedMessage != null; } }
 
         /// <summary>
         /// Unique message identifier assigned by Twitch
@@ -129,10 +127,10 @@ namespace StreamChatInator.Database.Models
             {
                 Id = GetNewId<ChatEventChatMessage>(),
                 Bits = msg.Bits,
+                Emotes = msg.EmoteSet.RawEmoteSetString,
                 BitsInDollars = msg.BitsInDollars,
                 CustomRewardId = msg.CustomRewardId,
                 Message = msg.Message,
-                EmoteReplacedMessage = msg.EmoteReplacedMessage,
                 IsBroadcaster = msg.IsBroadcaster,
                 IsFirstMessage = msg.IsFirstMessage,
                 IsHighlighted = msg.IsHighlighted,

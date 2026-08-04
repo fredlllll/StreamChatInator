@@ -25,9 +25,8 @@ export interface FrontEndEventData<T = unknown> {
 export interface ChatMessageData extends Model {
     bits: int;
     bitsInDollars: float;
+    emotes: string | null;
     customRewardId: string | null;
-    emoteReplacedMessage: string | null;
-    hasEmotes: boolean;
     twitchMessageId: string;
     isFirstMessage: boolean;
     isHighlighted: boolean;
@@ -45,7 +44,7 @@ export interface ChatMessageData extends Model {
     hexColor: string;
     isBroadcaster: boolean;
     tmiSent: string; // ISO date string - we'll parse it when we need to display it
-    userFlagNames: UserFlagName[];
+    userFlagsNames: UserFlagName[];
     userTypeName: UserTypeName;
 }
 
@@ -60,14 +59,13 @@ export interface ChatUserNoticeBase extends Model {
     systemMsg: string;
     tmiSent: string;
     userFlags: int;
-    userFlagNames: UserFlagName[];
+    userFlagsNames: UserFlagName[];
     userId: string;
     userType: int;
     userTypeName: UserTypeName;
 }
 
 export interface ChatEventAnnouncement extends ChatUserNoticeBase {
-
     msgParamColor: string;
     message: string;
 }

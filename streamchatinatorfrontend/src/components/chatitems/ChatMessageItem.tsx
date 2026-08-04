@@ -1,4 +1,6 @@
 import type { FrontEndEventData, ChatMessageData } from "../../types";
+import ChatBadges from "../ChatBadges";
+import EmoteReplacedMessage from "../EmoteReplacedMessage";
 
 type ChatMessageItemProps = {
     event: FrontEndEventData<ChatMessageData>;
@@ -6,15 +8,14 @@ type ChatMessageItemProps = {
 
 function ChatMessageItem({ event }: ChatMessageItemProps) {
     const message = event.chatEventData;
-
     return (
         <div className="chat-message">
-            {message.isBroadcaster && <span className="badge">STREAMER</span>}
+            <ChatBadges event={event} />
             <span className="username" style={{ color: message.hexColor || "#888" }}>
                 {message.displayName}
             </span>
             <span className="colon">: </span>
-            <span className="text">{message.message}</span>
+            <EmoteReplacedMessage emotes={message.emotes} text={message.message} />
         </div>
     );
 }

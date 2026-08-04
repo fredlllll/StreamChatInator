@@ -2,12 +2,6 @@
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Hubs;
-using System.Threading.Channels;
-using TwitchLib.Client;
-using TwitchLib.Client.Events;
-using TwitchLib.Client.Models;
-using TwitchLib.Communication.Interfaces;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace StreamChatInator.Services
 {
@@ -44,7 +38,7 @@ namespace StreamChatInator.Services
                     await reader.Run(stoppingToken);
                     await hub.Clients.All.SendAsync("NoConnection");
                 }
-                catch(Exception ex)
+                catch(Exception)
                 {
                     _logger.LogWarning("could not create chat reader");
                     await hub.Clients.All.SendAsync("NoConnection");

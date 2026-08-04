@@ -32,9 +32,6 @@ namespace StreamChatInator
             var credentials = new ConnectionCredentials(userName, oauthToken);
             _client = new TwitchClient(loggerFactory: loggerFactory);
             _client.Initialize(credentials);
-            _client.WillReplaceEmotes = true;
-            _client.ReplacedEmotesPrefix = "[[";
-            _client.ReplacedEmotesSuffix = "]]";
 
             _client.OnConnected += Client_OnConnected;
             _client.OnJoinedChannel += Client_OnJoinedChannel;
@@ -366,6 +363,8 @@ namespace StreamChatInator
         private async Task Client_OnJoinedChannel(object? sender, OnJoinedChannelArgs e)
         {
             _logger.LogInformation("twitch client joined channel " + e.Channel + " as " + e.BotUsername);
+
+            //TODO: globally set the channel id so frontend can receive it for emote stuff
         }
 
         async Task Client_OnChatCommandReceived(object? sender, OnChatCommandReceivedArgs e)

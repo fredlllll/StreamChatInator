@@ -188,6 +188,14 @@
     font-family: sans-serif;
 }
 
+.announcement {
+    border: 1em seagreen solid;
+}
+
+.system-message {
+    background-color: lightgray;
+}
+
 .badge {
     background: #9147ff;
     color: white;

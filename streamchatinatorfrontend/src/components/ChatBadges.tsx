@@ -1,12 +1,12 @@
 import type { FrontEndEventData, UserFlagName, UserTypeName } from "../types";
 
-type AnnouncementItemProps = {
+type ChatBadgesItemProps = {
     event: FrontEndEventData<any>;
 };
 
-function ChatBadges({ event }: AnnouncementItemProps) {
+function ChatBadges({ event }: ChatBadgesItemProps) {
     const data = event.chatEventData;
-    const userFlagNames: UserFlagName[] | undefined = data.userFlagNames;
+    const userFlagsNames: UserFlagName[] | undefined = data.userFlagsNames;
     const userTypeName: UserTypeName | undefined = data.userTypeName;
 
     let isBroadcaster = false;
@@ -20,22 +20,23 @@ function ChatBadges({ event }: AnnouncementItemProps) {
         isBroadcaster = userTypeName.includes("Broadcaster");
         isModerator = userTypeName.includes("Moderator");
     }
-    else if (userFlagNames) {
-        isSubscriber = userFlagNames.includes("Subscriber") || data.isSubscriber;
-        isVip = userFlagNames.includes("Vip");
-        isPartner = userFlagNames.includes("Partner");
-        isTurbo = userFlagNames.includes("Turbo");
+    if (userFlagsNames) {
+        isModerator ||= userFlagsNames.includes("Moderator");
+        isSubscriber = userFlagsNames.includes("Subscriber") || data.isSubscriber;
+        isVip = userFlagsNames.includes("Vip");
+        isPartner = userFlagsNames.includes("Partner");
+        isTurbo = userFlagsNames.includes("Turbo");
     }
 
     return (
-        <div>
+        <span>
             {isBroadcaster && <span className="badge"> STREAMER </span>}
             {isModerator && <span className="badge"> Mod </span>}
             {isSubscriber && <span className="badge"> Sub </span>}
             {isVip && <span className="badge"> Vip </span>}
             {isPartner && <span className="badge"> Partner </span>}
             {isTurbo && <span className="badge"> Turbo </span>}
-        </div>
+        </span>
     );
 }
 
