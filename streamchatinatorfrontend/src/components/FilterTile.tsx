@@ -11,7 +11,13 @@ function FilterTile({ filterId }: FilterTileProps) {
     return (
         <div className="filter-tile">
             <h3>{filter ? filter.name : "..."}</h3>
-            <ChatEventList events={allEvents} onStartReached={hasMore ? loadOlder : undefined} />
+            <div className="filter-tile-list">
+                <ChatEventList
+                    style={{ height: "100%" }}
+                    events={allEvents}
+                    onStartReached={hasMore ? loadOlder : undefined}
+                />
+            </div>
         </div>
     );
 }

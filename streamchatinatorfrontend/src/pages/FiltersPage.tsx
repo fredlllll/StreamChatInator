@@ -55,6 +55,7 @@ function FiltersPage() {
                     <li key={f.id}>
                         {f.name}
                         <Link to={`/view/${f.id}`}>View</Link>
+                        <Link to={`/dashboard?add=${f.id}`}>Dock</Link>
                         <button type="button" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/view/${f.id}`)} >
                             Copy link
                         </button>
