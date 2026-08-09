@@ -8,7 +8,6 @@ type AnnouncementItemProps = {
 
 function AnnouncementItem({ event }: AnnouncementItemProps) {
     const message = event.chatEventData;
-    console.log(message.emotes);
     return (
         <div className="chat-message announcement" style={{ "borderColor": message.msgParamColor }}>
             <span className="badge">Announcement</span>
