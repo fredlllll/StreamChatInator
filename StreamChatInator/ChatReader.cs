@@ -20,6 +20,7 @@ namespace StreamChatInator
         private readonly ILogger<ChatReader> _logger;
         private readonly IHubContext<ChatHub> _hub;
         private readonly ChatHubData _hubData;
+        private string? _currentChannelId;
 
         public ChatReader(string userName, string oauthToken, IServiceScopeFactory scopeFactory)
         {
@@ -37,6 +38,7 @@ namespace StreamChatInator
 
             _client.OnConnected += Client_OnConnected;
             _client.OnJoinedChannel += Client_OnJoinedChannel;
+            _client.OnUserStateChanged += Client_OnUserStateChanged;
             _client.OnChatCommandReceived += Client_OnChatCommandReceived;
 
             _client.OnMessageReceived += Client_OnMessageReceived;
@@ -61,6 +63,8 @@ namespace StreamChatInator
 
         private async Task Client_OnMessageReceived(object? sender, OnMessageReceivedArgs e)
         {
+            PublishChannelId(e.ChatMessage.RoomId);
+
             if (tracking)
             {
                 //create new scope and context every time so messages dont float around in memory for the entire runtime of the application
@@ -362,11 +366,32 @@ namespace StreamChatInator
             //await _client.JoinChannelAsync("staceylucia");
         }
 
+        private async Task Client_OnUserStateChanged(object? sender, OnUserStateChangedArgs e)
+        {
+            // USERSTATE is sent right after joining and carries the numeric room id.
+            string? roomId = null;
+            if (e.UserState.UndocumentedTags is IDictionary<string, string> tags
+                && tags.TryGetValue("room-id", out var value))
+            {
+                roomId = value;
+            }
+            PublishChannelId(roomId);
+        }
+
+        /// <summary>
+        /// Broadcasts the numeric Twitch channel id to the frontend, but only when it changes,
+        /// so we don't spam every chat message through the hub.
+        /// </summary>
+        private void PublishChannelId(string? channelId)
+        {
+            if (string.IsNullOrEmpty(channelId) || channelId == _currentChannelId) return;
+            _currentChannelId = channelId;
+            _hubData.ChannelId.Post(channelId);
+        }
+
         private async Task Client_OnJoinedChannel(object? sender, OnJoinedChannelArgs e)
         {
             _logger.LogInformation("twitch client joined channel " + e.Channel + " as " + e.BotUsername);
-
-            _hubData.ChannelId.Post(e.Channel); //channel id will be sent to frontend
         }
 
         async Task Client_OnChatCommandReceived(object? sender, OnChatCommandReceivedArgs e)
