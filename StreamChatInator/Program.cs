@@ -20,6 +20,13 @@ namespace StreamChatInator
             builder.Services.AddControllers();
             builder.Services.AddHostedService<ChatReaderService>();
             builder.Services.AddSingleton<ChatHubData>();
+            builder.Services.AddSingleton<EmoteProviderService>();
+            builder.Services.AddMemoryCache();
+            builder.Services.AddHttpClient("emotes", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
+            });
             builder.Services.AddSignalR();
             builder.Services.AddCors(options => {
                 options.AddPolicy("AllowReact", builder =>

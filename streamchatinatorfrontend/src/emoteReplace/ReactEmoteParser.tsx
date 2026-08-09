@@ -1,28 +1,31 @@
 import type { ReactNode } from "react";
-import type { EmoteFetcher } from "./EmoteFetcher";
 
+/**
+ * Replaces emote codes in a plain-text segment with image tags, using
+ * a code -> CDN url map produced by the backend EmoteProviderService.
+ */
 export class ReactEmoteParser {
-    public fetcher: EmoteFetcher;
+    private readonly emotes: ReadonlyMap<string, string>;
 
-    public constructor(fetcher: EmoteFetcher) {
-        this.fetcher = fetcher;
+    public constructor(emotes: ReadonlyMap<string, string> = new Map()) {
+        this.emotes = emotes;
     }
 
     public parse(text: string): ReactNode[] {
         const tokens = text.split(/(\s+)/);
 
         return tokens.map((token, index) => {
-            const emote = this.fetcher.emotes.get(token);
-            if (!emote) {
+            const url = this.emotes.get(token);
+            if (!url) {
                 return token;
             }
 
             return (
                 <img
-                    key={emote.id}
-                    src={(emote as any).toLink(0)} //because toLink is not in the d.ts files of the library
-                    alt={emote.code}
-                    title={emote.code}
+                    key={`${token}-${index}`}
+                    src={url}
+                    alt={token}
+                    title={token}
                     className="inline-emote"
                 />
             );

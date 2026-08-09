@@ -109,3 +109,10 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+img.inline-emote {
+  height: 1.2em;
+  width: auto;
+  vertical-align: middle;
+  margin: 0 1px;
+}
