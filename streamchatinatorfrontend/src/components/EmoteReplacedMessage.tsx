@@ -75,60 +75,49 @@ type EmoteReplacedMessageProps = {
     text:string,
 };
 function EmoteReplacedMessage({ emotes, text }: EmoteReplacedMessageProps) {
-    const emoteList = extractEmotes(emotes, text);
     const emoteParser: ReactEmoteParser = useEmoteParser();
 
-    if (!emoteList || emoteList.length === 0) {
-        return <span className="text">{text}</span>;
-    }
-
-    // Sort emotes linearly by start position to safely slice the string
-    const sortedEmotes = [...emoteList].sort((a, b) => a.startIndex - b.startIndex);
-
+    // Slice out native Twitch emotes by their positions first; the plain-text
+    // segments left in between go through the external (BTTV/7TV/FFZ) parser.
     const elements: React.ReactNode[] = [];
-    let lastIndex = 0;
+    const emoteList = extractEmotes(emotes, text).sort((a, b) => a.startIndex - b.startIndex);
 
-    sortedEmotes.forEach((emote) => {
-        // 1. Add plain text prior to the emote
+    let lastIndex = 0;
+    emoteList.forEach((emote) => {
         if (emote.startIndex > lastIndex) {
             elements.push(text.slice(lastIndex, emote.startIndex));
         }
 
-        // 2. Add the emote image
-        const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v1/${emote.id}/1.0`;
         elements.push(
             <img
-                key={`emote-${emote.id}-${emote.startIndex}`}
-                src={emoteUrl}
+                key={`twitch-${emote.id}-${emote.startIndex}`}
+                src={`https://static-cdn.jtvnw.net/emoticons/v1/${emote.id}/1.0`}
                 alt={emote.text}
                 title={emote.text} /* Displays native browser tooltip on hover */
                 className="inline-emote"
             />
         );
 
-        // 3. Move cursor past the end of the current emote
         lastIndex = emote.endIndex + 1;
     });
 
-    // 4. Append remaining text after the final emote
     if (lastIndex < text.length) {
         elements.push(text.slice(lastIndex));
     }
+    if (elements.length === 0) {
+        elements.push(text);
+    }
 
-    //TODO: use the external emotes here as we can still work with the bare string messages in between
-    const newElements: React.ReactNode[] = [];
+    const rendered: React.ReactNode[] = [];
     elements.forEach((value) => {
         if (isString(value)) {
-            var parsed = emoteParser.parse(value);
-            parsed.forEach((x) => {
-                newElements.push(x);
-            });
+            rendered.push(...emoteParser.parse(value));
         } else {
-            newElements.push(value);
+            rendered.push(value);
         }
     });
 
-    return <span className="text">{newElements}</span>;
+    return <span className="text">{rendered}</span>;
 }
 
 export default EmoteReplacedMessage;

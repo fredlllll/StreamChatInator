@@ -14,21 +14,38 @@ export class ReactEmoteParser {
     public parse(text: string): ReactNode[] {
         const tokens = text.split(/(\s+)/);
 
-        return tokens.map((token, index) => {
-            const url = this.emotes.get(token);
-            if (!url) {
-                return token;
+        return tokens.flatMap((token, index) => {
+            if (!token) return [token];
+
+            // Exact match first: covers codes that contain non-word characters.
+            if (this.emotes.has(token)) {
+                return [this.renderEmote(token, index)];
             }
 
-            return (
-                <img
-                    key={`${token}-${index}`}
-                    src={url}
-                    alt={token}
-                    title={token}
-                    className="inline-emote"
-                />
-            );
+            // Otherwise try to match a word part surrounded by punctuation,
+            // e.g. "PogChamp!" -> code "PogChamp", keeping the punctuation as text.
+            const match = token.match(/^([^\p{L}\p{N}_]*)([\p{L}\p{N}_]+)([^\p{L}\p{N}_]*)$/u);
+            if (match && this.emotes.has(match[2])) {
+                const nodes: ReactNode[] = [];
+                if (match[1]) nodes.push(match[1]);
+                nodes.push(this.renderEmote(match[2], index));
+                if (match[3]) nodes.push(match[3]);
+                return nodes;
+            }
+
+            return [token];
         });
+    }
+
+    private renderEmote(code: string, index: number): ReactNode {
+        return (
+            <img
+                key={`${code}-${index}`}
+                src={this.emotes.get(code)!}
+                alt={code}
+                title={code}
+                className="inline-emote"
+            />
+        );
     }
 }
