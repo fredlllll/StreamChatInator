@@ -121,7 +121,7 @@ namespace StreamChatInator.Controllers
                         continue; // event type not implemented yet
                     }
 
-                    var frontendData = new FrontEndEventData() { EventId = chatEvent.Id, ChatEventType = chatEvent.ChatEventType, ChatEventData = eventData };
+                    var frontendData = new FrontEndEventData() { EventId = chatEvent.Id, ChatEventType = chatEvent.ChatEventType, Seen = chatEvent.Seen, ChatEventData = eventData };
                     if (evaluator.Matches(frontendData))
                     {
                         matches.Add(frontendData);

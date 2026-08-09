@@ -134,6 +134,7 @@ namespace StreamChatInator
             {
                 EventId = chatEvent.Id,
                 ChatEventType = chatEvent.ChatEventType,
+                Seen = chatEvent.Seen,
                 ChatEventData = eventData
             };
         }
@@ -144,6 +145,7 @@ namespace StreamChatInator
             {
                 EventId = chatEvent.Id,
                 ChatEventType = chatEvent.ChatEventType,
+                Seen = chatEvent.Seen,
                 ChatEventData = MergeObjects(JsonNamingPolicy.CamelCase, eventSubData, eventData)
             };
         }

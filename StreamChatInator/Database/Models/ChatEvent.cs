@@ -49,5 +49,6 @@ namespace StreamChatInator.Database.Models
     {
         public required ChatEventType ChatEventType { get; set; }
         public required string EventId { get; set; }
+        public bool Seen { get; set; }
     }
 }

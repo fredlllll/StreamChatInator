@@ -188,6 +188,20 @@
     font-family: sans-serif;
 }
 
+.chat-event-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.chat-event-item .seen-toggle {
+    margin-top: 5px;
+}
+
+.chat-event-item.unseen .chat-message {
+    background: rgba(145, 71, 255, 0.15);
+}
+
 .announcement {
     border: 1em seagreen solid;
 }

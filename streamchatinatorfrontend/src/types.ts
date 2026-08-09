@@ -19,6 +19,7 @@ export interface EventFilter extends Model {
 export interface FrontEndEventData<T = unknown> {
     eventId: string;
     chatEventType: ChatEventType;
+    seen: boolean;
     chatEventData: T;
 }
 
