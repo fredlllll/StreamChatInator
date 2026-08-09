@@ -19,6 +19,7 @@ namespace StreamChatInator
         private readonly IServiceScope _scope;
         private readonly ILogger<ChatReader> _logger;
         private readonly IHubContext<ChatHub> _hub;
+        private readonly ChatHubData _hubData;
 
         public ChatReader(string userName, string oauthToken, IServiceScopeFactory scopeFactory)
         {
@@ -28,6 +29,7 @@ namespace StreamChatInator
             var loggerFactory = _scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
             _logger = loggerFactory.CreateLogger<ChatReader>();
             _hub = _scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
+            _hubData = _scope.ServiceProvider.GetRequiredService<ChatHubData>();
 
             var credentials = new ConnectionCredentials(userName, oauthToken);
             _client = new TwitchClient(loggerFactory: loggerFactory);
@@ -356,15 +358,15 @@ namespace StreamChatInator
         async Task Client_OnConnected(object? sender, OnConnectedEventArgs e)
         {
             _logger.LogInformation("twitch client connected as " + e.BotUsername);
-            // await _client.JoinChannelAsync(_userName);
-            await _client.JoinChannelAsync("staceylucia");
+            await _client.JoinChannelAsync(_userName);
+            //await _client.JoinChannelAsync("staceylucia");
         }
 
         private async Task Client_OnJoinedChannel(object? sender, OnJoinedChannelArgs e)
         {
             _logger.LogInformation("twitch client joined channel " + e.Channel + " as " + e.BotUsername);
 
-            //TODO: globally set the channel id so frontend can receive it for emote stuff
+            _hubData.ChannelId.Post(e.Channel); //channel id will be sent to frontend
         }
 
         async Task Client_OnChatCommandReceived(object? sender, OnChatCommandReceivedArgs e)

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useChatConnection } from "./useChatConnection";
+import { useChatConnection, type ChatContextType } from "./ChatContext";
 import { getFilterById, getFilterHistory } from "./api/filtersApi";
 import { compileFilter } from "./filterMatcher";
 import type { FrontEndEventData, EventFilter } from "./types";
@@ -9,7 +9,7 @@ export function useFilteredEvents(filterId: string | undefined) {
     const [history, setHistory] = useState<FrontEndEventData[]>([]);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
-    const { events: liveEvents, connectedAt } = useChatConnection();
+    const ctx: ChatContextType = useChatConnection();
 
     useEffect(() => {
         if (!filterId) return;
@@ -17,13 +17,13 @@ export function useFilteredEvents(filterId: string | undefined) {
     }, [filterId]);
 
     useEffect(() => {
-        if (!filter || !connectedAt) return;
-        getFilterHistory(filter.id, connectedAt.toISOString(), 50).then((res) => {
+        if (!filter || !ctx.connectedAt) return;
+        getFilterHistory(filter.id, ctx.connectedAt.toISOString(), 50).then((res) => {
             setHistory([...res.events].reverse());
             setNextCursor(res.nextCursor);
             setHasMore(res.hasMore);
         });
-    }, [filter, connectedAt]);
+    }, [filter, ctx.connectedAt]);
 
     async function loadOlder() {
         if (!filter || !nextCursor) return;
@@ -37,7 +37,7 @@ export function useFilteredEvents(filterId: string | undefined) {
         () => (filter ? compileFilter(filter.code) : null),
         [filter?.code]
     );
-    const filteredLive = matcher ? liveEvents.filter((e) => matcher(e)) : [];
+    const filteredLive = matcher ? ctx.events.filter((e) => matcher(e)) : [];
     const allEvents = [...history, ...filteredLive];
 
     return { filter, allEvents, hasMore, loadOlder };

@@ -1,9 +1,9 @@
-import { useChatConnection } from "../useChatConnection";
+import { useChatConnection, type ChatContextType  } from "../ChatContext";
 
 function ConnectionIndicator() {
-    const { events, connected, connectedAt } = useChatConnection();
+    const ctx: ChatContextType = useChatConnection();
     return (
-        <span>{!connected && "🔴"}{connected && "🟢"}</span>
+        <span>{!ctx.connected && "🔴"}{ctx.connected && "🟢"}</span>
   );
 }
 

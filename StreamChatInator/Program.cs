@@ -19,6 +19,7 @@ namespace StreamChatInator
             builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite($"Data Source=db.sqlite").ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
             builder.Services.AddControllers();
             builder.Services.AddHostedService<ChatReaderService>();
+            builder.Services.AddSingleton<ChatHubData>();
             builder.Services.AddSignalR();
             builder.Services.AddCors(options => {
                 options.AddPolicy("AllowReact", builder =>

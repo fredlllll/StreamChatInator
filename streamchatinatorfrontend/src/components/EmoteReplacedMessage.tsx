@@ -1,3 +1,8 @@
+import { useChatConnection, type ChatContextType } from "../ChatContext";
+import type { ReactEmoteParser } from "../emoteReplace/ReactEmoteParser";
+import { useEmoteParser } from "../useEmoteParser";
+import { isString } from "../util";
+
 export class Emote {
     readonly id: string;
     readonly text: string;
@@ -72,6 +77,8 @@ type EmoteReplacedMessageProps = {
 };
 function EmoteReplacedMessage({ emotes, text }: EmoteReplacedMessageProps) {
     const emoteList = extractEmotes(emotes, text);
+    const ctx: ChatContextType = useChatConnection();
+    const emoteParser: ReactEmoteParser = useEmoteParser();
 
     if (!emoteList || emoteList.length === 0) {
         return <span className="text">{text}</span>;
@@ -110,7 +117,20 @@ function EmoteReplacedMessage({ emotes, text }: EmoteReplacedMessageProps) {
         elements.push(text.slice(lastIndex));
     }
 
-    return <span className="text">{elements}</span>;
+    //TODO: use the external emotes here as we can still work with the bare string messages in between
+    const newElements: React.ReactNode[] = [];
+    elements.forEach((value, index, array) => {
+        if (isString(value)) {
+            var parsed = emoteParser.parse(value);
+            parsed.forEach((x) => {
+                newElements.push(x);
+            });
+        } else {
+            newElements.push(value);
+        }
+    });
+
+    return <span className="text">{newElements}</span>;
 }
 
 export default EmoteReplacedMessage;
