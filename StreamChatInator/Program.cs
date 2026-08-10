@@ -27,6 +27,11 @@ namespace StreamChatInator
                 client.Timeout = TimeSpan.FromSeconds(15);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
             });
+            builder.Services.AddHttpClient("twitch", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
+            });
             builder.Services.AddSignalR();
             builder.Services.AddCors(options => {
                 options.AddPolicy("AllowReact", builder =>

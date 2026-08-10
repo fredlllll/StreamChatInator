@@ -6,22 +6,74 @@ namespace StreamChatInator.Apis
 {
     public static class Twitch
     {
-        public static async Task<TwitchTokenValidationResponse?> ValidateTokenAsync(string bearerToken)
+        private const string TokenUrl = "https://id.twitch.tv/oauth2/token";
+        private const string ValidateUrl = "https://id.twitch.tv/oauth2/validate";
+
+        public static async Task<TwitchTokenResponse?> ExchangeCodeAsync(HttpClient httpClient, string clientId, string code, string codeVerifier, string redirectUri)
         {
-            using var httpClient = new HttpClient();
-
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-
-            var response = await httpClient.GetAsync("https://id.twitch.tv/oauth2/validate");
-
-            if (response.IsSuccessStatusCode)
+            var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                // Automatically parses the JSON stream into your strongly-typed class
-                return await response.Content.ReadFromJsonAsync<TwitchTokenValidationResponse>();
-            }
+                ["client_id"] = clientId,
+                ["code"] = code,
+                ["code_verifier"] = codeVerifier,
+                ["grant_type"] = "authorization_code",
+                ["redirect_uri"] = redirectUri,
+            });
 
-            // Handle error (e.g., return null or throw an exception)
-            return null;
+            using var response = await httpClient.PostAsync(TokenUrl, form);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+            return await response.Content.ReadFromJsonAsync<TwitchTokenResponse>();
+        }
+
+        public static async Task<TwitchTokenResponse?> RefreshAccessTokenAsync(HttpClient httpClient, string clientId, string refreshToken)
+        {
+            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = refreshToken,
+            });
+
+            using var response = await httpClient.PostAsync(TokenUrl, form);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+            return await response.Content.ReadFromJsonAsync<TwitchTokenResponse>();
+        }
+
+        public static async Task<TwitchTokenValidationResponse?> ValidateTokenAsync(HttpClient httpClient, string bearerToken)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, ValidateUrl);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+            using var response = await httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+            return await response.Content.ReadFromJsonAsync<TwitchTokenValidationResponse>();
+        }
+
+        public class TwitchTokenResponse
+        {
+            [JsonPropertyName("access_token")]
+            public string AccessToken { get; set; } = string.Empty;
+
+            [JsonPropertyName("refresh_token")]
+            public string RefreshToken { get; set; } = string.Empty;
+
+            [JsonPropertyName("expires_in")]
+            public int ExpiresIn { get; set; }
+
+            [JsonPropertyName("scope")]
+            public List<string> Scope { get; set; } = new();
+
+            [JsonPropertyName("token_type")]
+            public string TokenType { get; set; } = string.Empty;
         }
 
         public class TwitchTokenValidationResponse
