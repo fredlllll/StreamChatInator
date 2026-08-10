@@ -34,7 +34,7 @@ namespace StreamChatInator.Services
 
                 try
                 {
-                    var channelName = GetSetting(db, SettingValue.SettingUserName);
+                    var channelName = db.GetSettingsValueOrNull(SettingValue.SettingUserName);
                     var oauthToken = await EnsureAccessTokenAsync(db, httpClientFactory);
                     if (string.IsNullOrEmpty(channelName) || string.IsNullOrEmpty(oauthToken))
                     {
@@ -62,18 +62,6 @@ namespace StreamChatInator.Services
             }
         }
 
-        private static string? GetSetting(DatabaseContext db, string name)
-        {
-            try
-            {
-                return db.GetSettingsValue(name);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
         /// <summary>
         /// Returns a usable access token, refreshing it via the stored refresh
         /// token when it is expired or its expiry is unknown. Returns null when
@@ -81,16 +69,16 @@ namespace StreamChatInator.Services
         /// </summary>
         private async Task<string?> EnsureAccessTokenAsync(DatabaseContext db, IHttpClientFactory httpClientFactory)
         {
-            var token = GetSetting(db, SettingValue.SettingOAuthToken);
+            var token = db.GetSettingsValueOrNull(SettingValue.SettingOAuthToken);
             if (string.IsNullOrEmpty(token))
             {
                 return null;
             }
 
-            var refreshToken = GetSetting(db, SettingValue.SettingOAuthRefreshToken);
+            var refreshToken = db.GetSettingsValueOrNull(SettingValue.SettingOAuthRefreshToken);
 
             var expiresAt = DateTime.MinValue;
-            var expiresRaw = GetSetting(db, SettingValue.SettingOAuthTokenExpiresAt);
+            var expiresRaw = db.GetSettingsValueOrNull(SettingValue.SettingOAuthTokenExpiresAt);
             if (!string.IsNullOrEmpty(expiresRaw) &&
                 DateTime.TryParse(expiresRaw, null, DateTimeStyles.RoundtripKind, out var parsed))
             {

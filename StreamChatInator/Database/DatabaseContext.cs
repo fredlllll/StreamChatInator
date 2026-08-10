@@ -96,5 +96,17 @@ namespace StreamChatInator.Database
             }
             return entry.Value;
         }
+
+        public string? GetSettingsValueOrNull(string name)
+        {
+            try
+            {
+                return GetSettingsValue(name);
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }
