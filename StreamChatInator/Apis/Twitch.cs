@@ -7,28 +7,10 @@ namespace StreamChatInator.Apis
     public static class Twitch
     {
         private const string TokenUrl = "https://id.twitch.tv/oauth2/token";
+        private const string DeviceUrl = "https://id.twitch.tv/oauth2/device";
         private const string ValidateUrl = "https://id.twitch.tv/oauth2/validate";
         private const string GlobalBadgesUrl = "https://api.twitch.tv/helix/chat/badges/global";
         private const string ChannelBadgesUrl = "https://api.twitch.tv/helix/chat/badges";
-
-        public static async Task<TwitchTokenResponse?> ExchangeCodeAsync(HttpClient httpClient, string clientId, string code, string codeVerifier, string redirectUri)
-        {
-            var form = new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["client_id"] = clientId,
-                ["code"] = code,
-                ["code_verifier"] = codeVerifier,
-                ["grant_type"] = "authorization_code",
-                ["redirect_uri"] = redirectUri,
-            });
-
-            using var response = await httpClient.PostAsync(TokenUrl, form);
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-            return await response.Content.ReadFromJsonAsync<TwitchTokenResponse>();
-        }
 
         public static async Task<TwitchTokenResponse?> RefreshAccessTokenAsync(HttpClient httpClient, string clientId, string refreshToken)
         {
@@ -58,6 +40,82 @@ namespace StreamChatInator.Apis
                 return null;
             }
             return await response.Content.ReadFromJsonAsync<TwitchTokenValidationResponse>();
+        }
+
+        public static async Task<TwitchDeviceCodeResponse?> RequestDeviceCodeAsync(HttpClient httpClient, string clientId, string scopes)
+        {
+            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["scopes"] = scopes,
+            });
+
+            using var response = await httpClient.PostAsync(DeviceUrl, form);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+            return await response.Content.ReadFromJsonAsync<TwitchDeviceCodeResponse>();
+        }
+
+        public static async Task<DevicePollResult> PollDeviceCodeAsync(HttpClient httpClient, string clientId, string deviceCode, string scopes)
+        {
+            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["device_code"] = deviceCode,
+                ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code",
+                ["scopes"] = scopes,
+            });
+
+            using var response = await httpClient.PostAsync(TokenUrl, form);
+            var body = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode)
+            {
+                var token = JsonSerializer.Deserialize<TwitchTokenResponse>(body);
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    return new DevicePollResult { Status = DevicePollStatus.Success, Token = token };
+                }
+                return new DevicePollResult { Status = DevicePollStatus.Failed, Message = body };
+            }
+
+            var message = ParseMessage(body);
+            return message switch
+            {
+                "authorization_pending" or "slow_down" => new DevicePollResult { Status = DevicePollStatus.Pending, Message = message },
+                _ => new DevicePollResult { Status = DevicePollStatus.Failed, Message = message },
+            };
+        }
+
+        public enum DevicePollStatus
+        {
+            Pending,
+            Success,
+            Failed,
+        }
+
+        public class DevicePollResult
+        {
+            public DevicePollStatus Status { get; init; }
+            public TwitchTokenResponse? Token { get; init; }
+            public string Message { get; init; } = string.Empty;
+        }
+
+        public static string ParseMessage(string body)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("message", out var message))
+                {
+                    return message.GetString() ?? string.Empty;
+                }
+            }
+            catch (JsonException)
+            {
+            }
+            return body;
         }
 
         public static async Task<List<TwitchBadgeSet>?> GetGlobalBadgesAsync(HttpClient httpClient, string clientId, string bearerToken)
@@ -120,6 +178,24 @@ namespace StreamChatInator.Apis
 
             [JsonPropertyName("description")]
             public string Description { get; set; } = string.Empty;
+        }
+
+        public class TwitchDeviceCodeResponse
+        {
+            [JsonPropertyName("device_code")]
+            public string DeviceCode { get; set; } = string.Empty;
+
+            [JsonPropertyName("user_code")]
+            public string UserCode { get; set; } = string.Empty;
+
+            [JsonPropertyName("verification_uri")]
+            public string VerificationUri { get; set; } = string.Empty;
+
+            [JsonPropertyName("expires_in")]
+            public int ExpiresIn { get; set; }
+
+            [JsonPropertyName("interval")]
+            public int Interval { get; set; }
         }
 
         public class TwitchTokenResponse

@@ -1,9 +1,9 @@
-import { Routes, Route, Navigate, NavLink, Link } from "react-router-dom";
+import { Routes, Route, Navigate, NavLink } from "react-router-dom";
 import FiltersPage from "./pages/FiltersPage";
 import FilterEditorPage from "./pages/FilterEditorPage";
 import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
-import ConnectionIndicator from "./components/ConnectionIndicator";
+import TwitchLoginButton from "./components/TwitchLoginButton";
 import { useTheme } from "./theme";
 import "./App.css";
 
@@ -24,10 +24,7 @@ function App() {
                         </NavLink>
                     </div>
                     <div className="app-nav-actions">
-                        <Link className="btn btn-ghost" to="/api/auth/login" reloadDocument>
-                            Twitch Login
-                            <ConnectionIndicator />
-                        </Link>
+                        <TwitchLoginButton />
                         <button type="button" className="btn btn-ghost" onClick={toggleTheme}>
                             {theme === "dark" ? "Light mode" : "Dark mode"}
                         </button>

@@ -325,6 +325,98 @@
   color: var(--text-dim);
 }
 
+/* ===== Twitch login modal ===== */
+
+.login-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-modal {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.login-modal h3 {
+  margin: 0;
+  color: var(--text-h);
+}
+.login-modal p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.login-verification a {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.login-code {
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--text-h);
+  background: var(--surface-2);
+  border: 1px dashed var(--surface-3);
+  border-radius: var(--radius);
+  padding: 14px 22px;
+}
+
+.login-hint {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.login-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.login-toast {
+  position: fixed;
+  z-index: 110;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(480px, calc(100vw - 40px));
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.login-toast-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
 /* ===== Scrollbars ===== */
 
 *::-webkit-scrollbar {
