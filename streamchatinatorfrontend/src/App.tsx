@@ -1,5 +1,6 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import FiltersPage from "./pages/FiltersPage";
+import FilterEditorPage from "./pages/FilterEditorPage";
 import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
 import ConnectionIndicator from "./components/ConnectionIndicator";
@@ -19,6 +20,8 @@ function App() {
             <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/filters" element={<FiltersPage />} />
+                <Route path="/filters/new" element={<FilterEditorPage />} />
+                <Route path="/filters/:filterId/edit" element={<FilterEditorPage />} />
                 <Route path="/view/:filterId" element={<ViewPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
             </Routes>

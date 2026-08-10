@@ -1,16 +1,10 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { EventFilter } from "../types";
-import { getFilters, createFilter, updateFilter, deleteFilter } from "../api/filtersApi";
+import { getFilters, deleteFilter } from "../api/filtersApi";
 import { Link } from "react-router-dom";
-import { FILTER_TEMPLATE, ensureFunction, compileFilterSource } from "../editor/compileFilterSource";
-
-const FilterCodeEditor = lazy(() => import("../editor/FilterCodeEditor"));
 
 function FiltersPage() {
     const [filters, setFilters] = useState<EventFilter[]>([]);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [name, setName] = useState("");
-    const [code, setCode] = useState("");
 
     async function refresh() {
         setFilters(await getFilters());
@@ -20,40 +14,16 @@ function FiltersPage() {
         refresh();
     }, []);
 
-    function startEdit(filter: EventFilter) {
-        setEditingId(filter.id);
-        setName(filter.name);
-        setCode(ensureFunction(filter.code));
-    }
-
-    function startNew() {
-        setEditingId(null);
-        setName("");
-        setCode(FILTER_TEMPLATE);
-    }
-
-    async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-        e.preventDefault();
-        const { source, codeJs } = await compileFilterSource(code);
-        setCode(source);
-        if (editingId) {
-            await updateFilter(editingId, name, source, codeJs);
-        } else {
-            await createFilter(name, source, codeJs);
-            startNew(); // only reset to blank after creating something new, not after editing
-        }
-        await refresh();
-    }
-
     async function handleDelete(id: string) {
         await deleteFilter(id);
-        if (editingId === id) startNew();
         await refresh();
     }
 
     return (
         <div>
             <h2>Filters</h2>
+
+            <Link to="/filters/new">+ New Filter</Link>
 
             <ul>
                 {filters.map((f) => (
@@ -64,38 +34,11 @@ function FiltersPage() {
                         <button type="button" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/view/${f.id}`)} >
                             Copy link
                         </button>
-                        <button type="button" onClick={() => startEdit(f)}>Edit</button>
+                        <Link to={`/filters/${f.id}/edit`}>Edit</Link>
                         <button type="button" onClick={() => handleDelete(f.id)}>Delete</button>
                     </li>
                 ))}
             </ul>
-
-            <form onSubmit={handleSubmit}>
-                <h3>{editingId ? "Edit filter" : "New filter"}</h3>
-
-                <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Filter name"
-                    required
-                />
-
-                <Suspense fallback={<div>Loading code editor...</div>}>
-                    <FilterCodeEditor value={code} onChange={setCode} />
-                </Suspense>
-                <p>
-                    The filter is a TypeScript function(<code>eventData</code>). Type{" "}
-                    <code>eventData.</code> to see the available fields, and{" "}
-                    <code>eventData.chatEventType === "</code> for the list of event types.
-                </p>
-
-                <div>
-                    <button type="submit">{editingId ? "Save" : "Create"}</button>
-                    <button type="button" onClick={startNew}>+ New Filter</button>
-                    {editingId && <button type="button" onClick={startNew}>Cancel</button>}
-                </div>
-            </form>
         </div>
     );
 }
