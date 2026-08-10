@@ -15,9 +15,9 @@ namespace StreamChatInator.Database.Models
         public required string MsgParamPromoName { get; set; }
 
         /// <summary>
-        /// The login name of the user who gifted the subscription.
+        /// The username of the user who gifted the subscription.
         /// </summary>
-        public required string MsgParamSenderLogin { get; set; }
+        public required string MsgParamSenderUsername { get; set; }
 
         /// <summary>
         /// The display name of the user who gifted the subscription.
@@ -31,7 +31,7 @@ namespace StreamChatInator.Database.Models
                 Id = GetNewId<ChatEventContinuedGiftedSubscription>(),
                 MsgParamPromoGiftTotal = continuedGiftedSubscription.MsgParamPromoGiftTotal,
                 MsgParamPromoName = continuedGiftedSubscription.MsgParamPromoName,
-                MsgParamSenderLogin = continuedGiftedSubscription.MsgParamSenderLogin,
+                MsgParamSenderUsername = continuedGiftedSubscription.MsgParamSenderLogin,
                 MsgParamSenderName = continuedGiftedSubscription.MsgParamSenderName,
                 ChatUserNoticeBaseId = chatUserNoticeBaseId,
             };

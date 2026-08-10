@@ -41,6 +41,7 @@ export interface ChatEventChatMessage extends Model {
     isBroadcaster: boolean;
     tmiSent: string; // ISO date string - we'll parse it when we need to display it
     userFlagsNames: UserFlagName[];
+    userType: int;
     userTypeName: UserTypeName;
 }
 
@@ -48,8 +49,8 @@ export interface ChatUserNoticeBase extends Model {
     hexColor: string;
     displayName: string;
     emotes: string;
-    twitchId: string;
-    login: string;
+    twitchMessageId: string;
+    username: string;
     msgId: string;
     roomId: string;
     systemMsg: string;
@@ -95,13 +96,13 @@ export interface ChatEventCommunitySubscription extends ChatUserNoticeBase {
 export interface ChatEventContinuedGiftedSubscription extends ChatUserNoticeBase {
     msgParamPromoGiftTotal: int;
     msgParamPromoName: string;
-    msgParamSenderLogin: string;
     msgParamSenderName: string;
+    msgParamSenderUsername: string;
 }
 
 export interface ChatEventGiftedSubscription extends ChatUserNoticeBase {
     isAnonymous: boolean;
-    msgParamMonths: string;//TODO: wtf why is this string?
+    msgParamMonths: int;
     msgParamOriginId: string;
     msgParamRecipientDisplayName: string;
     msgParamRecipientId: string;
@@ -115,7 +116,7 @@ export interface ChatEventGiftedSubscription extends ChatUserNoticeBase {
 export interface ChatEventMessageCleared extends Model {
     channel: string;
     message: string;
-    targetMessageId: string;
+    targetTwitchMessageId: string;
     tmiSent: string;
 }
 
@@ -151,10 +152,10 @@ export interface ChatEventRitual extends ChatUserNoticeBase {
 export interface ChatEventStandardPayForward extends ChatUserNoticeBase {
     msgParamPriorGifterAnonymous: boolean;
     msgParamPriorGifterDisplayName: string;
-    msgParamPriorGifterId: int;
+    msgParamPriorGifterId: string;
     msgParamPriorGifterUserName: string;
     msgParamRecipientDisplayName: string | null;
-    msgParamRecipientId: int | null;
+    msgParamRecipientId: string | null;
     msgParamRecipientUserName: string | null;
 }
 

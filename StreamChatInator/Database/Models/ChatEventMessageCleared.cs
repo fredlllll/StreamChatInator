@@ -15,9 +15,9 @@ namespace StreamChatInator.Database.Models
         public required string Message { get; set; }
 
         /// <summary>
-        /// Message ID representing the message that was cleared
+        /// Twitch message ID of the message that was cleared by this event.
         /// </summary>
-        public required string TargetMessageId { get; set; }
+        public required string TargetTwitchMessageId { get; set; }
 
         /// <summary>
         /// Timestamp of when message was sent
@@ -31,7 +31,7 @@ namespace StreamChatInator.Database.Models
                 Id = GetNewId<ChatEventMessageCleared>(),
                 Channel = e.Channel,
                 Message = e.Message,
-                TargetMessageId = e.TargetMessageId,
+                TargetTwitchMessageId = e.TargetMessageId,
                 TmiSent = e.TmiSent.UtcDateTime
             };
         }

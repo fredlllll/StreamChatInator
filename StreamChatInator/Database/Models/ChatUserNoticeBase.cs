@@ -20,12 +20,12 @@ namespace StreamChatInator.Database.Models
         /// <summary>
         /// An ID that uniquely identifies this message.
         /// </summary>
-        public required string TwitchId { get; set; }
+        public required string TwitchMessageId { get; set; }
 
         /// <summary>
-        /// The login name of the user whose action generated the message.
+        /// The username of the user whose action generated the message.
         /// </summary>
-        public required string Login { get; set; }
+        public required string Username { get; set; }
 
         /// <summary>
         /// The type of notice (not the ID).
@@ -71,12 +71,12 @@ namespace StreamChatInator.Database.Models
                 DisplayName = unb.DisplayName,
                 Emotes = unb.Emotes,
                 HexColor = unb.HexColor,
-                Login = unb.Login,
+                Username = unb.Login,
                 MsgId = unb.MsgId,
                 RoomId = unb.RoomId,
                 SystemMsg = unb.SystemMsg,
                 TmiSent = unb.TmiSent.UtcDateTime,
-                TwitchId = unb.Id,
+                TwitchMessageId = unb.Id,
                 UserFlags = Util.GetPrivateFieldNotNull<UserDetails>(unb.UserDetail, "_flags"),
                 UserId = unb.UserId,
                 UserType = unb.UserType,

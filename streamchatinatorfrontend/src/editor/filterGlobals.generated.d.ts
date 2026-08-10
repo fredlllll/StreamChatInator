@@ -53,6 +53,7 @@ interface ChatEventChatMessage extends Model {
     isBroadcaster: boolean;
     tmiSent: string; // ISO date string - we'll parse it when we need to display it
     userFlagsNames: UserFlagName[];
+    userType: int;
     userTypeName: UserTypeName;
 }
 
@@ -60,8 +61,8 @@ interface ChatUserNoticeBase extends Model {
     hexColor: string;
     displayName: string;
     emotes: string;
-    twitchId: string;
-    login: string;
+    twitchMessageId: string;
+    username: string;
     msgId: string;
     roomId: string;
     systemMsg: string;
@@ -107,13 +108,13 @@ interface ChatEventCommunitySubscription extends ChatUserNoticeBase {
 interface ChatEventContinuedGiftedSubscription extends ChatUserNoticeBase {
     msgParamPromoGiftTotal: int;
     msgParamPromoName: string;
-    msgParamSenderLogin: string;
     msgParamSenderName: string;
+    msgParamSenderUsername: string;
 }
 
 interface ChatEventGiftedSubscription extends ChatUserNoticeBase {
     isAnonymous: boolean;
-    msgParamMonths: string; //TODO: wtf why is this string?
+    msgParamMonths: int;
     msgParamOriginId: string;
     msgParamRecipientDisplayName: string;
     msgParamRecipientId: string;
@@ -127,7 +128,7 @@ interface ChatEventGiftedSubscription extends ChatUserNoticeBase {
 interface ChatEventMessageCleared extends Model {
     channel: string;
     message: string;
-    targetMessageId: string;
+    targetTwitchMessageId: string;
     tmiSent: string;
 }
 
@@ -163,10 +164,10 @@ interface ChatEventRitual extends ChatUserNoticeBase {
 interface ChatEventStandardPayForward extends ChatUserNoticeBase {
     msgParamPriorGifterAnonymous: boolean;
     msgParamPriorGifterDisplayName: string;
-    msgParamPriorGifterId: int;
+    msgParamPriorGifterId: string;
     msgParamPriorGifterUserName: string;
     msgParamRecipientDisplayName: string | null;
-    msgParamRecipientId: int | null;
+    msgParamRecipientId: string | null;
     msgParamRecipientUserName: string | null;
 }
 
@@ -254,8 +255,6 @@ interface ChatEventDataMerged {
     isReply?: boolean;
     /** Present on: ChatEventChatMessage */
     isSkippingSubMode?: boolean;
-    /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
-    login?: string;
     /** Present on: ChatEventAnnouncement, ChatEventChatMessage, ChatEventMessageCleared, ChatEventRitual */
     message?: string;
     /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
@@ -269,7 +268,7 @@ interface ChatEventDataMerged {
     /** Present on: ChatEventCommunitySubscription */
     msgParamMassGiftCount?: number;
     /** Present on: ChatEventGiftedSubscription */
-    msgParamMonths?: string;
+    msgParamMonths?: number;
     /** Present on: ChatEventGiftedSubscription */
     msgParamMultiMonthGiftDuration?: number;
     /** Present on: ChatEventCommunitySubscription, ChatEventGiftedSubscription */
@@ -279,7 +278,7 @@ interface ChatEventDataMerged {
     /** Present on: ChatEventCommunityPayForward, ChatEventStandardPayForward */
     msgParamPriorGifterDisplayName?: string;
     /** Present on: ChatEventCommunityPayForward, ChatEventStandardPayForward */
-    msgParamPriorGifterId?: string | number;
+    msgParamPriorGifterId?: string;
     /** Present on: ChatEventCommunityPayForward, ChatEventStandardPayForward */
     msgParamPriorGifterUserName?: string;
     /** Present on: ChatEventAnonGiftPaidUpgrade, ChatEventContinuedGiftedSubscription */
@@ -289,7 +288,7 @@ interface ChatEventDataMerged {
     /** Present on: ChatEventGiftedSubscription, ChatEventStandardPayForward */
     msgParamRecipientDisplayName?: string | null;
     /** Present on: ChatEventGiftedSubscription, ChatEventStandardPayForward */
-    msgParamRecipientId?: string | number | null;
+    msgParamRecipientId?: string | null;
     /** Present on: ChatEventGiftedSubscription, ChatEventStandardPayForward */
     msgParamRecipientUserName?: string | null;
     /** Present on: ChatEventRitual */
@@ -297,9 +296,9 @@ interface ChatEventDataMerged {
     /** Present on: ChatEventCommunitySubscription, ChatEventGiftedSubscription */
     msgParamSenderCount?: number;
     /** Present on: ChatEventContinuedGiftedSubscription */
-    msgParamSenderLogin?: string;
-    /** Present on: ChatEventContinuedGiftedSubscription */
     msgParamSenderName?: string;
+    /** Present on: ChatEventContinuedGiftedSubscription */
+    msgParamSenderUsername?: string;
     /** Present on: ChatEventNewSubscriber, ChatEventReSubscriber */
     msgParamShouldShareStreak?: boolean;
     /** Present on: ChatEventNewSubscriber, ChatEventReSubscriber */
@@ -323,16 +322,14 @@ interface ChatEventDataMerged {
     /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
     systemMsg?: string;
     /** Present on: ChatEventMessageCleared */
-    targetMessageId?: string;
+    targetTwitchMessageId?: string;
     /** Present on: ChatEventUserBanned, ChatEventUserTimedout */
     targetUserId?: string;
     /** Present on: ChatEventUserTimedout */
     timeoutDuration?: string;
     /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventMessageCleared, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
     tmiSent?: string;
-    /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
-    twitchId?: string;
-    /** Present on: ChatEventChatMessage */
+    /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
     twitchMessageId?: string;
     /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventMessageCleared, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward, ChatEventUserBanned, ChatEventUserJoined, ChatEventUserLeft, ChatEventUserTimedout */
     updated?: string;
@@ -342,11 +339,11 @@ interface ChatEventDataMerged {
     userFlagsNames?: UserFlagName[];
     /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
     userId?: string;
-    /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
+    /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
     userType?: number;
     /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
     userTypeName?: UserTypeName;
-    /** Present on: ChatEventChatMessage, ChatEventUserBanned, ChatEventUserJoined, ChatEventUserLeft, ChatEventUserTimedout */
+    /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward, ChatEventUserBanned, ChatEventUserJoined, ChatEventUserLeft, ChatEventUserTimedout */
     username?: string;
 }
 

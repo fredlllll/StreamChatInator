@@ -8,13 +8,13 @@ namespace StreamChatInator.Database.Models
 
         public required string MsgParamPriorGifterDisplayName { get; set; }
 
-        public required long MsgParamPriorGifterId { get; set; }
+        public required string MsgParamPriorGifterId { get; set; }
 
         public required string MsgParamPriorGifterUserName { get; set; }
 
         public required string? MsgParamRecipientDisplayName { get; set; }
 
-        public required long? MsgParamRecipientId { get; set; }
+        public required string? MsgParamRecipientId { get; set; }
 
         public required string? MsgParamRecipientUserName { get; set; }
 
@@ -25,10 +25,10 @@ namespace StreamChatInator.Database.Models
                 Id = GetNewId<ChatEventStandardPayForward>(),
                 MsgParamPriorGifterAnonymous = standardPayForward.MsgParamPriorGifterAnonymous,
                 MsgParamPriorGifterDisplayName = standardPayForward.MsgParamPriorGifterDisplayName,
-                MsgParamPriorGifterId = standardPayForward.MsgParamPriorGifterId,
+                MsgParamPriorGifterId = standardPayForward.MsgParamPriorGifterId.ToString(),
                 MsgParamPriorGifterUserName = standardPayForward.MsgParamPriorGifterUserName,
                 MsgParamRecipientDisplayName = standardPayForward.MsgParamRecipientDisplayName,
-                MsgParamRecipientId = standardPayForward.MsgParamRecipientId,
+                MsgParamRecipientId = standardPayForward.MsgParamRecipientId?.ToString(),
                 MsgParamRecipientUserName = standardPayForward.MsgParamRecipientUserName,
                 ChatUserNoticeBaseId = chatUserNoticeBaseId,
             };

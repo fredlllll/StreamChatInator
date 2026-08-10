@@ -10,7 +10,7 @@ namespace StreamChatInator.Database.Models
         /// <summary>
         /// The total number of months the user has subscribed.
         /// </summary>
-        public required string MsgParamMonths { get; set; }
+        public required int MsgParamMonths { get; set; }
 
         /// <summary>
         /// If this message sourced from an event, this is the ID of that event
@@ -55,7 +55,7 @@ namespace StreamChatInator.Database.Models
             {
                 Id = GetNewId<ChatEventGiftedSubscription>(),
                 IsAnonymous = giftedSubscription.IsAnonymous,
-                MsgParamMonths = giftedSubscription.MsgParamMonths,
+                MsgParamMonths = int.TryParse(giftedSubscription.MsgParamMonths, out var months) ? months : 0,
                 MsgParamOriginId = giftedSubscription.MsgParamOriginId,
                 MsgParamRecipientDisplayName = giftedSubscription.MsgParamRecipientDisplayName,
                 MsgParamRecipientId = giftedSubscription.MsgParamRecipientId,
