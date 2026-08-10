@@ -42,16 +42,22 @@ export function useFilteredEvents(filterId: string | undefined) {
 
     // The `seen` flag on the stored envelopes is stale once the user toggles
     // it (seen state lives in ChatContext). Overlay the current seen state so
-    // filters reading `eventData.seen` re-evaluate when seen changes.
+    // filters reading `eventData.seen` re-evaluate when seen changes. History
+    // is only filtered server-side at request time, so re-run the matcher on
+    // history too — otherwise seen/unseen changes only apply after a refresh.
     const seenOf = (e: FrontEndEventData) => seenState[e.eventId] ?? e.seen;
 
     const filteredLive = useMemo(
         () => (matcher ? events.filter((e) => matcher({ ...e, seen: seenOf(e) })) : []),
         [events, matcher, seenState]
     );
+    const filteredHistory = useMemo(
+        () => (matcher ? history.filter((e) => matcher({ ...e, seen: seenOf(e) })) : history),
+        [history, matcher, seenState]
+    );
     const allEvents = useMemo(
-        () => [...history.map((e) => ({ ...e, seen: seenOf(e) })), ...filteredLive],
-        [history, filteredLive, seenState]
+        () => [...filteredHistory, ...filteredLive],
+        [filteredHistory, filteredLive]
     );
 
     return { filter, allEvents, hasMore, loadOlder };
