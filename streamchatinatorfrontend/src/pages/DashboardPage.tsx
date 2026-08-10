@@ -171,6 +171,7 @@ function DashboardPage() {
         <div className="workspace-page">
             <div className="workspace-toolbar">
                 <select
+                    className="input"
                     value={selectedFilterId}
                     onChange={(e) => setSelectedFilterId(e.target.value)}
                     aria-label="Add a filter view"
@@ -182,14 +183,14 @@ function DashboardPage() {
                         </option>
                     ))}
                 </select>
-                <button type="button" disabled={!selectedFilterId} onClick={() => {
+                <button type="button" className="btn btn-primary" disabled={!selectedFilterId} onClick={() => {
                     const filter = availableFilters.find((f) => f.id === selectedFilterId);
                     if (filter) addFilterTab(filter);
                     setSelectedFilterId("");
                 }}>
                     + Add view
                 </button>
-                <button type="button" onClick={resetLayout}>Reset layout</button>
+                <button type="button" className="btn" onClick={resetLayout}>Reset layout</button>
                 {urlFilterIds.length > 0 && (
                     <span className="workspace-param-hint">Seeded from ?filters= in the URL - remove it to keep your docked layout across reloads.</span>
                 )}

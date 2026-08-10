@@ -4,7 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>streamchatinatorfrontend</title>
+    <title>StreamChatInator</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("streamchatinator.theme");
+          var theme = saved === "light" || saved === "dark"
+            ? saved
+            : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

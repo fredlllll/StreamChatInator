@@ -20,22 +20,29 @@ function FiltersPage() {
     }
 
     return (
-        <div>
-            <h2>Filters</h2>
+        <div className="page">
+            <div className="page-header">
+                <h2>Filters</h2>
+                <Link to="/filters/new" className="btn btn-primary">+ New Filter</Link>
+            </div>
 
-            <Link to="/filters/new">+ New Filter</Link>
-
-            <ul>
+            <ul className="filter-list">
                 {filters.map((f) => (
                     <li key={f.id}>
-                        {f.name}
-                        <Link to={`/view/${f.id}`}>View</Link>
-                        <Link to={`/dashboard?add=${f.id}`}>Dock</Link>
-                        <button type="button" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/view/${f.id}`)} >
+                        <span className="filter-name">{f.name}</span>
+                        <Link className="btn btn-sm" to={`/view/${f.id}`}>View</Link>
+                        <Link className="btn btn-sm" to={`/dashboard?add=${f.id}`}>Dock</Link>
+                        <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/view/${f.id}`)}
+                        >
                             Copy link
                         </button>
-                        <Link to={`/filters/${f.id}/edit`}>Edit</Link>
-                        <button type="button" onClick={() => handleDelete(f.id)}>Delete</button>
+                        <Link className="btn btn-sm" to={`/filters/${f.id}/edit`}>Edit</Link>
+                        <button type="button" className="btn btn-sm btn-danger" onClick={() => handleDelete(f.id)}>
+                            Delete
+                        </button>
                     </li>
                 ))}
             </ul>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Editor, { loader } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { monaco, monacoReady } from "./monacoSetup";
+import { useTheme } from "../theme";
 
 // Use the locally bundled monaco instance instead of the CDN default.
 loader.config({ monaco });
@@ -22,6 +23,7 @@ function FilterCodeEditor({ value, onChange }: FilterCodeEditorProps) {
     const [problems, setProblems] = useState<Problem[]>([]);
     const [ready, setReady] = useState(false);
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const { theme } = useTheme();
 
     useEffect(() => {
         let alive = true;
@@ -58,6 +60,7 @@ function FilterCodeEditor({ value, onChange }: FilterCodeEditorProps) {
             <Editor
                 height="320px"
                 defaultLanguage="typescript"
+                theme={theme === "dark" ? "vs-dark" : "vs"}
                 value={value}
                 onChange={(text) => onChange(text ?? "")}
                 onMount={handleMount}
@@ -75,16 +78,12 @@ function FilterCodeEditor({ value, onChange }: FilterCodeEditorProps) {
                 }}
             />
             {problems.length > 0 && (
-                <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0 }}>
+                <ul className="editor-problems">
                     {problems.map((p, i) => (
-                        <li key={i} style={{ fontSize: 13, fontFamily: "var(--mono)", lineHeight: 1.4 }}>
-                            <span style={{ color: p.severity === "error" ? "#f48771" : "#d89b1b" }}>
-                                {p.severity === "error" ? "error" : "warning"}
-                            </span>{" "}
-                            <span style={{ color: "var(--text-h)" }}>{p.message}</span>{" "}
-                            <span style={{ color: "var(--text)" }}>
-                                line {p.line}:{p.column}
-                            </span>
+                        <li key={i}>
+                            <span className={`severity ${p.severity}`}>{p.severity}</span>
+                            <span className="message">{p.message}</span>{" "}
+                            <span className="loc">line {p.line}:{p.column}</span>
                         </li>
                     ))}
                 </ul>

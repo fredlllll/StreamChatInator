@@ -46,34 +46,41 @@ function FilterEditorPage() {
         navigate("/filters");
     }
 
-    if (loading) return <p>Loading filter...</p>;
-    if (notFound) return <p>Filter not found.</p>;
+    if (loading) return <div className="page"><p>Loading filter...</p></div>;
+    if (notFound) return <div className="page"><p>Filter not found.</p></div>;
 
     return (
-        <div>
-            <h2>{creating ? "New filter" : "Edit filter"}</h2>
+        <div className="page">
+            <div className="page-header">
+                <h2>{creating ? "New filter" : "Edit filter"}</h2>
+            </div>
 
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Filter name"
-                    required
-                />
+            <form className="card editor-card" onSubmit={handleSubmit}>
+                <div className="editor-field">
+                    <label htmlFor="filter-name">Name</label>
+                    <input
+                        id="filter-name"
+                        type="text"
+                        className="input"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Filter name"
+                        required
+                    />
+                </div>
 
                 <Suspense fallback={<div>Loading code editor...</div>}>
                     <FilterCodeEditor value={code} onChange={setCode} />
                 </Suspense>
-                <p>
-                    The filter is a TypeScript function(<code>eventData</code>). Type{" "}
+                <p className="editor-hint">
+                    The filter is a TypeScript function (<code>eventData</code>). Type{" "}
                     <code>eventData.</code> to see the available fields, and{" "}
                     <code>eventData.chatEventType === "</code> for the list of event types.
                 </p>
 
-                <div>
-                    <button type="submit">{creating ? "Create" : "Save"}</button>
-                    <button type="button" onClick={() => navigate("/filters")}>Cancel</button>
+                <div className="editor-actions">
+                    <button type="button" className="btn" onClick={() => navigate("/filters")}>Cancel</button>
+                    <button type="submit" className="btn btn-primary">{creating ? "Create" : "Save"}</button>
                 </div>
             </form>
         </div>

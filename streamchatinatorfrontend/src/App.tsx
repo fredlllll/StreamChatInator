@@ -1,30 +1,50 @@
-import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, NavLink, Link } from "react-router-dom";
 import FiltersPage from "./pages/FiltersPage";
 import FilterEditorPage from "./pages/FilterEditorPage";
 import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
 import ConnectionIndicator from "./components/ConnectionIndicator";
+import { useTheme } from "./theme";
 import "./App.css";
 
 function App() {
+    const { theme, toggleTheme } = useTheme();
+
     return (
-        <div>
-            <nav>
-                <Link to="/filters">Filters</Link>
-                {" | "}
-                <Link to="/dashboard">Dashboard</Link>
-                {" | "}
-                <Link to="/api/auth/login" reloadDocument>Twitch Login<ConnectionIndicator/></Link>
+        <div className="app-shell">
+            <nav className="app-nav">
+                <div className="app-nav-inner">
+                    <span className="app-brand">StreamChatInator</span>
+                    <div className="app-nav-links">
+                        <NavLink to="/filters" className={({ isActive }) => (isActive ? "active" : "")}>
+                            Filters
+                        </NavLink>
+                        <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "active" : "")}>
+                            Dashboard
+                        </NavLink>
+                    </div>
+                    <div className="app-nav-actions">
+                        <Link className="btn btn-ghost" to="/api/auth/login" reloadDocument>
+                            Twitch Login
+                            <ConnectionIndicator />
+                        </Link>
+                        <button type="button" className="btn btn-ghost" onClick={toggleTheme}>
+                            {theme === "dark" ? "Light mode" : "Dark mode"}
+                        </button>
+                    </div>
+                </div>
             </nav>
 
-            <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/filters" element={<FiltersPage />} />
-                <Route path="/filters/new" element={<FilterEditorPage />} />
-                <Route path="/filters/:filterId/edit" element={<FilterEditorPage />} />
-                <Route path="/view/:filterId" element={<ViewPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-            </Routes>
+            <main className="app-main">
+                <Routes>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/filters" element={<FiltersPage />} />
+                    <Route path="/filters/new" element={<FilterEditorPage />} />
+                    <Route path="/filters/:filterId/edit" element={<FilterEditorPage />} />
+                    <Route path="/view/:filterId" element={<ViewPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                </Routes>
+            </main>
         </div>
     );
 }

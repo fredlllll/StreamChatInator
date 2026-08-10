@@ -7,8 +7,10 @@ function ViewPage() {
     const { filter, allEvents, hasMore, loadOlder } = useFilteredEvents(filterId);
 
     return (
-        <div>
-            <h2>{filter ? filter.name : "Loading filter..."}</h2>
+        <div className="page">
+            <div className="page-header">
+                <h2>{filter ? filter.name : "Loading filter..."}</h2>
+            </div>
             <ChatEventList events={allEvents} onStartReached={hasMore ? loadOlder : undefined} />
         </div>
     );
