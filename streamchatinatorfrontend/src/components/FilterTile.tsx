@@ -6,7 +6,7 @@ type FilterTileProps = {
 };
 
 function FilterTile({ filterId }: FilterTileProps) {
-    const { filter, allEvents, hasMore, loadOlder } = useFilteredEvents(filterId);
+    const { filter, allEvents, hasMore, firstItemIndex, loadOlder } = useFilteredEvents(filterId);
 
     return (
         <div className="filter-tile">
@@ -14,6 +14,7 @@ function FilterTile({ filterId }: FilterTileProps) {
             <div className="filter-tile-list">
                 <ChatEventList
                     style={{ height: "100%" }}
+                    firstItemIndex={firstItemIndex}
                     events={allEvents}
                     onStartReached={hasMore ? loadOlder : undefined}
                 />

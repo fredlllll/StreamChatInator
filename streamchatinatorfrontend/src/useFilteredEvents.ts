@@ -4,11 +4,19 @@ import { getFilterById, getFilterHistory } from "./api/filtersApi";
 import { compileFilter } from "./filterMatcher";
 import type { FrontEndEventData, EventFilter } from "./types";
 
+// Global "slot" of the oldest event we currently hold. Prepending older
+// batches lowers it; Virtuoso uses it as an anchor so the scroll position
+// stays put after a prepend, which in turn lets `startReached` fire again on
+// the next scroll-to-top (without it, scrollback only ever triggers once).
+const FIRST_ITEM_INDEX_OFFSET = 1_000_000;
+
 export function useFilteredEvents(filterId: string | undefined) {
     const [filter, setFilter] = useState<EventFilter | null>(null);
     const [history, setHistory] = useState<FrontEndEventData[]>([]);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
+    const [firstItemIndex, setFirstItemIndex] = useState(FIRST_ITEM_INDEX_OFFSET);
+    const [loadingOlder, setLoadingOlder] = useState(false);
     const { connectedAt, events, seenState, registerSeen } = useChatConnection();
 
     useEffect(() => {
@@ -22,17 +30,27 @@ export function useFilteredEvents(filterId: string | undefined) {
             setHistory([...res.events].reverse());
             setNextCursor(res.nextCursor);
             setHasMore(res.hasMore);
+            setFirstItemIndex(FIRST_ITEM_INDEX_OFFSET);
             res.events.forEach((e) => registerSeen(e.eventId, e.seen));
         });
     }, [filter, connectedAt, registerSeen]);
 
     async function loadOlder() {
-        if (!filter || !nextCursor) return;
-        const res = await getFilterHistory(filter.id, nextCursor, 50);
-        setHistory((prev) => [...[...res.events].reverse(), ...prev]);
-        setNextCursor(res.nextCursor);
-        setHasMore(res.hasMore);
-        res.events.forEach((e) => registerSeen(e.eventId, e.seen));
+        // `loadingOlder` guards against overlapping requests: `startReached`
+        // can re-fire in quick succession and each concurrent call would
+        // otherwise fetch the same page and duplicate events.
+        if (!filter || !nextCursor || loadingOlder) return;
+        setLoadingOlder(true);
+        try {
+            const res = await getFilterHistory(filter.id, nextCursor, 50);
+            setHistory((prev) => [...[...res.events].reverse(), ...prev]);
+            setNextCursor(res.nextCursor);
+            setHasMore(res.hasMore);
+            setFirstItemIndex((i) => i - res.events.length);
+            res.events.forEach((e) => registerSeen(e.eventId, e.seen));
+        } finally {
+            setLoadingOlder(false);
+        }
     }
 
     const matcher = useMemo(
@@ -60,5 +78,5 @@ export function useFilteredEvents(filterId: string | undefined) {
         [filteredHistory, filteredLive]
     );
 
-    return { filter, allEvents, hasMore, loadOlder };
+    return { filter, allEvents, hasMore, firstItemIndex, loadOlder };
 }
