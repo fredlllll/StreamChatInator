@@ -9,7 +9,7 @@ export function useFilteredEvents(filterId: string | undefined) {
     const [history, setHistory] = useState<FrontEndEventData[]>([]);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
-    const { connectedAt, events, registerSeen } = useChatConnection();
+    const { connectedAt, events, seenState, registerSeen } = useChatConnection();
 
     useEffect(() => {
         if (!filterId) return;
@@ -39,8 +39,20 @@ export function useFilteredEvents(filterId: string | undefined) {
         () => (filter ? compileFilter(filter.codeJs) : null),
         [filter]
     );
-    const filteredLive = matcher ? events.filter((e) => matcher(e)) : [];
-    const allEvents = [...history, ...filteredLive];
+
+    // The `seen` flag on the stored envelopes is stale once the user toggles
+    // it (seen state lives in ChatContext). Overlay the current seen state so
+    // filters reading `eventData.seen` re-evaluate when seen changes.
+    const seenOf = (e: FrontEndEventData) => seenState[e.eventId] ?? e.seen;
+
+    const filteredLive = useMemo(
+        () => (matcher ? events.filter((e) => matcher({ ...e, seen: seenOf(e) })) : []),
+        [events, matcher, seenState]
+    );
+    const allEvents = useMemo(
+        () => [...history.map((e) => ({ ...e, seen: seenOf(e) })), ...filteredLive],
+        [history, filteredLive, seenState]
+    );
 
     return { filter, allEvents, hasMore, loadOlder };
 }
