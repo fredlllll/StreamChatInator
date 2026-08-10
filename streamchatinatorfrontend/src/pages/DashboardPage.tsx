@@ -76,7 +76,7 @@ function WelcomeHint() {
 }
 
 function DashboardPage() {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const urlFilterIds = useMemo(
         () => (searchParams.get("filters") ?? "").split(",").filter(Boolean),
         [searchParams]
@@ -122,6 +122,15 @@ function DashboardPage() {
             if (addFilterIds.length > 0) {
                 const toAdd = filters.filter((f) => addFilterIds.includes(f.id));
                 toAdd.forEach(addFilterTab);
+                // Consume ?add= so reloads don't dock the same tab again.
+                setSearchParams(
+                    (prev) => {
+                        const next = new URLSearchParams(prev);
+                        next.delete("add");
+                        return next;
+                    },
+                    { replace: true }
+                );
             }
         });
         return () => {
