@@ -36,8 +36,8 @@ export function useFilteredEvents(filterId: string | undefined) {
     }
 
     const matcher = useMemo(
-        () => (filter ? compileFilter(filter.code) : null),
-        [filter?.code]
+        () => (filter ? compileFilter(filter.codeJs) : null),
+        [filter]
     );
     const filteredLive = matcher ? events.filter((e) => matcher(e)) : [];
     const allEvents = [...history, ...filteredLive];

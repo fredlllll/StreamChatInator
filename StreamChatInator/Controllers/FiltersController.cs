@@ -40,6 +40,7 @@ namespace StreamChatInator.Controllers
                 Id = Model.GetNewId<ChatEventFilter>(),
                 Name = request.Name,
                 Code = request.Code,
+                CodeJs = request.CodeJs,
             };
 
             _db.EventFilters.Add(filter);
@@ -55,6 +56,7 @@ namespace StreamChatInator.Controllers
 
             filter.Name = request.Name;
             filter.Code = request.Code;
+            filter.CodeJs = request.CodeJs;
             filter.Updated = DateTime.UtcNow;
 
             _db.SaveChanges();
@@ -76,6 +78,7 @@ namespace StreamChatInator.Controllers
         {
             public required string Name { get; set; }
             public required string Code { get; set; }
+            public required string CodeJs { get; set; }
         }
 
 
@@ -92,7 +95,7 @@ namespace StreamChatInator.Controllers
             var filter = _db.EventFilters.Find(id);
             if (filter == null) return NotFound();
 
-            var evaluator = new JsFilterEvaluator(filter.Code);
+            var evaluator = new JsFilterEvaluator(filter.CodeJs);
             var scanCursor = before ?? DateTime.UtcNow;
             var matches = new List<FrontEndEventData>();
             bool exhausted = false;

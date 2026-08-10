@@ -13,7 +13,8 @@ export interface Model {
 
 export interface EventFilter extends Model {
     name: string;
-    code: string;
+    code: string; // TypeScript source of the filter function
+    codeJs: string; // compiled JavaScript (function body) used for execution
 }
 
 export interface FrontEndEventData<T = unknown> {

@@ -8,21 +8,21 @@ export async function getFilters(): Promise<EventFilter[]> {
     return res.json();
 }
 
-export async function createFilter(name: string, code:string): Promise<EventFilter> {
+export async function createFilter(name: string, code: string, codeJs: string): Promise<EventFilter> {
     const res = await fetch(BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, filterType: "Chat", code }),
+        body: JSON.stringify({ name, filterType: "Chat", code, codeJs }),
     });
     if (!res.ok) throw new Error("Failed to create filter");
     return res.json();
 }
 
-export async function updateFilter(id: string, name: string, code:string): Promise<void> {
+export async function updateFilter(id: string, name: string, code: string, codeJs: string): Promise<void> {
     const res = await fetch(`${BASE_URL}/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, filterType: "Chat", code}),
+        body: JSON.stringify({ name, filterType: "Chat", code, codeJs }),
     });
     if (!res.ok) throw new Error("Failed to update filter");
 }

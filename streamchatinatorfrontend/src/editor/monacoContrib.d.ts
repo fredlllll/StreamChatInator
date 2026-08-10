@@ -7,5 +7,11 @@ declare module "monaco-editor/language/typescript/monaco.contribution.js" {
         setCompilerOptions(options: { target?: number; allowNonTsExtensions?: boolean }): void;
         addExtraLib(content: string, filePath?: string): { dispose(): void };
     };
+    export const typescriptDefaults: {
+        setDiagnosticsOptions(options: { noSemanticValidation?: boolean; noSyntaxValidation?: boolean }): void;
+        setCompilerOptions(options: { target?: number; allowNonTsExtensions?: boolean }): void;
+        addExtraLib(content: string, filePath?: string): { dispose(): void };
+    };
     export const ScriptTarget: { ESNext: number };
+    export function getJavaScriptWorker(): Promise<unknown>;
 }

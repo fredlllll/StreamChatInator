@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import type { EventFilter } from "../types";
 import { getFilters, createFilter, updateFilter, deleteFilter } from "../api/filtersApi";
 import { Link } from "react-router-dom";
+import { FILTER_TEMPLATE, ensureFunction, compileFilterSource } from "../editor/compileFilterSource";
 
 const FilterCodeEditor = lazy(() => import("../editor/FilterCodeEditor"));
 
@@ -22,21 +23,23 @@ function FiltersPage() {
     function startEdit(filter: EventFilter) {
         setEditingId(filter.id);
         setName(filter.name);
-        setCode(filter.code);
+        setCode(ensureFunction(filter.code));
     }
 
     function startNew() {
         setEditingId(null);
         setName("");
-        setCode('return eventData.chatEventType === "ChatMessage" && eventData.chatEventData.username === "someviewer";');
+        setCode(FILTER_TEMPLATE);
     }
 
     async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
+        const { source, codeJs } = await compileFilterSource(code);
+        setCode(source);
         if (editingId) {
-            await updateFilter(editingId, name, code);
+            await updateFilter(editingId, name, source, codeJs);
         } else {
-            await createFilter(name, code);
+            await createFilter(name, source, codeJs);
             startNew(); // only reset to blank after creating something new, not after editing
         }
         await refresh();
@@ -82,8 +85,8 @@ function FiltersPage() {
                     <FilterCodeEditor value={code} onChange={setCode} />
                 </Suspense>
                 <p>
-                    The code runs as <code>function(eventData)</code>. Type{" "}
-                    <code>eventData.</code> to see available fields, and{" "}
+                    The filter is a TypeScript function(<code>eventData</code>). Type{" "}
+                    <code>eventData.</code> to see the available fields, and{" "}
                     <code>eventData.chatEventType === "</code> for the list of event types.
                 </p>
 
