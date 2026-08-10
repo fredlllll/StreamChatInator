@@ -4,14 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "generate:editor-types": "node scripts/generateEditorTypes.mjs",
+    "dev": "node scripts/generateEditorTypes.mjs && vite",
+    "build": "node scripts/generateEditorTypes.mjs && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
+    "@monaco-editor/react": "^4.7.0",
     "flexlayout-react": "^0.10.4",
+    "monaco-editor": "^0.56.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",

@@ -23,7 +23,7 @@ export interface FrontEndEventData<T = unknown> {
     chatEventData: T;
 }
 
-export interface ChatMessageData extends Model {
+export interface ChatEventChatMessage extends Model {
     bits: int;
     bitsInDollars: float;
     emotes: string | null;

@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import type { EventFilter } from "../types";
 import { getFilters, createFilter, updateFilter, deleteFilter } from "../api/filtersApi";
 import { Link } from "react-router-dom";
+
+const FilterCodeEditor = lazy(() => import("../editor/FilterCodeEditor"));
 
 function FiltersPage() {
     const [filters, setFilters] = useState<EventFilter[]>([]);
@@ -26,7 +28,7 @@ function FiltersPage() {
     function startNew() {
         setEditingId(null);
         setName("");
-        setCode("");
+        setCode('return eventData.chatEventType === "ChatMessage" && eventData.chatEventData.username === "someviewer";');
     }
 
     async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
@@ -76,13 +78,14 @@ function FiltersPage() {
                     required
                 />
 
-                <textarea
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    rows={10}
-                    style={{ width: "100%", fontFamily: "monospace" }}
-                    placeholder='return eventType === "ChatMessage" && eventData.username === "someviewer";'
-                />
+                <Suspense fallback={<div>Loading code editor...</div>}>
+                    <FilterCodeEditor value={code} onChange={setCode} />
+                </Suspense>
+                <p>
+                    The code runs as <code>function(eventData)</code>. Type{" "}
+                    <code>eventData.</code> to see available fields, and{" "}
+                    <code>eventData.chatEventType === "</code> for the list of event types.
+                </p>
 
                 <div>
                     <button type="submit">{editingId ? "Save" : "Create"}</button>

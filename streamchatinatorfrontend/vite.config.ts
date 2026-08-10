@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-react';
+import { editorTypesPlugin } from './scripts/generateEditorTypes.mjs';
 
 export default defineConfig({
-    plugins: [plugin()],
+    plugins: [plugin(), editorTypesPlugin()],
     server: {
         port: 53401,
         proxy: {

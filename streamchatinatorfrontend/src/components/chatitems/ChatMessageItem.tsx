@@ -1,9 +1,9 @@
-import type { FrontEndEventData, ChatMessageData } from "../../types";
+import type { FrontEndEventData, ChatEventChatMessage } from "../../types";
 import ChatBadges from "../ChatBadges";
 import EmoteReplacedMessage from "../EmoteReplacedMessage";
 
 type ChatMessageItemProps = {
-    event: FrontEndEventData<ChatMessageData>;
+    event: FrontEndEventData<ChatEventChatMessage>;
 };
 
 function ChatMessageItem({ event }: ChatMessageItemProps) {
