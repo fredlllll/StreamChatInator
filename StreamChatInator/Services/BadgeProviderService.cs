@@ -4,7 +4,7 @@ using StreamChatInator.Apis;
 
 namespace StreamChatInator.Services
 {
-    public record BadgeDto(string Title, string ImageUrl);
+    public record BadgeDto(string Title, string ImageUrl, string? ClickAction, string? ClickUrl);
 
     /// <summary>
     /// Fetches Twitch chat badges (global + the connected channel's custom
@@ -127,7 +127,11 @@ namespace StreamChatInator.Services
                     if (overrideExisting || !versions.ContainsKey(version.Id))
                     {
                         var imageUrl = !string.IsNullOrEmpty(version.ImageUrl2x) ? version.ImageUrl2x : version.ImageUrl1x;
-                        versions[version.Id] = new BadgeDto(version.Title, imageUrl);
+                        versions[version.Id] = new BadgeDto(
+                            version.Title,
+                            imageUrl,
+                            string.IsNullOrEmpty(version.ClickAction) ? null : version.ClickAction,
+                            string.IsNullOrEmpty(version.ClickUrl) ? null : version.ClickUrl);
                     }
                 }
             }

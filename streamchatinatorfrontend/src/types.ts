@@ -10,6 +10,8 @@ export interface EventFilter extends Model {
 export interface BadgeInfo {
     title: string;
     imageUrl: string;
+    clickAction?: string | null;
+    clickUrl?: string | null;
 }
 
 export type BadgeMap = Record<string, Record<string, BadgeInfo>>;

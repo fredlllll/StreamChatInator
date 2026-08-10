@@ -71,7 +71,7 @@ function ChatBadges({ event }: ChatBadgesItemProps) {
             {visibleSlots.map((slot) => {
                 const badge = badges?.[slot.set]?.[slot.version];
                 if (badge) {
-                    return (
+                    const img = (
                         <img
                             key={slot.set}
                             className="chat-badge-image"
@@ -80,6 +80,21 @@ function ChatBadges({ event }: ChatBadgesItemProps) {
                             title={badge.title}
                         />
                     );
+                    if (badge.clickUrl) {
+                        return (
+                            <a
+                                key={slot.set}
+                                className="chat-badge-link"
+                                href={badge.clickUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={badge.title}
+                            >
+                                {img}
+                            </a>
+                        );
+                    }
+                    return img;
                 }
                 return (
                     <span key={slot.set} className="badge">

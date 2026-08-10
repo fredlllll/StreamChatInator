@@ -178,6 +178,12 @@ namespace StreamChatInator.Apis
 
             [JsonPropertyName("description")]
             public string Description { get; set; } = string.Empty;
+
+            [JsonPropertyName("click_action")]
+            public string? ClickAction { get; set; }
+
+            [JsonPropertyName("click_url")]
+            public string? ClickUrl { get; set; }
         }
 
         public class TwitchDeviceCodeResponse
