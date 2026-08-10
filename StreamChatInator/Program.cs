@@ -20,7 +20,9 @@ namespace StreamChatInator
             builder.Services.AddControllers();
             builder.Services.AddHostedService<ChatReaderService>();
             builder.Services.AddSingleton<ChatHubData>();
+            builder.Services.AddSingleton<TwitchTokenService>();
             builder.Services.AddSingleton<EmoteProviderService>();
+            builder.Services.AddSingleton<BadgeProviderService>();
             builder.Services.AddMemoryCache();
             builder.Services.AddHttpClient("emotes", client =>
             {

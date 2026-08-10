@@ -8,6 +8,8 @@ namespace StreamChatInator.Apis
     {
         private const string TokenUrl = "https://id.twitch.tv/oauth2/token";
         private const string ValidateUrl = "https://id.twitch.tv/oauth2/validate";
+        private const string GlobalBadgesUrl = "https://api.twitch.tv/helix/chat/badges/global";
+        private const string ChannelBadgesUrl = "https://api.twitch.tv/helix/chat/badges";
 
         public static async Task<TwitchTokenResponse?> ExchangeCodeAsync(HttpClient httpClient, string clientId, string code, string codeVerifier, string redirectUri)
         {
@@ -56,6 +58,68 @@ namespace StreamChatInator.Apis
                 return null;
             }
             return await response.Content.ReadFromJsonAsync<TwitchTokenValidationResponse>();
+        }
+
+        public static async Task<List<TwitchBadgeSet>?> GetGlobalBadgesAsync(HttpClient httpClient, string clientId, string bearerToken)
+        {
+            return await GetBadgesAsync(httpClient, clientId, bearerToken, GlobalBadgesUrl);
+        }
+
+        public static async Task<List<TwitchBadgeSet>?> GetChannelBadgesAsync(HttpClient httpClient, string clientId, string bearerToken, string broadcasterId)
+        {
+            var url = $"{ChannelBadgesUrl}?broadcaster_id={Uri.EscapeDataString(broadcasterId)}";
+            return await GetBadgesAsync(httpClient, clientId, bearerToken, url);
+        }
+
+        private static async Task<List<TwitchBadgeSet>?> GetBadgesAsync(HttpClient httpClient, string clientId, string bearerToken, string url)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            request.Headers.Add("Client-Id", clientId);
+
+            using var response = await httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+            var body = await response.Content.ReadFromJsonAsync<TwitchBadgesResponse>();
+            return body?.Data;
+        }
+
+        public class TwitchBadgesResponse
+        {
+            [JsonPropertyName("data")]
+            public List<TwitchBadgeSet> Data { get; set; } = new();
+        }
+
+        public class TwitchBadgeSet
+        {
+            [JsonPropertyName("set_id")]
+            public string SetId { get; set; } = string.Empty;
+
+            [JsonPropertyName("versions")]
+            public List<TwitchBadgeVersion> Versions { get; set; } = new();
+        }
+
+        public class TwitchBadgeVersion
+        {
+            [JsonPropertyName("id")]
+            public string Id { get; set; } = string.Empty;
+
+            [JsonPropertyName("image_url_1x")]
+            public string ImageUrl1x { get; set; } = string.Empty;
+
+            [JsonPropertyName("image_url_2x")]
+            public string ImageUrl2x { get; set; } = string.Empty;
+
+            [JsonPropertyName("image_url_4x")]
+            public string ImageUrl4x { get; set; } = string.Empty;
+
+            [JsonPropertyName("title")]
+            public string Title { get; set; } = string.Empty;
+
+            [JsonPropertyName("description")]
+            public string Description { get; set; } = string.Empty;
         }
 
         public class TwitchTokenResponse

@@ -1,41 +1,92 @@
-import type { FrontEndEventData, UserFlagName, UserTypeName } from "../types";
+import { useEffect, useState } from "react";
+import { useChatConnection } from "../ChatContext";
+import { getBadgesCached } from "../api/badgesApi";
+import type { BadgeMap, FrontEndEventData, UserFlagName, UserTypeName } from "../types";
 
 type ChatBadgesItemProps = {
     event: FrontEndEventData<any>;
 };
 
+type BadgeSlot = {
+    set: string;
+    version: string;
+    fallback: string;
+};
+
+const USER_TYPE_BADGES: Partial<Record<UserTypeName, BadgeSlot>> = {
+    Broadcaster: { set: "broadcaster", version: "1", fallback: "Streamer" },
+    Moderator: { set: "moderator", version: "1", fallback: "Mod" },
+    GlobalModerator: { set: "global_mod", version: "1", fallback: "Global Mod" },
+    Admin: { set: "admin", version: "1", fallback: "Admin" },
+    Staff: { set: "staff", version: "1", fallback: "Staff" },
+};
+
+const USER_FLAG_BADGES: Partial<Record<UserFlagName, BadgeSlot>> = {
+    Moderator: { set: "moderator", version: "1", fallback: "Mod" },
+    Subscriber: { set: "subscriber", version: "1", fallback: "Sub" },
+    Vip: { set: "vip", version: "1", fallback: "Vip" },
+    Partner: { set: "partner", version: "1", fallback: "Partner" },
+    Turbo: { set: "turbo", version: "1", fallback: "Turbo" },
+    Staff: { set: "staff", version: "1", fallback: "Staff" },
+};
+
 function ChatBadges({ event }: ChatBadgesItemProps) {
+    const { channelId } = useChatConnection();
+    const [badges, setBadges] = useState<BadgeMap | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        getBadgesCached(channelId).then((loaded) => {
+            if (!cancelled) setBadges(loaded);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [channelId]);
+
     const data = event.chatEventData;
     const userFlagsNames: UserFlagName[] | undefined = data.userFlagsNames;
     const userTypeName: UserTypeName | undefined = data.userTypeName;
 
-    let isBroadcaster = false;
-    let isModerator = false;
-    let isSubscriber = false;
-    let isVip = false;
-    let isPartner = false;
-    let isTurbo = false;
-
-    if (userTypeName) {
-        isBroadcaster = userTypeName.includes("Broadcaster");
-        isModerator = userTypeName.includes("Moderator");
+    const slots: BadgeSlot[] = [];
+    if (userTypeName && USER_TYPE_BADGES[userTypeName]) {
+        slots.push(USER_TYPE_BADGES[userTypeName]);
     }
     if (userFlagsNames) {
-        isModerator ||= userFlagsNames.includes("Moderator");
-        isSubscriber = userFlagsNames.includes("Subscriber") || data.isSubscriber;
-        isVip = userFlagsNames.includes("Vip");
-        isPartner = userFlagsNames.includes("Partner");
-        isTurbo = userFlagsNames.includes("Turbo");
+        for (const flag of userFlagsNames) {
+            const slot = USER_FLAG_BADGES[flag];
+            if (slot && !slots.some((s) => s.set === slot.set)) {
+                slots.push(slot);
+            }
+        }
     }
+    // Broadcasters auto-moderate their own chat, so the mod badge is redundant
+    // next to the broadcaster one (Twitch hides it too).
+    const visibleSlots = slots.some((s) => s.set === "broadcaster")
+        ? slots.filter((s) => s.set !== "moderator")
+        : slots;
 
     return (
         <span>
-            {isBroadcaster && <span className="badge"> STREAMER </span>}
-            {isModerator && <span className="badge"> Mod </span>}
-            {isSubscriber && <span className="badge"> Sub </span>}
-            {isVip && <span className="badge"> Vip </span>}
-            {isPartner && <span className="badge"> Partner </span>}
-            {isTurbo && <span className="badge"> Turbo </span>}
+            {visibleSlots.map((slot) => {
+                const badge = badges?.[slot.set]?.[slot.version];
+                if (badge) {
+                    return (
+                        <img
+                            key={slot.set}
+                            className="chat-badge-image"
+                            src={badge.imageUrl}
+                            alt={slot.fallback}
+                            title={badge.title}
+                        />
+                    );
+                }
+                return (
+                    <span key={slot.set} className="badge">
+                        {slot.fallback}
+                    </span>
+                );
+            })}
         </span>
     );
 }

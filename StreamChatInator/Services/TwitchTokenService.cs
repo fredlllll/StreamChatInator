@@ -1,0 +1,112 @@
+using StreamChatInator.Apis;
+using StreamChatInator.Database;
+using StreamChatInator.Database.Models;
+using System.Globalization;
+
+namespace StreamChatInator.Services
+{
+    /// <summary>
+    /// Owns reading, persisting and refreshing the Twitch OAuth access token
+    /// stored in the settings table. Both the chat reader and other services
+    /// that call the Twitch API (e.g. badge/emote fetchers) depend on this
+    /// instead of duplicating the refresh logic.
+    /// </summary>
+    public class TwitchTokenService
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _config;
+        private readonly IServiceScopeFactory _scopeFactory;
+
+        public TwitchTokenService(IHttpClientFactory httpClientFactory, IConfiguration config, IServiceScopeFactory scopeFactory)
+        {
+            _httpClientFactory = httpClientFactory;
+            _config = config;
+            _scopeFactory = scopeFactory;
+        }
+
+        private string ClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
+
+        /// <summary>
+        /// Returns a usable access token, creating its own scope. Null when no
+        /// credentials exist or the refresh fails (a re-login is needed).
+        /// </summary>
+        public async Task<string?> GetAccessTokenAsync()
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            return await GetAccessTokenAsync(db);
+        }
+
+        /// <summary>
+        /// Returns a usable access token using a caller-owned context (e.g. the
+        /// scoped context a background service already has open).
+        /// </summary>
+        public async Task<string?> GetAccessTokenAsync(DatabaseContext db)
+        {
+            var token = db.GetSettingsValueOrNull(SettingValue.SettingOAuthToken);
+            if (string.IsNullOrEmpty(token))
+            {
+                return null;
+            }
+
+            if (!NeedsRefresh(db))
+            {
+                return token;
+            }
+
+            return await RefreshAsync(db);
+        }
+
+        /// <summary>
+        /// Forces a token refresh in a fresh scope, even when the stored expiry
+        /// still looks valid. Useful to recover from a 401 where the token was
+        /// revoked outside its expiry window.
+        /// </summary>
+        public async Task<string?> RefreshAccessTokenAsync()
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            return await RefreshAsync(db);
+        }
+
+        private async Task<string?> RefreshAsync(DatabaseContext db)
+        {
+            var refreshToken = db.GetSettingsValueOrNull(SettingValue.SettingOAuthRefreshToken);
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return null;
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("twitch");
+            var refreshed = await Twitch.RefreshAccessTokenAsync(httpClient, ClientId, refreshToken);
+            if (refreshed == null || string.IsNullOrEmpty(refreshed.AccessToken))
+            {
+                return null;
+            }
+
+            db.SetSettingsValue(SettingValue.SettingOAuthToken, refreshed.AccessToken);
+            if (!string.IsNullOrEmpty(refreshed.RefreshToken))
+            {
+                db.SetSettingsValue(SettingValue.SettingOAuthRefreshToken, refreshed.RefreshToken);
+            }
+            db.SetSettingsValue(SettingValue.SettingOAuthTokenExpiresAt, DateTime.UtcNow.AddSeconds(refreshed.ExpiresIn).ToString("o"));
+            db.SaveChanges();
+
+            return refreshed.AccessToken;
+        }
+
+        private static bool NeedsRefresh(DatabaseContext db)
+        {
+            var expiresRaw = db.GetSettingsValueOrNull(SettingValue.SettingOAuthTokenExpiresAt);
+            if (string.IsNullOrEmpty(expiresRaw))
+            {
+                return true;
+            }
+            if (!DateTime.TryParse(expiresRaw, null, DateTimeStyles.RoundtripKind, out var expires))
+            {
+                return true;
+            }
+            return expires <= DateTime.UtcNow.AddMinutes(5);
+        }
+    }
+}

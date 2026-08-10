@@ -6,3 +6,10 @@ export interface EventFilter extends Model {
     code: string; // TypeScript source of the filter function
     codeJs: string; // compiled JavaScript (function body) used for execution
 }
+
+export interface BadgeInfo {
+    title: string;
+    imageUrl: string;
+}
+
+export type BadgeMap = Record<string, Record<string, BadgeInfo>>;

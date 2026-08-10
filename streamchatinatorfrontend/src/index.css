@@ -299,3 +299,10 @@ select.input {
   margin-right: 6px;
   vertical-align: 1px;
 }
+
+.chat-badge-image {
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  vertical-align: -3px;
+}
