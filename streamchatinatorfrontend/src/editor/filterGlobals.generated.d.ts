@@ -1,4 +1,4 @@
-// AUTO-GENERATED from src/types.ts — do not edit.
+// AUTO-GENERATED from src/chatEventTypes.ts — do not edit.
 // Regenerate with `npm run generate:editor-types` (also runs automatically on dev/build).
 //
 // Mirrors the chat event data serialized to JSON (camelCase) and passed to
@@ -6,7 +6,7 @@
 // (new Function("eventData", code)) and on the server (Jint:
 // function __matches(eventData) { ... }).
 
-// Type aliases used by the payload fields below, copied verbatim from types.ts.
+// Type aliases used by the payload fields below, copied verbatim from chatEventTypes.ts.
 type ChatEventType = "None" | "Announcement" | "AnonGiftPaidUpgrade" | "BitsBadgeTier" | "ChatMessage" | "CommunityPayForward" | "CommunitySubscription" | "ContinuedGiftedSubscription" | "GiftedSubscription" | "MessageCleared" | "NewSubscriber" | "PrimePaidSubscriber" | "ReSubscriber" | "Ritual" | "StandardPayForward" | "UserBanned" | "UserJoined" | "UserLeft" | "UserTimedout";
 type NotSetTrueFalse = 0 | 1 | 2;
 type UserFlagName = "Moderator" | "Turbo" | "Subscriber" | "Vip" | "Partner" | "Staff";
@@ -14,13 +14,211 @@ type UserTypeName = "Viewer" | "Moderator" | "GlobalModerator" | "Broadcaster" |
 type float = number;
 type int = number;
 
-interface ChatEventEnvelope {
+// Chat event payload interfaces (and the base interfaces they extend), copied
+// verbatim from chatEventTypes.ts, so you can cast or type against the real
+// payload type, e.g. `eventData.chatEventData as ChatEventAnnouncement`.
+interface Model {
+    id: string;
+    created: string;
+    updated: string;
+}
+
+interface FrontEndEventData<T = unknown> {
     eventId: string;
     chatEventType: ChatEventType;
     seen: boolean;
-    /** Payload of the event. Present on one of: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventMessageCleared, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward, ChatEventUserBanned, ChatEventUserJoined, ChatEventUserLeft, ChatEventUserTimedout. */
-    chatEventData: ChatEventDataMerged;
+    chatEventData: T;
 }
+
+interface ChatEventChatMessage extends Model {
+    bits: int;
+    bitsInDollars: float;
+    emotes: string | null;
+    customRewardId: string | null;
+    twitchMessageId: string;
+    isFirstMessage: boolean;
+    isHighlighted: boolean;
+    isMe: boolean;
+    isSkippingSubMode: boolean;
+    noisy: NotSetTrueFalse;
+    subscribedMonthCount: int;
+    replyParentMessageTwitchMessageId: string | null;
+    isReply: boolean;
+    userId: string;
+    userFlags: int;
+    username: string;
+    displayName: string;
+    message: string;
+    hexColor: string;
+    isBroadcaster: boolean;
+    tmiSent: string; // ISO date string - we'll parse it when we need to display it
+    userFlagsNames: UserFlagName[];
+    userTypeName: UserTypeName;
+}
+
+interface ChatUserNoticeBase extends Model {
+    hexColor: string;
+    displayName: string;
+    emotes: string;
+    twitchId: string;
+    login: string;
+    msgId: string;
+    roomId: string;
+    systemMsg: string;
+    tmiSent: string;
+    userFlags: int;
+    userFlagsNames: UserFlagName[];
+    userId: string;
+    userType: int;
+    userTypeName: UserTypeName;
+}
+
+interface ChatEventAnnouncement extends ChatUserNoticeBase {
+    msgParamColor: string;
+    message: string;
+}
+
+interface ChatEventAnonGiftPaidUpgrade extends ChatUserNoticeBase {
+    msgParamPromoGiftTotal: int;
+    msgParamPromoName: string;
+}
+
+interface ChatEventBitsBadgeTier extends ChatUserNoticeBase {
+    msgParamThreshold: int;
+}
+
+interface ChatEventCommunityPayForward extends ChatUserNoticeBase {
+    msgParamPriorGifterAnonymous: boolean;
+    msgParamPriorGifterDisplayName: string;
+    msgParamPriorGifterId: string;
+    msgParamPriorGifterUserName: string;
+}
+
+interface ChatEventCommunitySubscription extends ChatUserNoticeBase {
+    isAnonymous: boolean;
+    msgParamGiftTheme: string;
+    msgParamMassGiftCount: int;
+    msgParamOriginId: string;
+    msgParamSenderCount: int;
+    msgParamSubPlan: int;
+    msgParamSubPlanName: string;
+}
+
+interface ChatEventContinuedGiftedSubscription extends ChatUserNoticeBase {
+    msgParamPromoGiftTotal: int;
+    msgParamPromoName: string;
+    msgParamSenderLogin: string;
+    msgParamSenderName: string;
+}
+
+interface ChatEventGiftedSubscription extends ChatUserNoticeBase {
+    isAnonymous: boolean;
+    msgParamMonths: string; //TODO: wtf why is this string?
+    msgParamOriginId: string;
+    msgParamRecipientDisplayName: string;
+    msgParamRecipientId: string;
+    msgParamRecipientUserName: string;
+    msgParamSenderCount: int;
+    msgParamSubPlan: int;
+    msgParamSubPlanName: string;
+    msgParamMultiMonthGiftDuration: int;
+}
+
+interface ChatEventMessageCleared extends Model {
+    channel: string;
+    message: string;
+    targetMessageId: string;
+    tmiSent: string;
+}
+
+interface ChatEventNewSubscriber extends ChatUserNoticeBase {
+    msgParamCumulativeMonths: int;
+    msgParamShouldShareStreak: boolean;
+    msgParamStreakMonths: int;
+    msgParamSubPlan: int;
+    msgParamSubPlanName: string;
+    resubMessage: string;
+}
+
+interface ChatEventPrimePaidSubscriber extends ChatUserNoticeBase {
+    msgParamSubPlan: int;
+    msgParamSubPlanName: string;
+    resubMessage: string;
+}
+
+interface ChatEventReSubscriber extends ChatUserNoticeBase {
+    msgParamCumulativeMonths: int;
+    msgParamShouldShareStreak: boolean;
+    msgParamStreakMonths: int;
+    msgParamSubPlan: int;
+    msgParamSubPlanName: string;
+    resubMessage: string;
+}
+
+interface ChatEventRitual extends ChatUserNoticeBase {
+    msgParamRitualName: string;
+    message: string;
+}
+
+interface ChatEventStandardPayForward extends ChatUserNoticeBase {
+    msgParamPriorGifterAnonymous: boolean;
+    msgParamPriorGifterDisplayName: string;
+    msgParamPriorGifterId: int;
+    msgParamPriorGifterUserName: string;
+    msgParamRecipientDisplayName: string | null;
+    msgParamRecipientId: int | null;
+    msgParamRecipientUserName: string | null;
+}
+
+interface ChatEventUserBanned extends Model {
+    channel: string;
+    username: string;
+    roomId: string;
+    targetUserId: string;
+}
+
+interface ChatEventUserJoined extends Model {
+    username: string;
+    channel: string;
+}
+
+interface ChatEventUserLeft extends Model {
+    username: string;
+    channel: string;
+}
+
+interface ChatEventUserTimedout extends Model {
+    channel: string;
+    timeoutDuration: string; //TimeSpan //TODO: idk how this will be serialized
+    username: string;
+    targetUserId: string;
+}
+
+/** Maps every ChatEventType to the payload it carries ("None" has no payload). */
+type ChatEventDataByType = {
+    None: unknown;
+    Announcement: ChatEventAnnouncement;
+    AnonGiftPaidUpgrade: ChatEventAnonGiftPaidUpgrade;
+    BitsBadgeTier: ChatEventBitsBadgeTier;
+    ChatMessage: ChatEventChatMessage;
+    CommunityPayForward: ChatEventCommunityPayForward;
+    CommunitySubscription: ChatEventCommunitySubscription;
+    ContinuedGiftedSubscription: ChatEventContinuedGiftedSubscription;
+    GiftedSubscription: ChatEventGiftedSubscription;
+    MessageCleared: ChatEventMessageCleared;
+    NewSubscriber: ChatEventNewSubscriber;
+    PrimePaidSubscriber: ChatEventPrimePaidSubscriber;
+    ReSubscriber: ChatEventReSubscriber;
+    Ritual: ChatEventRitual;
+    StandardPayForward: ChatEventStandardPayForward;
+    UserBanned: ChatEventUserBanned;
+    UserJoined: ChatEventUserJoined;
+    UserLeft: ChatEventUserLeft;
+    UserTimedout: ChatEventUserTimedout;
+};
+
+/** Payload of any chat event: `ChatEventAnnouncement | ChatEventAnonGiftPaidUpgrade | ... | ChatEventUserTimedout`. */
+type ChatEventDataUnion = ChatEventDataByType[ChatEventType];
 
 /** Every field that exists on ANY chat event payload (all optional, so they autocomplete regardless of chatEventType). */
 interface ChatEventDataMerged {
@@ -151,5 +349,22 @@ interface ChatEventDataMerged {
     /** Present on: ChatEventChatMessage, ChatEventUserBanned, ChatEventUserJoined, ChatEventUserLeft, ChatEventUserTimedout */
     username?: string;
 }
+
+/**
+ * The event envelope, discriminated on `chatEventType`. `chatEventData`
+ * narrows to the matching payload type automatically:
+ *     if (eventData.chatEventType === "ChatMessage") {
+ *         eventData.chatEventData.username; // ChatEventChatMessage
+ *     }
+ * or cast explicitly: `eventData.chatEventData as ChatEventAnnouncement`.
+ */
+type ChatEventEnvelope = {
+    [K in ChatEventType]: {
+        eventId: string;
+        chatEventType: K;
+        seen: boolean;
+        chatEventData: ChatEventDataByType[K];
+    };
+}[ChatEventType];
 
 declare const eventData: ChatEventEnvelope;

@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
-const typesFile = join(projectRoot, "src", "types.ts");
+const typesFile = join(projectRoot, "src", "chatEventTypes.ts");
 const outputFile = join(projectRoot, "src", "editor", "filterGlobals.generated.d.ts");
 
 function splitTopLevelUnion(text, sep = "|") {
@@ -57,21 +57,38 @@ export function generateEditorTypes() {
 
     const payloadDecls = new Map();
     const aliases = new Map();
-    let chatEventTypeText = null;
+    const interfaceDecls = [];
+    let chatEventTypeNode = null;
     for (const stmt of sourceFile.statements) {
         if (ts.isInterfaceDeclaration(stmt) && stmt.name) {
-            const name = stmt.name.text;
-            if (name.startsWith("ChatEvent")) {
-                payloadDecls.set(name, stmt);
+            interfaceDecls.push(stmt);
+            if (stmt.name.text.startsWith("ChatEvent")) {
+                payloadDecls.set(stmt.name.text, stmt);
             }
         } else if (ts.isTypeAliasDeclaration(stmt) && stmt.name) {
             const name = stmt.name.text;
             aliases.set(name, stmt.type.getText(sourceFile));
             if (name === "ChatEventType") {
-                const type = program.getTypeChecker().getTypeFromTypeNode(stmt.type);
-                chatEventTypeText = program.getTypeChecker().typeToString(type, stmt, ts.TypeFormatFlags.NoTruncation);
+                chatEventTypeNode = stmt.type;
             }
         }
+    }
+
+    // Literal member names of ChatEventType (used to build the discriminant map).
+    let chatEventTypeMembers = null;
+    if (chatEventTypeNode) {
+        const type = program.getTypeChecker().getTypeFromTypeNode(chatEventTypeNode);
+        const collect = (t) => {
+            if (!t) return [];
+            const parts = [];
+            for (const member of t) {
+                if (member.isStringLiteral()) parts.push(member.value);
+                else if (member.isUnion()) parts.push(...collect(member.types));
+            }
+            return parts;
+        };
+        if (type.isUnion()) chatEventTypeMembers = collect(type.types);
+        else if (type.isStringLiteral()) chatEventTypeMembers = [type.value];
     }
 
     const checker = program.getTypeChecker();
@@ -106,13 +123,36 @@ export function generateEditorTypes() {
         return `    /** Present on: ${originsText} */\n    ${name}?: ${typeText};`;
     });
 
-    const chatEventType = chatEventTypeText ?? "string";
-    const payloadsList = [...payloadDecls.keys()].sort().join(", ");
     const aliasLines = [...aliases.keys()]
         .sort()
         .map((name) => `type ${name} = ${aliases.get(name)};`);
 
-    const out = `// AUTO-GENERATED from src/types.ts — do not edit.
+    // Print the full interfaces from chatEventTypes.ts verbatim so the payload
+    // types (ChatEvent*), and the bases they extend (Model, ChatUserNoticeBase),
+    // are real types in the editor that can be referenced / cast to. Drop the
+    // `export` keywords — a d.ts with top-level exports loads as a module in
+    // the Monaco TS worker, which would stop `eventData` from being global.
+    const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+    const interfaceLines = interfaceDecls.map(
+        (decl) =>
+            printer
+                .printNode(ts.EmitHint.Unspecified, decl, sourceFile)
+                .replace(/^export\s+/gm, "")
+                .trim()
+    );
+
+    // One payload type per ChatEventType ("None" carries no payload).
+    let byTypeLines = [`    None: unknown;`];
+    if (chatEventTypeMembers) {
+        byTypeLines = chatEventTypeMembers.map((k) => {
+            const payloadName = `ChatEvent${k}`;
+            const ref = payloadDecls.has(payloadName) ? payloadName : "unknown";
+            return `    ${k}: ${ref};`;
+        });
+    }
+    const byTypeBody = byTypeLines.join("\n");
+
+    const out = `// AUTO-GENERATED from src/chatEventTypes.ts — do not edit.
 // Regenerate with \`npm run generate:editor-types\` (also runs automatically on dev/build).
 //
 // Mirrors the chat event data serialized to JSON (camelCase) and passed to
@@ -120,21 +160,43 @@ export function generateEditorTypes() {
 // (new Function("eventData", code)) and on the server (Jint:
 // function __matches(eventData) { ... }).
 
-// Type aliases used by the payload fields below, copied verbatim from types.ts.
+// Type aliases used by the payload fields below, copied verbatim from chatEventTypes.ts.
 ${aliasLines.join("\n")}
 
-interface ChatEventEnvelope {
-    eventId: string;
-    chatEventType: ${chatEventType};
-    seen: boolean;
-    /** Payload of the event. Present on one of: ${payloadsList}. */
-    chatEventData: ChatEventDataMerged;
-}
+// Chat event payload interfaces (and the base interfaces they extend), copied
+// verbatim from chatEventTypes.ts, so you can cast or type against the real
+// payload type, e.g. \`eventData.chatEventData as ChatEventAnnouncement\`.
+${interfaceLines.join("\n\n")}
+
+/** Maps every ChatEventType to the payload it carries ("None" has no payload). */
+type ChatEventDataByType = {
+${byTypeBody}
+};
+
+/** Payload of any chat event: \`ChatEventAnnouncement | ChatEventAnonGiftPaidUpgrade | ... | ChatEventUserTimedout\`. */
+type ChatEventDataUnion = ChatEventDataByType[ChatEventType];
 
 /** Every field that exists on ANY chat event payload (all optional, so they autocomplete regardless of chatEventType). */
 interface ChatEventDataMerged {
 ${fieldLines.join("\n")}
 }
+
+/**
+ * The event envelope, discriminated on \`chatEventType\`. \`chatEventData\`
+ * narrows to the matching payload type automatically:
+ *     if (eventData.chatEventType === "ChatMessage") {
+ *         eventData.chatEventData.username; // ChatEventChatMessage
+ *     }
+ * or cast explicitly: \`eventData.chatEventData as ChatEventAnnouncement\`.
+ */
+type ChatEventEnvelope = {
+    [K in ChatEventType]: {
+        eventId: string;
+        chatEventType: K;
+        seen: boolean;
+        chatEventData: ChatEventDataByType[K];
+    };
+}[ChatEventType];
 
 declare const eventData: ChatEventEnvelope;
 `;
