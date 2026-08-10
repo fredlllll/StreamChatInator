@@ -3,6 +3,7 @@ import {
     javascriptDefaults,
     ScriptTarget,
 } from "monaco-editor/language/typescript/monaco.contribution.js";
+import "monaco-editor/languages/definitions/javascript/register.js";
 import editorWorker from "monaco-editor/editor/editor.worker?worker";
 import tsWorker from "monaco-editor/language/typescript/ts.worker?worker";
 import filterGlobals from "./filterGlobals.generated.d.ts?raw";
