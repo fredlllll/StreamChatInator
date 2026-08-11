@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
+using System.Globalization;
 using System.Text.Json;
 
 namespace StreamChatInator.Controllers
@@ -161,11 +162,13 @@ namespace StreamChatInator.Controllers
         {
             if (string.IsNullOrEmpty(cursor)) return (null, "");
             var sep = cursor.LastIndexOf('|');
-            if (sep > 0 && DateTime.TryParse(cursor[..sep], out var created))
+            // RoundtripKind keeps UTC (`...Z`) cursors in UTC; a plain parse would
+            // shift them into local time and break the keyset comparison below.
+            if (sep > 0 && DateTime.TryParse(cursor[..sep], null, DateTimeStyles.RoundtripKind, out var created))
             {
                 return (created, cursor[(sep + 1)..]);
             }
-            if (DateTime.TryParse(cursor, out var plain))
+            if (DateTime.TryParse(cursor, null, DateTimeStyles.RoundtripKind, out var plain))
             {
                 return (plain, "");
             }

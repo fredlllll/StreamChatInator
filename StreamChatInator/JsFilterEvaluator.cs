@@ -33,12 +33,13 @@ namespace StreamChatInator
             try
             {
                 // Run the filter's `__matches`; if the script didn't define it,
-                // let the event through (default true).
-                return _engine.Evaluate("__matches ? __matches(__eventData) : true").AsBoolean();
+                // let the event through (default true). `typeof` on an undeclared
+                // identifier is safe (no ReferenceError), unlike a bare reference.
+                return _engine.Evaluate("typeof __matches === 'function' ? __matches(__eventData) : true").AsBoolean();
             }
             catch
             {
-                return false;
+                return true;
             }
         }
     }
