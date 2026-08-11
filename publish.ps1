@@ -12,6 +12,9 @@
         ./publish.ps1 -Mode self-contained     # self-contained, all platforms
         ./publish.ps1 -Platform osx-arm64 -Mode self-contained
         ./publish.ps1 -NoRestore               # reuse existing restore results
+
+    Output goes to publish\<rid>\<mode> in the repo root, e.g.
+    publish\win-x64\framework-dependent. (publish/ is git-ignored.)
 #>
 [CmdletBinding()]
 param(
@@ -39,37 +42,38 @@ function Invoke-StreamingDotNet {
     param(
         [Parameter(Mandatory)][string]$Project,
         [Parameter(Mandatory)][string]$Profile,
+        [Parameter(Mandatory)][string]$PublishDir,
         [switch]$SkipRestore
     )
-    if ($SkipRestore) {
-        & dotnet publish $Project "-p:PublishProfile=$Profile" --no-restore 2>&1 | ForEach-Object { Write-Host $_ }
-    }
-    else {
-        & dotnet publish $Project "-p:PublishProfile=$Profile" 2>&1 | ForEach-Object { Write-Host $_ }
-    }
+    $extra = @("-p:PublishDir=$PublishDir")
+    if ($SkipRestore) { $extra += "--no-restore" }
+    & dotnet publish $Project "-p:PublishProfile=$Profile" @extra 2>&1 | ForEach-Object { Write-Host $_ }
     if ($LASTEXITCODE -ne 0) {
         throw "Publish failed for profile '$Profile'"
     }
 }
 
+$publishRoot = Join-Path $root "publish"
+
 $results = @()
 foreach ($p in $platforms) {
     $profile = "$prefix-$p"
-    $outputDir = Join-Path $root "StreamChatInator\bin\Release\net10.0\$p\publish\$Mode"
+    $targetDir = Join-Path (Join-Path $publishRoot $p) $Mode
 
     Write-Host ""
     Write-Host "==> Publishing '$Mode' for '$p'" -ForegroundColor Cyan
+    Write-Host "    -> $targetDir" -ForegroundColor DarkGray
     Write-Host "    (builds the React frontend too; live output below)" -ForegroundColor DarkGray
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-StreamingDotNet -Project $project -Profile $profile -SkipRestore:$NoRestore
+    Invoke-StreamingDotNet -Project $project -Profile $profile -PublishDir $targetDir -SkipRestore:$NoRestore
     $sw.Stop()
 
     $results += [pscustomobject]@{
         Platform = $p
         Mode     = $Mode
         Seconds  = [math]::Round($sw.Elapsed.TotalSeconds, 1)
-        Output   = $outputDir
+        Output   = $targetDir
     }
 }
 
