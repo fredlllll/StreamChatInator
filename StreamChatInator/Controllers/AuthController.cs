@@ -21,14 +21,14 @@ namespace StreamChatInator.Controllers
         private const string Scopes = "chat:edit chat:read";
 
         private readonly IConfiguration _config;
-        private readonly IServiceProvider _services;
+        private readonly DatabaseContext _db;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly TwitchTokenService _tokenService;
 
-        public AuthController(IConfiguration config, IServiceProvider services, IHttpClientFactory httpClientFactory, TwitchTokenService tokenService)
+        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchTokenService tokenService)
         {
             _config = config;
-            _services = services;
+            _db = db;
             _httpClientFactory = httpClientFactory;
             _tokenService = tokenService;
         }
@@ -47,6 +47,8 @@ namespace StreamChatInator.Controllers
             {
                 return StatusCode(502, new { error = "twitch_unavailable" });
             }
+
+            PruneExpiredAttempts();
 
             var id = CreateRandom();
             _deviceAttempts[id] = (device.DeviceCode, DateTime.UtcNow.AddSeconds(Math.Max(device.ExpiresIn, 60)));
@@ -102,15 +104,14 @@ namespace StreamChatInator.Controllers
                 return Ok(new { status = "failed" });
             }
 
-            var db = _services.GetRequiredService<DatabaseContext>();
-            db.SetSettingsValue(SettingValue.SettingOAuthToken, token.AccessToken);
+            _db.SetSettingsValue(SettingValue.SettingOAuthToken, token.AccessToken);
             if (!string.IsNullOrEmpty(token.RefreshToken))
             {
-                db.SetSettingsValue(SettingValue.SettingOAuthRefreshToken, token.RefreshToken);
+                _db.SetSettingsValue(SettingValue.SettingOAuthRefreshToken, token.RefreshToken);
             }
-            db.SetSettingsValue(SettingValue.SettingOAuthTokenExpiresAt, DateTime.UtcNow.AddSeconds(token.ExpiresIn).ToString("o"));
-            db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
-            db.SaveChanges();
+            _db.SetSettingsValue(SettingValue.SettingOAuthTokenExpiresAt, DateTime.UtcNow.AddSeconds(token.ExpiresIn).ToString("o"));
+            _db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
+            _db.SaveChanges();
 
             _tokenService.SignalLogin();
 
@@ -127,6 +128,21 @@ namespace StreamChatInator.Controllers
         private static string Base64UrlEncode(byte[] bytes)
         {
             return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        }
+
+        /// <summary>
+        /// Removes abandoned device-code attempts so the dictionary doesn't grow
+        /// unbounded when a login is started but never polled to completion.
+        /// </summary>
+        private static void PruneExpiredAttempts()
+        {
+            foreach (var kvp in _deviceAttempts)
+            {
+                if (kvp.Value.ExpiresAt < DateTime.UtcNow)
+                {
+                    _deviceAttempts.TryRemove(kvp.Key, out _);
+                }
+            }
         }
     }
 }
