@@ -92,7 +92,26 @@ namespace StreamChatInator.Services
                 return token;
             }
 
-            return await RefreshAsync(db);
+            var refreshed = await RefreshAsync(db);
+            if (!string.IsNullOrEmpty(refreshed))
+            {
+                return refreshed;
+            }
+
+            // Refresh failed (e.g. Twitch's API is briefly unreachable or the
+            // refresh token was revoked, but the access token still works). Keep
+            // using the stored token while it's still within its expiry window
+            // instead of forcing a full re-login; only give up once it's actually
+            // expired and would 401 anyway.
+            return TokenStillValid(db) ? token : null;
+        }
+
+        private static bool TokenStillValid(DatabaseContext db)
+        {
+            var expiresRaw = db.GetSettingsValueOrNull(SettingValue.SettingOAuthTokenExpiresAt);
+            if (string.IsNullOrEmpty(expiresRaw)) return false;
+            if (!DateTime.TryParse(expiresRaw, null, DateTimeStyles.RoundtripKind, out var expires)) return false;
+            return expires > DateTime.UtcNow;
         }
 
         /// <summary>
