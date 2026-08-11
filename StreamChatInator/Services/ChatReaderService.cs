@@ -21,6 +21,7 @@ namespace StreamChatInator.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Twitch Bot Service started. Waiting for authentication...");
+            ConsoleUi.SetStatus("Waiting for Twitch login…");
             while (!stoppingToken.IsCancellationRequested)
             {
                 using var scope = _scopeFactory.CreateScope();
@@ -58,9 +59,11 @@ namespace StreamChatInator.Services
                         await reader.ConnectAsync();
                         await hub.Clients.All.SendAsync("Connection", stoppingToken);
                         _logger.LogInformation("chat reader connected as {User}", channelName);
+                        ConsoleUi.SetStatus($"Connected as {channelName}");
                         // Run returns when the twitch client drops or the app shuts down.
                         await reader.Run(stoppingToken);
                         _logger.LogInformation("chat reader disconnected");
+                        ConsoleUi.SetStatus("Disconnected — reconnecting…");
                         await hub.Clients.All.SendAsync("NoConnection", stoppingToken);
                     }
                     finally
@@ -75,6 +78,7 @@ namespace StreamChatInator.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "chat reader failed, will retry");
+                    ConsoleUi.SetStatus("Connection failed — retrying…");
                     await TrySendNoConnectionAsync(hub, stoppingToken);
                 }
                 finally

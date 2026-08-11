@@ -8,15 +8,29 @@ namespace StreamChatInator
     public class Program
     {
         const int vitePort = 53401;
-        const int port = 17455;
+        const int defaultPort = 17455;
 
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            builder.Services.AddRazorPages();
-            builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite($"Data Source=db.sqlite").ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+            // Configurable port (env `Port` or appsettings) so the published app
+            // doesn't hard-code a fixed address; defaults to 17455.
+            var port = int.TryParse(builder.Configuration["Port"], out var p) ? p : defaultPort;
+            var displayUrl = $"http://localhost:{port}";
+
+            // Fancy console UI (info panel + scrolling log area). Falls back to
+            // the normal console logger when the UI can't be used (e.g. piped).
+            if (ConsoleUi.Init("StreamChatInator", displayUrl))
+            {
+                builder.Logging.ClearProviders();
+                builder.Logging.AddProvider(new ConsoleUiLoggerProvider());
+            }
+
+            // Keep the sqlite file next to the app so it doesn't matter where the
+            // exe is launched from (shortcuts, double-click, etc).
+            var dbPath = Path.Combine(AppContext.BaseDirectory, "db.sqlite");
+            builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite($"Data Source={dbPath}").ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
             builder.Services.AddControllers();
             builder.Services.AddHostedService<ChatReaderService>();
             builder.Services.AddSingleton<ChatHubData>();
@@ -35,37 +49,52 @@ namespace StreamChatInator
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
             });
             builder.Services.AddSignalR();
-            builder.Services.AddCors(options => {
-                options.AddPolicy("AllowReact", builder =>
-                    builder.WithOrigins("http://localhost:"+vitePort)
-                           .AllowAnyHeader()
-                           .AllowAnyMethod()
-                           .AllowCredentials());
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowReact", policy =>
+                    policy.WithOrigins($"http://localhost:{vitePort}")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials());
             });
-            builder.WebHost.UseUrls("http://0.0.0.0:"+port);
+
+            builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
             using (var scope = app.Services.CreateScope())
             {
-                var services = scope.ServiceProvider;
-
-                var db = services.GetRequiredService<DatabaseContext>();
+                var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+#pragma warning disable XUnit1013
                 db.Database.Migrate();
+#pragma warning restore XUnit1013
             }
 
             app.UseRouting();
             app.UseCors("AllowReact");
+#pragma warning disable CS1998
             app.MapStaticAssets();
-            app.MapRazorPages().WithStaticAssets();
+#pragma warning restore CS1998
+
             app.MapControllers();
             app.MapHub<ChatHub>("/hubs/chat");
+
+            // The React SPA owns all non-API routes. Only mapped when the built
+            // frontend exists (i.e. after publish; in dev SpaProxy/Vite handles it).
+            var webRoot = app.Environment.WebRootPath;
+            if (webRoot is not null && File.Exists(Path.Combine(webRoot, "index.html")))
+            {
+                app.MapFallbackToFile("index.html");
+            }
+
+            app.Lifetime.ApplicationStopping.Register(ConsoleUi.Shutdown);
+
+            ConsoleUi.SetStatus("Starting…");
 
             app.Run();
         }
