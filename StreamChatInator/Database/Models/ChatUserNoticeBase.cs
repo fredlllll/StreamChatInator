@@ -49,6 +49,14 @@ namespace StreamChatInator.Database.Models
 
         public required UserDetails UserFlags { get; set; }
 
+        /// <summary>
+        /// The user's chat badges as Twitch sent them in the notice's badge tag,
+        /// serialized as a JSON array of {"set": "...", "version": "..."} entries.
+        /// This is the ground truth for which badges to render on the client; the
+        /// user flags/type below are only a fallback for badges missing from it.
+        /// </summary>
+        public required string? Badges { get; set; }
+
         public string[] UserFlagsNames => Util.FlagEnumNames(UserFlags);
 
         /// <summary>
@@ -80,6 +88,7 @@ namespace StreamChatInator.Database.Models
                 UserFlags = Util.GetPrivateFieldNotNull<UserDetails>(unb.UserDetail, "_flags"),
                 UserId = unb.UserId,
                 UserType = unb.UserType,
+                Badges = Util.SerializeBadges(unb.Badges),
             };
             return cunb;
         }

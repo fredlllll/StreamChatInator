@@ -34,6 +34,7 @@ export interface ChatEventChatMessage extends Model {
     isReply: boolean;
     userId: string;
     userFlags: int;
+    badges: string | null;
     username: string;
     displayName: string;
     message: string;
@@ -56,6 +57,7 @@ export interface ChatUserNoticeBase extends Model {
     systemMsg: string;
     tmiSent: string;
     userFlags: int;
+    badges: string | null;
     userFlagsNames: UserFlagName[];
     userId: string;
     userType: int;

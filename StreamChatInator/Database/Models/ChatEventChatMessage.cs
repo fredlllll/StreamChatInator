@@ -103,6 +103,15 @@ namespace StreamChatInator.Database.Models
         public required string HexColor { get; set; }
 
         /// <summary>
+        /// The user's chat badges as Twitch sent them in the message's badge tag,
+        /// serialized as a JSON array of {"set": "...", "version": "..."} entries.
+        /// This is the ground truth for which badges to render on the client; the
+        /// user flags/type below are only a fallback for badges missing from it
+        /// (e.g. subscriber tier, VIP, founder).
+        /// </summary>
+        public required string? Badges { get; set; }
+
+        /// <summary>
         /// Flags about the user, like moderator|turbo|vip etc
         /// </summary>
         public required UserDetails UserFlags { get; set; }
@@ -147,6 +156,7 @@ namespace StreamChatInator.Database.Models
                 UserFlags = Util.GetPrivateFieldNotNull<UserDetails>(msg.UserDetail, "_flags"),
                 UserType = msg.UserType,
                 HexColor = msg.HexColor,
+                Badges = Util.SerializeBadges(msg.Badges),
             };
 
             return chatMessage;

@@ -46,6 +46,7 @@ interface ChatEventChatMessage extends Model {
     isReply: boolean;
     userId: string;
     userFlags: int;
+    badges: string | null;
     username: string;
     displayName: string;
     message: string;
@@ -68,6 +69,7 @@ interface ChatUserNoticeBase extends Model {
     systemMsg: string;
     tmiSent: string;
     userFlags: int;
+    badges: string | null;
     userFlagsNames: UserFlagName[];
     userId: string;
     userType: int;
@@ -223,6 +225,8 @@ type ChatEventDataUnion = ChatEventDataByType[ChatEventType];
 
 /** Every field that exists on ANY chat event payload (all optional, so they autocomplete regardless of chatEventType). */
 interface ChatEventDataMerged {
+    /** Present on: ChatEventAnnouncement, ChatEventAnonGiftPaidUpgrade, ChatEventBitsBadgeTier, ChatEventChatMessage, ChatEventCommunityPayForward, ChatEventCommunitySubscription, ChatEventContinuedGiftedSubscription, ChatEventGiftedSubscription, ChatEventNewSubscriber, ChatEventPrimePaidSubscriber, ChatEventReSubscriber, ChatEventRitual, ChatEventStandardPayForward */
+    badges?: string | null;
     /** Present on: ChatEventChatMessage */
     bits?: number;
     /** Present on: ChatEventChatMessage */
