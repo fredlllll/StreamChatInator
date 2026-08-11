@@ -62,11 +62,6 @@ namespace StreamChatInator.Database
 
         }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
-        {
-            options.UseSqlite($"Data Source=db.sqlite");
-        }
-
         /// <summary>
         /// doesnt do save changes
         /// </summary>

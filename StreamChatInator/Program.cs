@@ -27,9 +27,10 @@ namespace StreamChatInator
                 builder.Logging.AddProvider(new ConsoleUiLoggerProvider());
             }
 
-            // Keep the sqlite file next to the app so it doesn't matter where the
-            // exe is launched from (shortcuts, double-click, etc).
-            var dbPath = Path.Combine(AppContext.BaseDirectory, "db.sqlite");
+            // Keep the sqlite file in the per-user data dir so installs in
+            // read-only locations (Program Files, /usr, etc) still work. Falls
+            // back to the exe folder when no user dir is available.
+            var dbPath = GetDatabasePath();
             builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite($"Data Source={dbPath}").ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
             builder.Services.AddControllers();
             builder.Services.AddHostedService<ChatReaderService>();
@@ -97,6 +98,26 @@ namespace StreamChatInator
             ConsoleUi.SetStatus("Starting…");
 
             app.Run();
+        }
+
+        /// <summary>Resolves the sqlite file to the per-user data directory, falling back to the executable's folder.</summary>
+        static string GetDatabasePath()
+        {
+            try
+            {
+                var userDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                if (!string.IsNullOrEmpty(userDir))
+                {
+                    var appDir = Path.Combine(userDir, "StreamChatInator");
+                    Directory.CreateDirectory(appDir);
+                    return Path.Combine(appDir, "db.sqlite");
+                }
+            }
+            catch
+            {
+                // Fall back to the exe folder below.
+            }
+            return Path.Combine(AppContext.BaseDirectory, "db.sqlite");
         }
     }
 }
