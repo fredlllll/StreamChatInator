@@ -1,64 +1,35 @@
-// The filter editor edits a TypeScript function; execution runs the compiled JS
-// function body. This module owns the default template, upgrades legacy
-// body-only filters to the function form, and compiles the source down to the
-// JS body used at runtime (frontend `new Function`, backend Jint).
+// The filter editor edits a TypeScript script; the script must define a
+// `__matches(eventData)` function (and may add any helpers it likes). Saving
+// compiles it down to plain JS and stores the whole script (`codeJs`); at
+// runtime we just run it and call `__matches`, so nothing needs to know the
+// function signature anymore. This module owns the default template and does
+// the TS → JS compile.
 
 export const FILTER_TEMPLATE = `function __matches(eventData: ChatEventEnvelope): boolean {
     return eventData.chatEventType === "ChatMessage" && eventData.chatEventData.username === "someviewer";
 }`;
 
-// Old filters stored only the function body (e.g. `return eventData.seen;`).
-// Wrap them so they become a real function again. If the source already looks
-// like a full function, leave it alone.
-export function ensureFunction(source: string): string {
-    const trimmed = source.trim();
-    if (trimmed.length === 0) return FILTER_TEMPLATE;
-    if (/(^|\n)\s*(export\s+)?function\s+\w+/.test(trimmed)) return source;
-    if (/(^|\n)\s*(export\s+)?(const|let|var)\s+\w+\s*=\s*((async\s*)?\(|async\s*\w+\s*\()/.test(trimmed)) return source;
-    if (trimmed.endsWith("}") && trimmed.includes("=>")) return source;
-    return `function __matches(eventData: ChatEventEnvelope): boolean {\n${source}\n}`;
+// `ts.transpileModule` prepends a "use strict" pragma and, when the source
+// uses `export`, ESM → CJS boilerplate (Object.defineProperty(exports, ...)).
+// The stored script is run bare (new Function / Jint), so drop all of that.
+function stripModuleBoilerplate(js: string): string {
+    return js
+        .split("\n")
+        .filter((line) => {
+            const l = line.trim();
+            return !(
+                l === "" ||
+                l === '"use strict";' ||
+                l.startsWith("Object.defineProperty(exports,") ||
+                /^exports\.[\w$]+\s*=/.test(l)
+            );
+        })
+        .join("\n");
 }
 
-// Extracts the body between the outer braces of the transpiled function.
-function extractFunctionBody(js: string): string {
-    const start = js.indexOf("{");
-    if (start === -1) return js;
-    let depth = 0;
-    let inString: '"' | "'" | "`" | null = null;
-    let escaped = false;
-    for (let i = start; i < js.length; i++) {
-        const ch = js[i];
-        if (inString) {
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (ch === "\\") {
-                escaped = true;
-                continue;
-            }
-            if (ch === inString) inString = null;
-            continue;
-        }
-        if (ch === '"' || ch === "'" || ch === "`") {
-            inString = ch;
-            continue;
-        }
-        if (ch === "{") {
-            depth++;
-        } else if (ch === "}") {
-            depth--;
-            if (depth === 0) return js.slice(start + 1, i);
-        }
-    }
-    return js;
-}
-
-// Compiles the TypeScript filter function down to the JavaScript body used for
-// execution. Returns the normalized function source (stored in `code`) and the
-// compiled body (stored in `codeJs`).
-export async function compileFilterSource(raw: string): Promise<{ source: string; codeJs: string }> {
-    const source = ensureFunction(raw);
+// Compiles the TypeScript filter script down to the plain JS stored in `codeJs`
+// and executed at runtime. Returns the source (stored in `code`).
+export async function compileFilterSource(source: string): Promise<{ source: string; codeJs: string }> {
     const ts = await import("typescript");
     const result = ts.transpileModule(source, {
         compilerOptions: {
@@ -66,6 +37,6 @@ export async function compileFilterSource(raw: string): Promise<{ source: string
             module: ts.ModuleKind.None,
         },
     });
-    const codeJs = extractFunctionBody(result.outputText);
+    const codeJs = stripModuleBoilerplate(result.outputText);
     return { source, codeJs };
 }

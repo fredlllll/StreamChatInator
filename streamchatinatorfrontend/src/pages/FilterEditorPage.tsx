@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { createFilter, updateFilter, getFilterById } from "../api/filtersApi";
 import { useNavigate, useParams } from "react-router-dom";
-import { FILTER_TEMPLATE, ensureFunction, compileFilterSource } from "../editor/compileFilterSource";
+import { FILTER_TEMPLATE, compileFilterSource } from "../editor/compileFilterSource";
 
 const FilterCodeEditor = lazy(() => import("../editor/FilterCodeEditor"));
 
@@ -22,7 +22,7 @@ function FilterEditorPage() {
             .then((filter) => {
                 if (!alive) return;
                 setName(filter.name);
-                setCode(ensureFunction(filter.code));
+                setCode(filter.code);
                 setLoading(false);
             })
             .catch(() => {
@@ -73,7 +73,8 @@ function FilterEditorPage() {
                     <FilterCodeEditor value={code} onChange={setCode} />
                 </Suspense>
                 <p className="editor-hint">
-                    The filter is a TypeScript function (<code>eventData</code>). Type{" "}
+                    The filter is a TypeScript script. It must define{" "}
+                    <code>__matches(eventData)</code>, plus any helper functions it likes. Type{" "}
                     <code>eventData.</code> to see the available fields, and{" "}
                     <code>eventData.chatEventType === "</code> for the list of event types.
                 </p>

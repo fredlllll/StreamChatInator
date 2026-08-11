@@ -156,9 +156,8 @@ export function generateEditorTypes() {
 // Regenerate with \`npm run generate:editor-types\` (also runs automatically on dev/build).
 //
 // Mirrors the chat event data serialized to JSON (camelCase) and passed to
-// the filter code as \`eventData\` — both in the browser
-// (new Function("eventData", code)) and on the server (Jint:
-// function __matches(eventData) { ... }).
+// the filter script's \`__matches(eventData)\` — both in the browser
+// (new Function: run script, then call __matches) and on the server (Jint).
 
 // Type aliases used by the payload fields below, copied verbatim from chatEventTypes.ts.
 ${aliasLines.join("\n")}

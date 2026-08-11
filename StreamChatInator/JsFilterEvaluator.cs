@@ -12,7 +12,8 @@ namespace StreamChatInator
         public JsFilterEvaluator(string code)
         {
             _engine = new Engine();
-            _engine.Execute($"function __matches(eventData) {{ {code} }}");
+            // The stored script defines `__matches(eventData)`.
+            _engine.Execute(code);
         }
 
         public bool Matches(FrontEndEventData eventData)
@@ -23,7 +24,9 @@ namespace StreamChatInator
 
             try
             {
-                return _engine.Evaluate("__matches(__eventData)").AsBoolean();
+                // Run the filter's `__matches`; if the script didn't define it,
+                // let the event through (default true).
+                return _engine.Evaluate("__matches ? __matches(__eventData) : true").AsBoolean();
             }
             catch
             {
