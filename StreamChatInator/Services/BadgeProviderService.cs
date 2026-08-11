@@ -70,40 +70,49 @@ namespace StreamChatInator.Services
         {
             var merged = new Dictionary<string, Dictionary<string, BadgeDto>>();
 
-            var token = await _tokenService.GetAccessTokenAsync();
-            if (string.IsNullOrEmpty(token))
+            try
             {
-                return merged;
-            }
-
-            var http = _httpFactory.CreateClient("twitch");
-
-            var globalBadges = await Twitch.GetGlobalBadgesAsync(http, ClientId, token);
-            if (globalBadges == null)
-            {
-                // The stored token may have been revoked outside its expiry
-                // window; force a refresh and retry once before giving up.
-                token = await _tokenService.RefreshAccessTokenAsync();
-                if (token == null)
+                var token = await _tokenService.GetAccessTokenAsync();
+                if (string.IsNullOrEmpty(token))
                 {
-                    _logger.LogWarning("Could not obtain a valid token to fetch Twitch badges");
                     return merged;
                 }
-                globalBadges = await Twitch.GetGlobalBadgesAsync(http, ClientId, token);
+
+                var http = _httpFactory.CreateClient("twitch");
+
+                var globalBadges = await Twitch.GetGlobalBadgesAsync(http, ClientId, token);
                 if (globalBadges == null)
                 {
-                    return merged;
+                    // The stored token may have been revoked outside its expiry
+                    // window; force a refresh and retry once before giving up.
+                    token = await _tokenService.RefreshAccessTokenAsync();
+                    if (token == null)
+                    {
+                        _logger.LogWarning("Could not obtain a valid token to fetch Twitch badges");
+                        return merged;
+                    }
+                    globalBadges = await Twitch.GetGlobalBadgesAsync(http, ClientId, token);
+                    if (globalBadges == null)
+                    {
+                        return merged;
+                    }
+                }
+                Merge(merged, globalBadges);
+
+                if (!string.IsNullOrEmpty(channelId))
+                {
+                    var channelBadges = await Twitch.GetChannelBadgesAsync(http, ClientId, token, channelId);
+                    if (channelBadges != null)
+                    {
+                        Merge(merged, channelBadges, overrideExisting: true);
+                    }
                 }
             }
-            Merge(merged, globalBadges);
-
-            if (!string.IsNullOrEmpty(channelId))
+            catch (Exception ex)
             {
-                var channelBadges = await Twitch.GetChannelBadgesAsync(http, ClientId, token, channelId);
-                if (channelBadges != null)
-                {
-                    Merge(merged, channelBadges, overrideExisting: true);
-                }
+                // A transient Twitch API failure shouldn't 500 the badges
+                // endpoint; return whatever we managed to fetch (or nothing).
+                _logger.LogWarning(ex, "Failed to fetch Twitch badges for channel {ChannelId}", channelId);
             }
 
             return merged;
