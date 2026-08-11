@@ -12,7 +12,7 @@ export async function createFilter(name: string, code: string, codeJs: string): 
     const res = await fetch(BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, filterType: "Chat", code, codeJs }),
+        body: JSON.stringify({ name, code, codeJs }),
     });
     if (!res.ok) throw new Error("Failed to create filter");
     return res.json();
@@ -22,7 +22,7 @@ export async function updateFilter(id: string, name: string, code: string, codeJ
     const res = await fetch(`${BASE_URL}/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, filterType: "Chat", code, codeJs }),
+        body: JSON.stringify({ name, code, codeJs }),
     });
     if (!res.ok) throw new Error("Failed to update filter");
 }
