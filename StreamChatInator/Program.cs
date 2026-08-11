@@ -31,7 +31,14 @@ namespace StreamChatInator
             // read-only locations (Program Files, /usr, etc) still work. Falls
             // back to the exe folder when no user dir is available.
             var dbPath = GetDatabasePath();
-            builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite($"Data Source={dbPath}").ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+            builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite($"Data Source={dbPath}")
+                .ConfigureWarnings(w =>
+                {
+                    if (builder.Environment.IsDevelopment())
+                        w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning);
+                    else
+                        w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning);
+                }));
             builder.Services.AddControllers();
             builder.Services.AddHostedService<ChatReaderService>();
             builder.Services.AddSingleton<ChatHubData>();
@@ -71,17 +78,13 @@ namespace StreamChatInator
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-#pragma warning disable XUnit1013
                 db.Database.Migrate();
-#pragma warning restore XUnit1013
                 DatabaseSeeder.Seed(db);
             }
 
             app.UseRouting();
             app.UseCors("AllowReact");
-#pragma warning disable CS1998
             app.MapStaticAssets();
-#pragma warning restore CS1998
 
             app.MapControllers();
             app.MapHub<ChatHub>("/hubs/chat");
