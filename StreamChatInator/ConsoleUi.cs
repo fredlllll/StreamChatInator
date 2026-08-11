@@ -38,7 +38,7 @@ namespace StreamChatInator
             _url = url;
             try
             {
-                if (!OperatingSystem.IsWindows() || Console.IsOutputRedirected) return false;
+                if (Console.IsOutputRedirected) return false;
 
                 Console.Title = title;
                 Console.OutputEncoding = Encoding.UTF8;
@@ -121,8 +121,13 @@ namespace StreamChatInator
         {
             var width = Math.Max(Console.WindowWidth, MinWidth);
             var height = Math.Max(Console.WindowHeight, MinHeight);
-            if (Console.BufferWidth != width) Console.BufferWidth = width;
-            if (Console.BufferHeight != height) Console.BufferHeight = height;
+            // The buffer can only be resized on Windows; on macOS/Linux the buffer
+            // always matches the window size.
+            if (OperatingSystem.IsWindows())
+            {
+                if (Console.BufferWidth != width) Console.BufferWidth = width;
+                if (Console.BufferHeight != height) Console.BufferHeight = height;
+            }
             _bufferWidth = width;
             _bufferHeight = height;
             if (_logRow < LogStartRow) _logRow = LogStartRow;
@@ -229,6 +234,9 @@ namespace StreamChatInator
 
         private static void EnableVirtualTerminal()
         {
+            // macOS/Linux terminals support ANSI escape sequences natively.
+            if (!OperatingSystem.IsWindows()) return;
+
             var handle = GetStdHandle(StdOutputHandle);
             if (!GetConsoleMode(handle, out var mode)) throw new InvalidOperationException("GetConsoleMode failed");
             if (!SetConsoleMode(handle, mode | EnableVirtualTerminalProcessing)) throw new InvalidOperationException("SetConsoleMode failed");
