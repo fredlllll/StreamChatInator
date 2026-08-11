@@ -12,9 +12,12 @@
         ./publish.ps1 -Mode self-contained     # self-contained, all platforms
         ./publish.ps1 -Platform osx-arm64 -Mode self-contained
         ./publish.ps1 -NoRestore               # reuse existing restore results
+        ./publish.ps1 -SkipZip                 # don't zip each publish output
 
     Output goes to publish\<rid>\<mode> in the repo root, e.g.
-    publish\win-x64\framework-dependent. (publish/ is git-ignored.)
+    publish\win-x64\framework-dependent. A matching zip is written next to it,
+    e.g. publish\StreamChatInator-win-x64-framework-dependent.zip.
+    (publish/ is git-ignored.)
 #>
 [CmdletBinding()]
 param(
@@ -22,7 +25,8 @@ param(
     [string]$Platform = "all",
     [ValidateSet("framework-dependent", "self-contained")]
     [string]$Mode = "framework-dependent",
-    [switch]$NoRestore
+    [switch]$NoRestore,
+    [switch]$SkipZip
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,10 +73,18 @@ foreach ($p in $platforms) {
     Invoke-StreamingDotNet -Project $project -Profile $profile -PublishDir $targetDir -SkipRestore:$NoRestore
     $sw.Stop()
 
+    $zip = $null
+    if (-not $SkipZip) {
+        $zip = Join-Path $publishRoot "StreamChatInator-$p-$Mode.zip"
+        Write-Host "    -> zip: $zip" -ForegroundColor DarkGray
+        Compress-Archive -Path (Join-Path $targetDir "*") -DestinationPath $zip -Force
+    }
+
     $results += [pscustomobject]@{
         Platform = $p
         Mode     = $Mode
         Seconds  = [math]::Round($sw.Elapsed.TotalSeconds, 1)
+        Zip      = if ($zip) { Split-Path $zip -Leaf } else { "-" }
         Output   = $targetDir
     }
 }
