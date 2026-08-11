@@ -1,4 +1,5 @@
 ﻿using Jint;
+using Jint.Runtime;
 using System.Text.Json;
 
 namespace StreamChatInator
@@ -13,7 +14,14 @@ namespace StreamChatInator
         {
             _engine = new Engine();
             // The stored script defines `__matches(eventData)`.
-            _engine.Execute(code);
+            try
+            {
+                _engine.Execute(code);
+            }
+            catch (JavaScriptException)
+            {
+                //ignore code that causes exception. filter will just return true if this is the case
+            }
         }
 
         public bool Matches(FrontEndEventData eventData)
