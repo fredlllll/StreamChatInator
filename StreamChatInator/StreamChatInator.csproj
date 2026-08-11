@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\StreamChatInatorFrontend\streamchatinatorfrontend.esproj">
+    <ProjectReference Include="..\streamchatinatorfrontend\streamchatinatorfrontend.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
