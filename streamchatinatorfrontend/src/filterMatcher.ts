@@ -11,14 +11,14 @@ export function compileFilter(code: string): (eventData: FrontEndEventData) => b
         ) as (eventData: FrontEndEventData) => boolean;
     } catch (err) {
         console.error("Filter code failed to compile:", err);
-        return () => false;
+        return () => true;
     }
     return (eventData) => {
         try {
             return !!fn(eventData);
         } catch (err) {
             console.error("Filter code threw an error:", err);
-            return false;
+            return true;
         }
     };
 }
