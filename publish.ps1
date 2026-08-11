@@ -70,6 +70,10 @@ foreach ($p in $platforms) {
     Write-Host "    (builds the React frontend too; live output below)" -ForegroundColor DarkGray
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    if (Test-Path $targetDir) {
+        Write-Host "    (cleaning previous output)" -ForegroundColor DarkGray
+        Remove-Item -Recurse -Force $targetDir
+    }
     Invoke-StreamingDotNet -Project $project -Profile $profile -PublishDir $targetDir -SkipRestore:$NoRestore
     $sw.Stop()
 
