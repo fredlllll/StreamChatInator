@@ -38,6 +38,7 @@ namespace StreamChatInator.Database
         {
             modelBuilder.Entity<SettingValue>().ToTable(nameof(SettingValues));
             modelBuilder.Entity<ChatEvent>().ToTable(nameof(ChatEvents));
+            modelBuilder.Entity<ChatEvent>().HasIndex(e => e.Created);
             modelBuilder.Entity<ChatUserNoticeBase>().ToTable(nameof(ChatUserNoticeBases));
             modelBuilder.Entity<ChatEventFilter>().ToTable(nameof(EventFilters));
 
