@@ -13,7 +13,7 @@ namespace StreamChatInator.Database.Models
         public required string MsgParamPriorGifterUserName { get; set; }
 
 
-        public static ChatEventCommunityPayForward FromBitsBadgeTier(CommunityPayForward communityPayForward, string chatUserNoticeBaseId)
+        public static ChatEventCommunityPayForward FromCommunityPayForward(CommunityPayForward communityPayForward, string chatUserNoticeBaseId)
         {
             return new ChatEventCommunityPayForward()
             {

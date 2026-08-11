@@ -12,7 +12,7 @@ namespace StreamChatInator
 {
     public class ChatReader : IAsyncDisposable
     {
-        private bool tracking = true;
+        private volatile bool tracking = true;
         private TwitchClient _client;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly string _userName;
@@ -21,6 +21,8 @@ namespace StreamChatInator
         private readonly ChatHubData _hubData;
         private readonly TaskCompletionSource _disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private string? _currentChannelId;
+
+        public bool IsTracking => tracking;
 
         public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory)
         {
@@ -63,254 +65,79 @@ namespace StreamChatInator
         private async Task Client_OnMessageReceived(object? sender, OnMessageReceivedArgs e)
         {
             PublishChannelId(e.ChatMessage.RoomId);
-
-            if (tracking)
-            {
-                //create new scope and context every time so messages dont float around in memory for the entire runtime of the application
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var chatMessage = ChatEventChatMessage.FromChatMessage(e.ChatMessage);
-
-                await EndEventHandler(db, ChatEventType.ChatMessage, chatMessage);
-            }
+            await HandleEventAsync(ChatEventType.ChatMessage, () => ChatEventChatMessage.FromChatMessage(e.ChatMessage));
         }
 
         private async Task Client_OnAnnouncement(object? sender, OnAnnouncementArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Announcement);
-                var eventData = ChatEventAnnouncement.FromAnnouncement(e.Announcement, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.Announcement, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.Announcement, e.Announcement, id => ChatEventAnnouncement.FromAnnouncement(e.Announcement, id));
 
         private async Task _client_OnAnonGiftPaidUpgrade(object? sender, OnAnonGiftPaidUpgradeArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.AnonGiftPaidUpgrade);
-                var eventData = ChatEventAnonGiftPaidUpgrade.FromAnonGiftPaidUpgrade(e.AnonGiftPaidUpgrade, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.AnonGiftPaidUpgrade, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.AnonGiftPaidUpgrade, e.AnonGiftPaidUpgrade, id => ChatEventAnonGiftPaidUpgrade.FromAnonGiftPaidUpgrade(e.AnonGiftPaidUpgrade, id));
 
         private async Task _client_OnBitsBadgeTier(object? sender, OnBitsBadgeTierArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.BitsBadgeTier);
-                var eventData = ChatEventBitsBadgeTier.FromBitsBadgeTier(e.BitsBadgeTier, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.BitsBadgeTier, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.BitsBadgeTier, e.BitsBadgeTier, id => ChatEventBitsBadgeTier.FromBitsBadgeTier(e.BitsBadgeTier, id));
 
         private async Task _client_OnCommunityPayForward(object? sender, OnCommunityPayForwardArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.CommunityPayForward);
-                var eventData = ChatEventCommunityPayForward.FromBitsBadgeTier(e.CommunityPayForward, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.CommunityPayForward, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.CommunityPayForward, e.CommunityPayForward, id => ChatEventCommunityPayForward.FromCommunityPayForward(e.CommunityPayForward, id));
 
         private async Task _client_OnCommunitySubscription(object? sender, OnCommunitySubscriptionArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.GiftedSubscription);
-                var eventData = ChatEventCommunitySubscription.FromCommunitySubscription(e.GiftedSubscription, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.CommunitySubscription, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.CommunitySubscription, e.GiftedSubscription, id => ChatEventCommunitySubscription.FromCommunitySubscription(e.GiftedSubscription, id));
 
         private async Task _client_OnContinuedGiftedSubscription(object? sender, OnContinuedGiftedSubscriptionArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.ContinuedGiftedSubscription);
-                var eventData = ChatEventContinuedGiftedSubscription.FromContinuedGiftedSubscription(e.ContinuedGiftedSubscription, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.ContinuedGiftedSubscription, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.ContinuedGiftedSubscription, e.ContinuedGiftedSubscription, id => ChatEventContinuedGiftedSubscription.FromContinuedGiftedSubscription(e.ContinuedGiftedSubscription, id));
 
         private async Task _client_OnGiftedSubscription(object? sender, OnGiftedSubscriptionArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.GiftedSubscription);
-                var eventData = ChatEventGiftedSubscription.FromGiftedSubscription(e.GiftedSubscription, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.GiftedSubscription, eventData, cunb);
-            }
-        }
-
-        private async Task _client_OnNewSubscriber(object? sender, OnNewSubscriberArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Subscriber);
-                var eventData = ChatEventNewSubscriber.FromNewSubscriber(e.Subscriber, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.NewSubscriber, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.GiftedSubscription, e.GiftedSubscription, id => ChatEventGiftedSubscription.FromGiftedSubscription(e.GiftedSubscription, id));
 
         private async Task _client_OnMessageCleared(object? sender, OnMessageClearedArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            => await HandleEventAsync(ChatEventType.MessageCleared, () => ChatEventMessageCleared.FromMessageCleared(e));
 
-                var eventData = ChatEventMessageCleared.FromMessageCleared(e);
-
-                await EndEventHandler(db, ChatEventType.MessageCleared, eventData);
-            }
-        }
+        private async Task _client_OnNewSubscriber(object? sender, OnNewSubscriberArgs e)
+            => await HandleUserNoticeAsync(ChatEventType.NewSubscriber, e.Subscriber, id => ChatEventNewSubscriber.FromNewSubscriber(e.Subscriber, id));
 
         private async Task _client_OnPrimePaidSubscriber(object? sender, OnPrimePaidSubscriberArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.PrimePaidSubscriber);
-                var eventData = ChatEventPrimePaidSubscriber.FromPrimePaidSubscriber(e.PrimePaidSubscriber, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.PrimePaidSubscriber, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.PrimePaidSubscriber, e.PrimePaidSubscriber, id => ChatEventPrimePaidSubscriber.FromPrimePaidSubscriber(e.PrimePaidSubscriber, id));
 
         private async Task _client_OnReSubscriber(object? sender, OnReSubscriberArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.ReSubscriber);
-                var eventData = ChatEventReSubscriber.FromReSubscriber(e.ReSubscriber, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.ReSubscriber, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.ReSubscriber, e.ReSubscriber, id => ChatEventReSubscriber.FromReSubscriber(e.ReSubscriber, id));
 
         private async Task _client_OnRitual(object? sender, OnRitualArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.Ritual);
-                var eventData = ChatEventRitual.FromRitual(e.Ritual, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.Ritual, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.Ritual, e.Ritual, id => ChatEventRitual.FromRitual(e.Ritual, id));
 
         private async Task _client_OnStandardPayForward(object? sender, OnStandardPayForwardArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var cunb = ChatUserNoticeBase.FromUserNoticeBase(e.StandardPayForward);
-                var eventData = ChatEventStandardPayForward.FromStandardPayForward(e.StandardPayForward, cunb.Id);
-
-                await EndEventHandler(db, ChatEventType.StandardPayForward, eventData, cunb);
-            }
-        }
+            => await HandleUserNoticeAsync(ChatEventType.StandardPayForward, e.StandardPayForward, id => ChatEventStandardPayForward.FromStandardPayForward(e.StandardPayForward, id));
 
         private async Task _client_OnUserBanned(object? sender, OnUserBannedArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var eventData = ChatEventUserBanned.FromUserBanned(e.UserBan);
-
-                await EndEventHandler(db, ChatEventType.UserBanned, eventData);
-            }
-        }
+            => await HandleEventAsync(ChatEventType.UserBanned, () => ChatEventUserBanned.FromUserBanned(e.UserBan));
 
         private async Task _client_OnUserJoined(object? sender, OnUserJoinedArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var eventData = ChatEventUserJoined.FromUserJoined(e);
-
-                await EndEventHandler(db, ChatEventType.UserJoined, eventData);
-            }
-        }
+            => await HandleEventAsync(ChatEventType.UserJoined, () => ChatEventUserJoined.FromUserJoined(e));
 
         private async Task _client_OnUserLeft(object? sender, OnUserLeftArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var eventData = ChatEventUserLeft.FromUserLeft(e);
-
-                await EndEventHandler(db, ChatEventType.UserLeft, eventData);
-            }
-        }
+            => await HandleEventAsync(ChatEventType.UserLeft, () => ChatEventUserLeft.FromUserLeft(e));
 
         private async Task _client_OnUserTimedout(object? sender, OnUserTimedoutArgs e)
-        {
-            if (tracking)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
-                var eventData = ChatEventUserTimedout.FromUserTimedout(e.UserTimeout);
-
-                await EndEventHandler(db, ChatEventType.UserTimedout, eventData);
-            }
-        }
-
+            => await HandleEventAsync(ChatEventType.UserTimedout, () => ChatEventUserTimedout.FromUserTimedout(e.UserTimeout));
 
         #region nonEventStuff
+
+        private async Task HandleEventAsync<TEvent>(ChatEventType eventType, Func<TEvent> createEvent) where TEvent : Model
+        {
+            if (!tracking) return;
+            using var scope = _scopeFactory.CreateScope();
+            using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            await EndEventHandler(db, eventType, createEvent());
+        }
+
+        private async Task HandleUserNoticeAsync<TDetail>(ChatEventType eventType, UserNoticeBase notice, Func<string, TDetail> createDetail) where TDetail : ModelWithUserNoticeBase
+        {
+            if (!tracking) return;
+            using var scope = _scopeFactory.CreateScope();
+            using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            var cunb = ChatUserNoticeBase.FromUserNoticeBase(notice);
+            var detail = createDetail(cunb.Id);
+            await EndEventHandler(db, eventType, detail, cunb);
+        }
 
         private async Task EndEventHandler<T, U>(DatabaseContext db, ChatEventType chatEventType, T eventData, U eventSubData) where T : Model where U : Model
         {
@@ -362,7 +189,6 @@ namespace StreamChatInator
         {
             _logger.LogInformation("twitch client connected as " + e.BotUsername);
             await _client.JoinChannelAsync(_userName);
-            //await _client.JoinChannelAsync("staceylucia");
         }
 
         private async Task Client_OnUserStateChanged(object? sender, OnUserStateChangedArgs e)
