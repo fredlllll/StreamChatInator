@@ -1,9 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using StreamChatInator.Apis;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace StreamChatInator.Controllers
@@ -24,13 +28,15 @@ namespace StreamChatInator.Controllers
         private readonly DatabaseContext _db;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly TwitchTokenService _tokenService;
+        private readonly LanAccessService _lanAccess;
 
-        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchTokenService tokenService)
+        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchTokenService tokenService, LanAccessService lanAccess)
         {
             _config = config;
             _db = db;
             _httpClientFactory = httpClientFactory;
             _tokenService = tokenService;
+            _lanAccess = lanAccess;
         }
 
         /// <summary>
@@ -117,6 +123,57 @@ namespace StreamChatInator.Controllers
 
             return Ok(new { status = "ok", username = validation.Login });
         }
+
+        #region LAN access (PIN + session cookie)
+
+        /// <summary>
+        /// Whether this browser is allowed in. When Auth:Enabled=false this is
+        /// always true, which is what lets the frontend skip the login screen
+        /// entirely when gating is opted out.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+            return Ok(new { authenticated = !_lanAccess.Enabled || User.Identity?.IsAuthenticated == true });
+        }
+
+        /// <summary>
+        /// Validates the shared LAN PIN and issues a session cookie. A few bad
+        /// attempts briefly lock out further tries to make a short PIN harder
+        /// to brute-force over the network.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("pin-login")]
+        public async Task<IActionResult> PinLogin([FromBody] PinLoginRequest request)
+        {
+            if (!_lanAccess.Enabled) return NotFound();
+            if (_lanAccess.IsLockedOut()) return StatusCode(429, new { error = "too_many_attempts" });
+            if (!_lanAccess.ValidatePin(request.Pin))
+            {
+                _lanAccess.RegisterFailure();
+                return Unauthorized(new { error = "invalid_pin" });
+            }
+            _lanAccess.ResetFailures();
+
+            var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+            return Ok(new { ok = true });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Ok();
+        }
+
+        public class PinLoginRequest
+        {
+            public required string Pin { get; set; }
+        }
+
+        #endregion
 
         private string ClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
 

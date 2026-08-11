@@ -1,14 +1,45 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, NavLink } from "react-router-dom";
 import FiltersPage from "./pages/FiltersPage";
 import FilterEditorPage from "./pages/FilterEditorPage";
 import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
 import TwitchLoginButton from "./components/TwitchLoginButton";
+import LanLogin from "./components/LanLogin";
+import { getAuthStatus, logout } from "./api/authApi";
 import { useTheme } from "./theme";
 import "./App.css";
 
 function App() {
     const { theme, toggleTheme } = useTheme();
+    const [authChecking, setAuthChecking] = useState(true);
+    const [authenticated, setAuthenticated] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        getAuthStatus()
+            .then((status) => {
+                if (!cancelled) setAuthenticated(status.authenticated);
+            })
+            .finally(() => {
+                if (!cancelled) setAuthChecking(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    function handleLogout() {
+        logout().finally(() => window.location.reload());
+    }
+
+    if (authChecking) {
+        return <div className="auth-loading">Loading…</div>;
+    }
+
+    if (!authenticated) {
+        return <LanLogin />;
+    }
 
     return (
         <div className="app-shell">
@@ -25,6 +56,9 @@ function App() {
                     </div>
                     <div className="app-nav-actions">
                         <TwitchLoginButton />
+                        <button type="button" className="btn btn-ghost" onClick={handleLogout}>
+                            Lock
+                        </button>
                         <button type="button" className="btn btn-ghost" onClick={toggleTheme}>
                             {theme === "dark" ? "Light mode" : "Dark mode"}
                         </button>

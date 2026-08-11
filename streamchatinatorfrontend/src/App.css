@@ -1,5 +1,58 @@
 /* ===== App shell & navigation ===== */
 
+.auth-loading {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+}
+
+.auth-screen {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg);
+}
+
+.auth-card {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.auth-card h1 {
+  margin: 0;
+  color: var(--text-h);
+  font-family: var(--heading);
+  font-size: 18px;
+}
+.auth-card p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.auth-card .input {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 20px;
+  letter-spacing: 0.35em;
+}
+.auth-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+
 .app-shell {
   min-height: 100svh;
   display: flex;

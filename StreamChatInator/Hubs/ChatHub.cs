@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using StreamChatInator.Database;
 using System.Threading.Channels;
 
 namespace StreamChatInator.Hubs
 {
+    [Authorize]
     public class ChatHub : Hub
     {
         private ChatHubData _data;

@@ -24,7 +24,9 @@ namespace StreamChatInator
         private static readonly ConcurrentQueue<string> History = new();
         private static CancellationTokenSource? _cts;
         private static string _status = "";
+        private static string _baseUrl = "";
         private static string _url = "";
+        private static string _pin = "";
         private static int _bufferWidth;
         private static int _bufferHeight;
         private static int _logRow = LogStartRow;
@@ -35,6 +37,7 @@ namespace StreamChatInator
         /// <summary>Draws the console UI and arms the log scroll region. Returns false when the fancy UI can't be used (e.g. output is redirected).</summary>
         public static bool Init(string title, string url)
         {
+            _baseUrl = url;
             _url = url;
             try
             {
@@ -117,6 +120,30 @@ namespace StreamChatInator
             }
         }
 
+        /// <summary>
+        /// Shows the LAN access PIN on its own line in the info panel (thread-safe).
+        /// Unlike the log area, this line never scrolls away, so the streamer can
+        /// always read the PIN. Pass null/empty to clear it.
+        /// </summary>
+        /// <remarks>
+        /// The "Open:" link reacts to this dynamically: when a PIN is set it gets
+        /// appended as <c>?pin=…</c> so anyone who clicks/copies the link unlocks
+        /// the UI without typing the PIN, and it drops back to the bare URL when
+        /// the PIN is cleared.
+        /// </remarks>
+        public static void SetPin(string? pin)
+        {
+            if (!_enabled) return;
+            lock (Sync)
+            {
+                if (!_enabled) return;
+                _pin = pin ?? "";
+                _url = string.IsNullOrEmpty(_pin) ? _baseUrl : $"{_baseUrl}?pin={_pin}";
+                DrawPanel();
+                PositionCursorToLogRow();
+            }
+        }
+
         private static void ResizeBufferToWindow()
         {
             var width = Math.Max(Console.WindowWidth, MinWidth);
@@ -149,7 +176,7 @@ namespace StreamChatInator
             Console.SetCursorPosition(0, 0);
             Console.Write("╔" + new string('═', Math.Max(0, w - 2)) + "╗");
             WriteRow(1, "StreamChatInator");
-            WriteRow(2, "");
+            WriteRow(2, string.IsNullOrEmpty(_pin) ? "" : "PIN: " + _pin);
             WriteRow(3, "Open: " + _url);
             WriteRow(4, "Status: " + _status);
             WriteRow(5, "");

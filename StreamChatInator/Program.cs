@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using StreamChatInator.Auth;
 using StreamChatInator.Database;
 using StreamChatInator.Hubs;
 using StreamChatInator.Services;
@@ -39,12 +43,50 @@ namespace StreamChatInator
                     else
                         w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning);
                 }));
-            builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                // Gate every controller action behind the LAN PIN by default.
+                // LanAccessHandler lets everything through when Auth:Enabled=false.
+                options.Filters.Add(new AuthorizeFilter());
+            });
             builder.Services.AddHostedService<ChatReaderService>();
             builder.Services.AddSingleton<ChatHubData>();
             builder.Services.AddSingleton<TwitchTokenService>();
             builder.Services.AddSingleton<EmoteProviderService>();
             builder.Services.AddSingleton<BadgeProviderService>();
+            builder.Services.AddSingleton<LanAccessService>();
+            builder.Services.AddSingleton<IAuthorizationHandler, LanAccessHandler>();
+            builder.Services.AddAuthorization(options =>
+            {
+                options.DefaultPolicy = new AuthorizationPolicyBuilder()
+                    .AddRequirements(new LanAccessRequirement())
+                    .Build();
+            });
+            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.Cookie.Name = "StreamChatInator.Auth";
+                    options.Cookie.HttpOnly = true;
+                    options.Cookie.SameSite = SameSiteMode.Lax;
+                    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                    options.SlidingExpiration = true;
+                    options.LoginPath = "/login";
+                    options.Events = new CookieAuthenticationEvents
+                    {
+                        // API calls get a 401 instead of a redirect to /login,
+                        // so fetch() and SignalR fail cleanly when unauthenticated.
+                        OnRedirectToLogin = context =>
+                        {
+                            if (context.Request.Path.StartsWithSegments("/api"))
+                            {
+                                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                                return Task.CompletedTask;
+                            }
+                            context.Response.Redirect(context.RedirectUri);
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
             builder.Services.AddMemoryCache();
             builder.Services.AddHttpClient("emotes", client =>
             {
@@ -84,6 +126,8 @@ namespace StreamChatInator
 
             app.UseRouting();
             app.UseCors("AllowReact");
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.MapStaticAssets();
 
             app.MapControllers();
@@ -98,6 +142,30 @@ namespace StreamChatInator
             }
 
             app.Lifetime.ApplicationStopping.Register(ConsoleUi.Shutdown);
+
+            var lanAccess = app.Services.GetRequiredService<LanAccessService>();
+            if (lanAccess.Enabled)
+            {
+                if (ConsoleUi.IsEnabled)
+                {
+                    // Fixed panel line (never scrolls away). SetPin also appends
+                    // the PIN to the shown link (?pin=…) so clicking/copying it
+                    // unlocks the UI without typing anything.
+                    ConsoleUi.SetPin(lanAccess.Pin);
+                }
+                else
+                {
+                    // No panel to show it on (redirected/service mode) - the log is
+                    // the only channel left, and there's no scrolling UI to lose it in.
+                    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("LAN access link: {Url} (PIN: {Pin}) — open it on any device in your network to unlock the UI (set Auth:Enabled=false or Auth:Pin to change this)", $"{displayUrl}/?pin={lanAccess.Pin}", lanAccess.Pin);
+                }
+            }
+            else
+            {
+                ConsoleUi.SetPin(null);
+                ConsoleUi.SetStatus("LAN access PIN disabled");
+            }
 
             ConsoleUi.SetStatus("Starting…");
 
