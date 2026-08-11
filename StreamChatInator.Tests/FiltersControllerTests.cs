@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using StreamChatInator.Controllers;
 using StreamChatInator.Database;
@@ -29,7 +30,7 @@ public class FiltersControllerTests : IDisposable
         _connection.Dispose();
     }
 
-    private FiltersController NewController() => new(_db, NullLogger<FiltersController>.Instance);
+    private FiltersController NewController() => new(_db, NullLogger<FiltersController>.Instance, new MemoryCache(new MemoryCacheOptions()));
 
     private ChatEventFilter CreateFilter(string codeJs = "function __matches(eventData) { return true; }")
     {

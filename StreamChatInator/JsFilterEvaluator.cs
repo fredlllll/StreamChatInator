@@ -7,6 +7,7 @@ namespace StreamChatInator
     public class JsFilterEvaluator
     {
         private readonly Engine _engine;
+        private readonly object _lock = new();
         private readonly JsonSerializerOptions _jsonOptions =
             new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
@@ -27,19 +28,24 @@ namespace StreamChatInator
         public bool Matches(FrontEndEventData eventData)
         {
             var json = JsonSerializer.Serialize(eventData, _jsonOptions);
-            _engine.SetValue("__eventDataJson", json);
-            _engine.Execute("var __eventData = JSON.parse(__eventDataJson);");
+            // A Jint Engine is not thread-safe and cached evaluators are shared
+            // across requests, so serialize evaluations per engine.
+            lock (_lock)
+            {
+                _engine.SetValue("__eventDataJson", json);
+                _engine.Execute("var __eventData = JSON.parse(__eventDataJson);");
 
-            try
-            {
-                // Run the filter's `__matches`; if the script didn't define it,
-                // let the event through (default true). `typeof` on an undeclared
-                // identifier is safe (no ReferenceError), unlike a bare reference.
-                return _engine.Evaluate("typeof __matches === 'function' ? __matches(__eventData) : true").AsBoolean();
-            }
-            catch
-            {
-                return true;
+                try
+                {
+                    // Run the filter's `__matches`; if the script didn't define it,
+                    // let the event through (default true). `typeof` on an undeclared
+                    // identifier is safe (no ReferenceError), unlike a bare reference.
+                    return _engine.Evaluate("typeof __matches === 'function' ? __matches(__eventData) : true").AsBoolean();
+                }
+                catch
+                {
+                    return true;
+                }
             }
         }
     }

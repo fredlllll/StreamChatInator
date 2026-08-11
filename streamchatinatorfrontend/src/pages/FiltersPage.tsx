@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { EventFilter } from "../types";
-import { getFilters, deleteFilter } from "../api/filtersApi";
+import { getFilters, deleteFilter, invalidateFilter } from "../api/filtersApi";
 import { Link } from "react-router-dom";
 
 function FiltersPage() {
@@ -16,6 +16,7 @@ function FiltersPage() {
 
     async function handleDelete(id: string) {
         await deleteFilter(id);
+        invalidateFilter(id);
         await refresh();
     }
 

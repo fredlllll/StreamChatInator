@@ -1,6 +1,28 @@
 import type { FrontEndEventData } from "./types";
 
-export function compileFilter(code: string): (eventData: FrontEndEventData) => boolean {
+// Compiled matchers are shared by every tile/remount that uses the same filter.
+// Keying on filter id + updated timestamp means an edit produces a new key and
+// a recompile automatically. Bounded so a long editing session can't grow it.
+const matcherCache = new Map<string, (eventData: FrontEndEventData) => boolean>();
+const MATCHER_CACHE_LIMIT = 100;
+
+function cacheCompiled(key: string, fn: (eventData: FrontEndEventData) => boolean) {
+    matcherCache.set(key, fn);
+    if (matcherCache.size > MATCHER_CACHE_LIMIT) {
+        const oldest = matcherCache.keys().next().value;
+        if (oldest !== undefined) matcherCache.delete(oldest);
+    }
+}
+
+export function compileFilter(
+    code: string,
+    cacheKey?: string,
+): (eventData: FrontEndEventData) => boolean {
+    if (cacheKey) {
+        const cached = matcherCache.get(cacheKey);
+        if (cached) return cached;
+    }
+
     let fn: (eventData: FrontEndEventData) => boolean;
     try {
         // `code` is the full compiled script defining `__matches(eventData)`.
@@ -11,9 +33,10 @@ export function compileFilter(code: string): (eventData: FrontEndEventData) => b
         ) as (eventData: FrontEndEventData) => boolean;
     } catch (err) {
         console.error("Filter code failed to compile:", err);
-        return () => true;
+        fn = () => true;
     }
-    return (eventData) => {
+
+    const wrapped = (eventData: FrontEndEventData) => {
         try {
             return !!fn(eventData);
         } catch (err) {
@@ -21,4 +44,7 @@ export function compileFilter(code: string): (eventData: FrontEndEventData) => b
             return true;
         }
     };
+
+    if (cacheKey) cacheCompiled(cacheKey, wrapped);
+    return wrapped;
 }

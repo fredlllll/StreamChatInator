@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { createFilter, updateFilter, getFilterById } from "../api/filtersApi";
+import { createFilter, updateFilter, getFilterById, invalidateFilter } from "../api/filtersApi";
 import { useNavigate, useParams } from "react-router-dom";
 import { FILTER_TEMPLATE, compileFilterSource } from "../editor/compileFilterSource";
 
@@ -42,6 +42,7 @@ function FilterEditorPage() {
             await createFilter(name, source, codeJs);
         } else {
             await updateFilter(filterId, name, source, codeJs);
+            invalidateFilter(filterId);
         }
         navigate("/filters");
     }

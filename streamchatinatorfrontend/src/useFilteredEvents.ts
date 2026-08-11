@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useChatConnection } from "./ChatContext";
-import { getFilterById, getFilterHistory } from "./api/filtersApi";
+import { getFilterByIdCached, getFilterHistory } from "./api/filtersApi";
 import { compileFilter } from "./filterMatcher";
 import type { FrontEndEventData, EventFilter } from "./types";
 
@@ -21,7 +21,7 @@ export function useFilteredEvents(filterId: string | undefined) {
 
     useEffect(() => {
         if (!filterId) return;
-        getFilterById(filterId).then(setFilter);
+        getFilterByIdCached(filterId).then(setFilter);
     }, [filterId]);
 
     useEffect(() => {
@@ -53,8 +53,10 @@ export function useFilteredEvents(filterId: string | undefined) {
         }
     }
 
+    // Key the compiled matcher on id+updated so every tile sharing this filter
+    // reuses one compiled script, and an edit recompiles automatically.
     const matcher = useMemo(
-        () => (filter ? compileFilter(filter.codeJs) : null),
+        () => (filter ? compileFilter(filter.codeJs, `${filter.id}:${filter.updated}`) : null),
         [filter]
     );
 

@@ -38,6 +38,27 @@ export async function getFilterById(id: string): Promise<EventFilter> {
     return res.json();
 }
 
+// Every dashboard tile / view for the same filter fetches the same row; cache
+// the latest fetch per id for the lifetime of the page so they share one
+// request. Call invalidateFilter after create/update/delete so edits aren't stale.
+const filterCache = new Map<string, Promise<EventFilter>>();
+
+export function getFilterByIdCached(id: string): Promise<EventFilter> {
+    const cached = filterCache.get(id);
+    if (cached) return cached;
+
+    const promise = getFilterById(id).catch((err) => {
+        filterCache.delete(id);
+        throw err;
+    });
+    filterCache.set(id, promise);
+    return promise;
+}
+
+export function invalidateFilter(id: string): void {
+    filterCache.delete(id);
+}
+
 export interface HistoryResponse {
     events: FrontEndEventData[];
     nextCursor: string;

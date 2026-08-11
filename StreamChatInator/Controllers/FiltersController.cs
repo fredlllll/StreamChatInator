@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using System.Globalization;
@@ -12,11 +13,13 @@ namespace StreamChatInator.Controllers
     {
         private readonly DatabaseContext _db;
         private readonly ILogger<FiltersController> _logger;
+        private readonly IMemoryCache _cache;
 
-        public FiltersController(DatabaseContext db, ILogger<FiltersController> logger)
+        public FiltersController(DatabaseContext db, ILogger<FiltersController> logger, IMemoryCache cache)
         {
             _db = db;
             _logger = logger;
+            _cache = cache;
         }
 
         [HttpGet]
@@ -96,7 +99,11 @@ namespace StreamChatInator.Controllers
             var filter = _db.EventFilters.Find(id);
             if (filter == null) return NotFound();
 
-            var evaluator = new JsFilterEvaluator(filter.CodeJs);
+            // Clamp the page size so an arbitrary query param can't ask for an
+            // unbounded response (scanning is capped separately below anyway).
+            take = Math.Clamp(take, 1, 100);
+
+            var evaluator = GetEvaluator(filter);
             var (scanCreated, scanId) = ParseCursor(before);
             var matches = new List<FrontEndEventData>();
             bool exhausted = false;
@@ -207,6 +214,22 @@ namespace StreamChatInator.Controllers
         /// Returns null (instead of throwing) when either row is missing, so a
         /// single orphaned event can't take down the whole history request.
         /// </summary>
+        /// <summary>
+        /// Returns a reusable compiled evaluator for the filter. Compiling the
+        /// Jint engine per page load is the expensive part of history queries,
+        /// so cache it. Keying on <c>Updated</c> means an edit automatically
+        /// compiles a fresh evaluator (the stale entry just expires).
+        /// </summary>
+        private JsFilterEvaluator GetEvaluator(ChatEventFilter filter)
+        {
+            var key = $"filter-evaluator:{filter.Id}:{filter.Updated.Ticks}";
+            return _cache.GetOrCreate(key, entry =>
+            {
+                entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+                return new JsFilterEvaluator(filter.CodeJs);
+            })!;
+        }
+
         private object? FindWithChatUserNoticeBase(ModelWithUserNoticeBase? mwunb)
         {
             if (mwunb == null)
