@@ -85,18 +85,18 @@ namespace StreamChatInator.Controllers
         public class HistoryResponse
         {
             public required List<FrontEndEventData> Events { get; set; }
-            public required DateTime NextCursor { get; set; }
+            public required string NextCursor { get; set; }
             public required bool HasMore { get; set; }
         }
 
         [HttpGet("{id}/messages")]
-        public ActionResult<HistoryResponse> GetMessages(string id, [FromQuery] DateTime? before, [FromQuery] int take = 50)
+        public ActionResult<HistoryResponse> GetMessages(string id, [FromQuery] string? before, [FromQuery] int take = 50)
         {
             var filter = _db.EventFilters.Find(id);
             if (filter == null) return NotFound();
 
             var evaluator = new JsFilterEvaluator(filter.CodeJs);
-            var scanCursor = before ?? DateTime.UtcNow;
+            var (scanCreated, scanId) = ParseCursor(before);
             var matches = new List<FrontEndEventData>();
             bool exhausted = false;
 
@@ -105,9 +105,19 @@ namespace StreamChatInator.Controllers
 
             for (int batch = 0; batch < maxBatchesToScan; batch++)
             {
-                var candidates = _db.ChatEvents
-                    .Where(e => e.Created < scanCursor)
+                IQueryable<ChatEvent> query = _db.ChatEvents;
+                if (scanCreated.HasValue)
+                {
+                    var created = scanCreated.Value;
+                    var cursorId = scanId;
+                    // Keyset: strictly before (created, id). The Id tiebreaker
+                    // prevents events that share the exact same Created timestamp
+                    // from being skipped across a batch boundary.
+                    query = query.Where(e => e.Created < created || (e.Created == created && e.Id.CompareTo(cursorId) < 0));
+                }
+                var candidates = query
                     .OrderByDescending(e => e.Created)
+                    .ThenByDescending(e => e.Id)
                     .Take(batchSize)
                     .ToList();
 
@@ -115,7 +125,8 @@ namespace StreamChatInator.Controllers
 
                 foreach (var chatEvent in candidates)
                 {
-                    scanCursor = chatEvent.Created;
+                    scanCreated = chatEvent.Created;
+                    scanId = chatEvent.Id;
 
                     var eventData = LoadEventData(chatEvent);
                     if (eventData == null)
@@ -136,7 +147,29 @@ namespace StreamChatInator.Controllers
                 if (candidates.Count < batchSize) { exhausted = true; break; }
             }
 
-            return new HistoryResponse { Events = matches, NextCursor = scanCursor, HasMore = !exhausted };
+            var nextCursor = scanCreated.HasValue ? $"{scanCreated.Value:o}|{scanId}" : "";
+            return new HistoryResponse { Events = matches, NextCursor = nextCursor, HasMore = !exhausted };
+        }
+
+        /// <summary>
+        /// Parses the opaque page cursor. A bare timestamp (the frontend's
+        /// initial "before" value) means "start at this point"; a composite
+        /// "timestamp|id" cursor is a keyset that resumes exactly where the
+        /// previous page stopped.
+        /// </summary>
+        private static (DateTime? Created, string Id) ParseCursor(string? cursor)
+        {
+            if (string.IsNullOrEmpty(cursor)) return (null, "");
+            var sep = cursor.LastIndexOf('|');
+            if (sep > 0 && DateTime.TryParse(cursor[..sep], out var created))
+            {
+                return (created, cursor[(sep + 1)..]);
+            }
+            if (DateTime.TryParse(cursor, out var plain))
+            {
+                return (plain, "");
+            }
+            return (null, "");
         }
 
         private object? LoadEventData(ChatEvent chatEvent)
