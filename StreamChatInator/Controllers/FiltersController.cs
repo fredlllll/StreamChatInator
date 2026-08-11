@@ -120,8 +120,8 @@ namespace StreamChatInator.Controllers
                     var eventData = LoadEventData(chatEvent);
                     if (eventData == null)
                     {
-                        _logger.LogWarning("event type not implemented yet: " + chatEvent.ChatEventType);
-                        continue; // event type not implemented yet
+                        _logger.LogWarning("event data missing for {Type} event {EventId}, skipping", chatEvent.ChatEventType, chatEvent.Id);
+                        continue;
                     }
 
                     var frontendData = new FrontEndEventData() { EventId = chatEvent.Id, ChatEventType = chatEvent.ChatEventType, Seen = chatEvent.Seen, ChatEventData = eventData };
@@ -162,21 +162,25 @@ namespace StreamChatInator.Controllers
                 ChatEventType.UserJoined => db.ChatEventUserJoineds.Find(chatEvent.EventId),
                 ChatEventType.UserLeft => db.ChatEventUserLefts.Find(chatEvent.EventId),
                 ChatEventType.UserTimedout => db.ChatEventUserTimedouts.Find(chatEvent.EventId),
-                _ => null, // not implemented yet - skip rather than crash
+                _ => null, // event type not implemented yet - skip rather than crash
             };
         }
 
-        private object FindWithChatUserNoticeBase(ModelWithUserNoticeBase? mwunb)
+        /// <summary>
+        /// Loads the event's detail row merged with its shared ChatUserNoticeBase.
+        /// Returns null (instead of throwing) when either row is missing, so a
+        /// single orphaned event can't take down the whole history request.
+        /// </summary>
+        private object? FindWithChatUserNoticeBase(ModelWithUserNoticeBase? mwunb)
         {
             if (mwunb == null)
             {
-                throw new ArgumentException();
+                return null;
             }
-            var db = _db;
-            var cunb = db.ChatUserNoticeBases.Find(mwunb.ChatUserNoticeBaseId);
+            var cunb = _db.ChatUserNoticeBases.Find(mwunb.ChatUserNoticeBaseId);
             if (cunb == null)
             {
-                throw new InvalidDataException();
+                return null;
             }
             return Util.MergeObjects(JsonNamingPolicy.CamelCase, cunb, mwunb);
         }
