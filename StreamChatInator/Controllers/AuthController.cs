@@ -2,6 +2,7 @@
 using StreamChatInator.Apis;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
+using StreamChatInator.Services;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 
@@ -22,12 +23,14 @@ namespace StreamChatInator.Controllers
         private readonly IConfiguration _config;
         private readonly IServiceProvider _services;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly TwitchTokenService _tokenService;
 
-        public AuthController(IConfiguration config, IServiceProvider services, IHttpClientFactory httpClientFactory)
+        public AuthController(IConfiguration config, IServiceProvider services, IHttpClientFactory httpClientFactory, TwitchTokenService tokenService)
         {
             _config = config;
             _services = services;
             _httpClientFactory = httpClientFactory;
+            _tokenService = tokenService;
         }
 
         /// <summary>
@@ -108,6 +111,8 @@ namespace StreamChatInator.Controllers
             db.SetSettingsValue(SettingValue.SettingOAuthTokenExpiresAt, DateTime.UtcNow.AddSeconds(token.ExpiresIn).ToString("o"));
             db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
             db.SaveChanges();
+
+            _tokenService.SignalLogin();
 
             return Ok(new { status = "ok", username = validation.Login });
         }

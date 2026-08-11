@@ -24,36 +24,81 @@ namespace StreamChatInator.Services
             while (!stoppingToken.IsCancellationRequested)
             {
                 using var scope = _scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
                 var hub = scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
-
                 try
                 {
+                    var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
                     var channelName = db.GetSettingsValueOrNull(SettingValue.SettingUserName);
                     var oauthToken = await _tokenService.GetAccessTokenAsync(db);
+
                     if (string.IsNullOrEmpty(channelName) || string.IsNullOrEmpty(oauthToken))
                     {
-                        throw new InvalidOperationException("no credentials available yet, waiting for login");
+                        // No usable credentials: block until a login completes
+                        // instead of polling the settings table. The cancel token
+                        // wakes us on shutdown.
+                        _tokenService.ResetCredentialWait();
+                        try
+                        {
+                            await _tokenService.WaitForCredentialsAsync(stoppingToken);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+                        continue;
                     }
-                    db.Dispose();
-                    db = null;
 
-                    var reader = new ChatReader(channelName, oauthToken, _scopeFactory);
-                    await reader.ConnectAsync();
-                    await hub.Clients.All.SendAsync("Connection");
-                    await reader.Run(stoppingToken);
-                    await hub.Clients.All.SendAsync("NoConnection");
+                    db.Dispose();
+
+                    var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+                    var hubData = scope.ServiceProvider.GetRequiredService<ChatHubData>();
+                    var reader = new ChatReader(channelName, oauthToken, loggerFactory, hub, hubData, _scopeFactory);
+                    try
+                    {
+                        await reader.ConnectAsync();
+                        await hub.Clients.All.SendAsync("Connection", stoppingToken);
+                        _logger.LogInformation("chat reader connected as {User}", channelName);
+                        // Run returns when the twitch client drops or the app shuts down.
+                        await reader.Run(stoppingToken);
+                        _logger.LogInformation("chat reader disconnected");
+                        await hub.Clients.All.SendAsync("NoConnection", stoppingToken);
+                    }
+                    finally
+                    {
+                        await reader.DisposeAsync();
+                    }
                 }
-                catch (Exception)
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
-                    _logger.LogWarning("could not create chat reader");
-                    await hub.Clients.All.SendAsync("NoConnection");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "chat reader failed, will retry");
+                    await TrySendNoConnectionAsync(hub, stoppingToken);
                 }
                 finally
                 {
-                    db?.Dispose();
-                    await Task.Delay(2000);
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
                 }
+            }
+        }
+
+        private static async Task TrySendNoConnectionAsync(IHubContext<ChatHub> hub, CancellationToken stoppingToken)
+        {
+            try
+            {
+                await hub.Clients.All.SendAsync("NoConnection", stoppingToken);
+            }
+            catch (Exception)
+            {
+                // broadcasting during shutdown is non-fatal
             }
         }
     }

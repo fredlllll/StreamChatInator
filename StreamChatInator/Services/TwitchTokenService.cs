@@ -13,6 +13,12 @@ namespace StreamChatInator.Services
     /// </summary>
     public class TwitchTokenService
     {
+        // Async latch: once a device login has persisted credentials it stays
+        // signaled (so a steady-state reconnect doesn't wait). ResetCredentialWait
+        // swaps in a fresh, unsignaled latch when stored credentials become
+        // unusable, blocking until the next login.
+        private TaskCompletionSource _loginReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _config;
         private readonly IServiceScopeFactory _scopeFactory;
@@ -25,6 +31,38 @@ namespace StreamChatInator.Services
         }
 
         private string ClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
+
+        /// <summary>Called after credentials are persisted (device login completed).</summary>
+        public void SignalLogin()
+        {
+            var current = Volatile.Read(ref _loginReady);
+            if (!current.Task.IsCompleted)
+            {
+                current.TrySetResult();
+            }
+        }
+
+        /// <summary>Makes credential waits block again, e.g. after a token can't be refreshed.</summary>
+        public void ResetCredentialWait()
+        {
+            Interlocked.Exchange(ref _loginReady, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+        }
+
+        /// <summary>Returns when credentials exist; completes immediately once a login has happened.</summary>
+        public Task WaitForCredentialsAsync(CancellationToken cancellationToken)
+        {
+            var current = Volatile.Read(ref _loginReady);
+            if (current.Task.IsCompleted) return Task.CompletedTask;
+            return WaitOnAsync(current, cancellationToken);
+        }
+
+        private static async Task WaitOnAsync(TaskCompletionSource ready, CancellationToken cancellationToken)
+        {
+            var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var registration = cancellationToken.Register(() => cancelled.TrySetResult());
+            await Task.WhenAny(ready.Task, cancelled.Task);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
 
         /// <summary>
         /// Returns a usable access token, creating its own scope. Null when no

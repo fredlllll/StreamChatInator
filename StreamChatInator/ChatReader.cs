@@ -10,33 +10,32 @@ using TwitchLib.Client.Models;
 
 namespace StreamChatInator
 {
-    public class ChatReader
+    public class ChatReader : IAsyncDisposable
     {
         private bool tracking = true;
         private TwitchClient _client;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly string _userName;
-        private readonly IServiceScope _scope;
         private readonly ILogger<ChatReader> _logger;
         private readonly IHubContext<ChatHub> _hub;
         private readonly ChatHubData _hubData;
+        private readonly TaskCompletionSource _disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private string? _currentChannelId;
 
-        public ChatReader(string userName, string oauthToken, IServiceScopeFactory scopeFactory)
+        public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory)
         {
             this._userName = userName;
-            this._scope = scopeFactory.CreateScope();
             this._scopeFactory = scopeFactory;
-            var loggerFactory = _scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
             _logger = loggerFactory.CreateLogger<ChatReader>();
-            _hub = _scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
-            _hubData = _scope.ServiceProvider.GetRequiredService<ChatHubData>();
+            _hub = hub;
+            _hubData = hubData;
 
             var credentials = new ConnectionCredentials(userName, oauthToken);
             _client = new TwitchClient(loggerFactory: loggerFactory);
             _client.Initialize(credentials);
 
             _client.OnConnected += Client_OnConnected;
+            _client.OnDisconnected += Client_OnDisconnected;
             _client.OnJoinedChannel += Client_OnJoinedChannel;
             _client.OnUserStateChanged += Client_OnUserStateChanged;
             _client.OnChatCommandReceived += Client_OnChatCommandReceived;
@@ -411,10 +410,32 @@ namespace StreamChatInator
         }
         public async Task Run(CancellationToken stoppingToken)
         {
-            //in theory we should wait here till disconnect or something idk
-            while (!stoppingToken.IsCancellationRequested)
+            // Return when the twitch client drops so the service can reconnect,
+            // or when the app is shutting down.
+            var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var registration = stoppingToken.Register(() => cancelled.TrySetResult());
+            await Task.WhenAny(_disconnected.Task, cancelled.Task);
+        }
+
+        private Task Client_OnDisconnected(object? sender, OnDisconnectedArgs e)
+        {
+            _logger.LogInformation("twitch client disconnected");
+            _disconnected.TrySetResult();
+            return Task.CompletedTask;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            try
             {
-                await Task.Delay(int.MaxValue, stoppingToken);
+                if (_client.IsConnected)
+                {
+                    await _client.DisconnectAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "error disconnecting twitch client");
             }
         }
         #endregion
