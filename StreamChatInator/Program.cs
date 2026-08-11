@@ -74,6 +74,7 @@ namespace StreamChatInator
 #pragma warning disable XUnit1013
                 db.Database.Migrate();
 #pragma warning restore XUnit1013
+                DatabaseSeeder.Seed(db);
             }
 
             app.UseRouting();
