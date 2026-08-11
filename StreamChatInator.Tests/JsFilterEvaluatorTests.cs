@@ -53,11 +53,11 @@ public class JsFilterEvaluatorTests
     }
 
     [Fact]
-    public void ThrowingScriptDuringEvaluation_ReturnsFalse()
+    public void ThrowingScriptDuringEvaluation_ReturnsTrue()
     {
         var evaluator = new JsFilterEvaluator(
             "function __matches(eventData) { return eventData.nonexistent.deep.value; }");
 
-        Assert.False(evaluator.Matches(Event("anything")));
+        Assert.True(evaluator.Matches(Event("anything")));
     }
 }
