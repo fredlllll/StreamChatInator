@@ -20,6 +20,9 @@ namespace StreamChatInator.Hubs
             {
                 await Clients.Caller.SendAsync("ChannelId", _data.ChannelId.Value);
             }
+            // Replay the current Twitch connection state so a client that joins
+            // after the last broadcast still shows the correct indicator.
+            await Clients.Caller.SendAsync(_data.Connected.IsInitialized && _data.Connected.Value ? "Connection" : "NoConnection");
             await base.OnConnectedAsync();
         }
 

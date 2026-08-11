@@ -17,7 +17,7 @@ export function useFilteredEvents(filterId: string | undefined) {
     const [hasMore, setHasMore] = useState(true);
     const [firstItemIndex, setFirstItemIndex] = useState(FIRST_ITEM_INDEX_OFFSET);
     const [loadingOlder, setLoadingOlder] = useState(false);
-    const { connectedAt, events, seenState, registerSeen } = useChatConnection();
+    const { signalRConnectedAt, events, seenState, registerSeen } = useChatConnection();
 
     useEffect(() => {
         if (!filterId) return;
@@ -25,15 +25,15 @@ export function useFilteredEvents(filterId: string | undefined) {
     }, [filterId]);
 
     useEffect(() => {
-        if (!filter || !connectedAt) return;
-        getFilterHistory(filter.id, connectedAt.toISOString(), 50).then((res) => {
+        if (!filter || !signalRConnectedAt) return;
+        getFilterHistory(filter.id, signalRConnectedAt.toISOString(), 50).then((res) => {
             setHistory([...res.events].reverse());
             setNextCursor(res.nextCursor);
             setHasMore(res.hasMore);
             setFirstItemIndex(FIRST_ITEM_INDEX_OFFSET);
             res.events.forEach((e) => registerSeen(e.eventId, e.seen));
         });
-    }, [filter, connectedAt, registerSeen]);
+    }, [filter, signalRConnectedAt, registerSeen]);
 
     async function loadOlder() {
         // `loadingOlder` guards against overlapping requests: `startReached`

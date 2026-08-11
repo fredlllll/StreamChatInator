@@ -26,6 +26,7 @@ namespace StreamChatInator.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var hub = scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
+                var hubData = scope.ServiceProvider.GetRequiredService<ChatHubData>();
                 try
                 {
                     var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
@@ -52,19 +53,18 @@ namespace StreamChatInator.Services
                     db.Dispose();
 
                     var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-                    var hubData = scope.ServiceProvider.GetRequiredService<ChatHubData>();
                     var reader = new ChatReader(channelName, oauthToken, loggerFactory, hub, hubData, _scopeFactory);
                     try
                     {
                         await reader.ConnectAsync();
-                        await hub.Clients.All.SendAsync("Connection", stoppingToken);
+                        hubData.SetConnected(true);
                         _logger.LogInformation("chat reader connected as {User}", channelName);
                         ConsoleUi.SetStatus($"Connected as {channelName}");
                         // Run returns when the twitch client drops or the app shuts down.
                         await reader.Run(stoppingToken);
                         _logger.LogInformation("chat reader disconnected");
                         ConsoleUi.SetStatus("Disconnected — reconnecting…");
-                        await hub.Clients.All.SendAsync("NoConnection", stoppingToken);
+                        hubData.SetConnected(false);
                     }
                     finally
                     {
@@ -79,7 +79,7 @@ namespace StreamChatInator.Services
                 {
                     _logger.LogError(ex, "chat reader failed, will retry");
                     ConsoleUi.SetStatus("Connection failed — retrying…");
-                    await TrySendNoConnectionAsync(hub, stoppingToken);
+                    hubData.SetConnected(false);
                 }
                 finally
                 {
@@ -91,18 +91,6 @@ namespace StreamChatInator.Services
                     {
                     }
                 }
-            }
-        }
-
-        private static async Task TrySendNoConnectionAsync(IHubContext<ChatHub> hub, CancellationToken stoppingToken)
-        {
-            try
-            {
-                await hub.Clients.All.SendAsync("NoConnection", stoppingToken);
-            }
-            catch (Exception)
-            {
-                // broadcasting during shutdown is non-fatal
             }
         }
     }

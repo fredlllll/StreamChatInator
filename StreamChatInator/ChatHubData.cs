@@ -14,6 +14,7 @@ namespace StreamChatInator
     public class ChatHubData
     {
         public ObservableValue<string> ChannelId { get; } = new ObservableValue<string>();
+        public ObservableValue<bool> Connected { get; } = new ObservableValue<bool>();
 
         public ChatHubData(IHubContext<ChatHub> hubContext)
         {
@@ -24,6 +25,16 @@ namespace StreamChatInator
                 // fire-and-forget; a broadcast failing during shutdown is non-fatal
                 _ = task.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
             }));
+            Connected.Subscribe(Observer.ToObserver<bool>(value =>
+            {
+                if (!value.HasValue) return;
+                var task = hubContext.Clients.All.SendAsync(value.Value ? "Connection" : "NoConnection");
+                // fire-and-forget; a broadcast failing during shutdown is non-fatal
+                _ = task.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+            }));
         }
+
+        /// <summary>Updates the Twitch chat connection state and notifies all clients on change.</summary>
+        public void SetConnected(bool connected) => Connected.Post(connected);
     }
 }

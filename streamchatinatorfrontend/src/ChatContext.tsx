@@ -4,8 +4,8 @@ import type { FrontEndEventData } from "./types";
 
 export interface ChatContextType {
     events: FrontEndEventData[];
-    connected: boolean;
-    connectedAt: Date | null;
+    twitchConnected: boolean;
+    signalRConnectedAt: Date | null;
     channelId: string | null;
     seenState: Record<string, boolean>;
     setEventSeen: (eventId: string, seen: boolean) => void;
@@ -18,8 +18,8 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [events, setEvents] = useState<FrontEndEventData[]>([]);
-    const [connected, setConnected] = useState<boolean>(false);
-    const [connectedAt, setConnectedAt] = useState<Date | null>(null);
+    const [twitchConnected, setTwitchConnected] = useState<boolean>(false);
+    const [signalRConnectedAt, setSignalRConnectedAt] = useState<Date | null>(null);
     const [channelId, setChannelId] = useState<string | null>(null);
     const [seenState, setSeenState] = useState<Record<string, boolean>>({});
     const [canUndoSeen, setCanUndoSeen] = useState(false);
@@ -99,23 +99,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         });
 
         connection.on("Connection", () => {
-            setConnected(true);
+            setTwitchConnected(true);
         });
 
         connection.on("NoConnection", () => {
-            setConnected(false);
+            setTwitchConnected(false);
         });
 
         connection.on("ChannelId", (_channelId: string) => {
             setChannelId(_channelId);
         });
 
-        connection
-            .start()
-            .then(() => {
-                setConnected(true);
-                setConnectedAt(new Date());
-            })
+        // The history backfill anchor: set when the SignalR transport itself
+        // comes up (initial start), not when the Twitch chat connects — those
+        // are unrelated states.
+        connection.start()
+            .then(() => setSignalRConnectedAt(new Date()))
             .catch((err) => console.error("SignalR connection failed:", err));
 
         return () => {
@@ -125,7 +124,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, [registerSeen]);
 
     return (
-        <ChatContext.Provider value={{ events, connected, connectedAt, channelId, seenState, setEventSeen, registerSeen, undoSeen, canUndoSeen }}>
+        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, seenState, setEventSeen, registerSeen, undoSeen, canUndoSeen }}>
             {children}
         </ChatContext.Provider>
     );
