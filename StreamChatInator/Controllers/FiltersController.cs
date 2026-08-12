@@ -16,6 +16,32 @@ namespace StreamChatInator.Controllers
         private readonly ILogger<FiltersController> _logger;
         private readonly IMemoryCache _cache;
 
+        /// <summary>
+        /// Maps each chat event type to the DbSet that holds its detail rows. Used
+        /// to load a batch one query per type without a per-type switch.
+        /// </summary>
+        private static readonly Dictionary<ChatEventType, Func<DatabaseContext, IQueryable<Model>>> EventSets = new()
+        {
+            [ChatEventType.Announcement] = db => db.ChatEventAnnouncements,
+            [ChatEventType.AnonGiftPaidUpgrade] = db => db.ChatEventAnonGiftPaidUpgrades,
+            [ChatEventType.BitsBadgeTier] = db => db.ChatEventBitsBadgeTiers,
+            [ChatEventType.ChatMessage] = db => db.ChatEventChatMessages,
+            [ChatEventType.CommunityPayForward] = db => db.ChatEventCommunityPayForwards,
+            [ChatEventType.CommunitySubscription] = db => db.ChatEventCommunitySubscriptions,
+            [ChatEventType.ContinuedGiftedSubscription] = db => db.ChatEventContinuedGiftedSubscriptions,
+            [ChatEventType.GiftedSubscription] = db => db.ChatEventGiftedSubscriptions,
+            [ChatEventType.MessageCleared] = db => db.ChatEventMessageCleareds,
+            [ChatEventType.NewSubscriber] = db => db.ChatEventNewSubscribers,
+            [ChatEventType.PrimePaidSubscriber] = db => db.ChatEventPrimePaidSubscribers,
+            [ChatEventType.ReSubscriber] = db => db.ChatEventReSubscribers,
+            [ChatEventType.Ritual] = db => db.ChatEventRituals,
+            [ChatEventType.StandardPayForward] = db => db.ChatEventStandardPayForwards,
+            [ChatEventType.UserBanned] = db => db.ChatEventUserBanneds,
+            [ChatEventType.UserJoined] = db => db.ChatEventUserJoineds,
+            [ChatEventType.UserLeft] = db => db.ChatEventUserLefts,
+            [ChatEventType.UserTimedout] = db => db.ChatEventUserTimedouts,
+        };
+
         public FiltersController(DatabaseContext db, ILogger<FiltersController> logger, IMemoryCache cache)
         {
             _db = db;
@@ -205,64 +231,12 @@ namespace StreamChatInator.Controllers
             foreach (var group in chatEvents.GroupBy(e => e.ChatEventType))
             {
                 var ids = group.Select(e => e.EventId).Distinct().ToList();
-                switch (group.Key)
+                // Only the event types actually present in this batch are queried, so
+                // adding a new event type means adding one entry to the map (not a
+                // new case in a switch). Unimplemented types are skipped entirely.
+                if (EventSets.TryGetValue(group.Key, out var getSet))
                 {
-                    case ChatEventType.Announcement:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventAnnouncements);
-                        break;
-                    case ChatEventType.AnonGiftPaidUpgrade:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventAnonGiftPaidUpgrades);
-                        break;
-                    case ChatEventType.BitsBadgeTier:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventBitsBadgeTiers);
-                        break;
-                    case ChatEventType.ChatMessage:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventChatMessages);
-                        break;
-                    case ChatEventType.CommunityPayForward:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventCommunityPayForwards);
-                        break;
-                    case ChatEventType.CommunitySubscription:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventCommunitySubscriptions);
-                        break;
-                    case ChatEventType.ContinuedGiftedSubscription:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventContinuedGiftedSubscriptions);
-                        break;
-                    case ChatEventType.GiftedSubscription:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventGiftedSubscriptions);
-                        break;
-                    case ChatEventType.MessageCleared:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventMessageCleareds);
-                        break;
-                    case ChatEventType.NewSubscriber:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventNewSubscribers);
-                        break;
-                    case ChatEventType.PrimePaidSubscriber:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventPrimePaidSubscribers);
-                        break;
-                    case ChatEventType.ReSubscriber:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventReSubscribers);
-                        break;
-                    case ChatEventType.Ritual:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventRituals);
-                        break;
-                    case ChatEventType.StandardPayForward:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventStandardPayForwards);
-                        break;
-                    case ChatEventType.UserBanned:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserBanneds);
-                        break;
-                    case ChatEventType.UserJoined:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserJoineds);
-                        break;
-                    case ChatEventType.UserLeft:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserLefts);
-                        break;
-                    case ChatEventType.UserTimedout:
-                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserTimedouts);
-                        break;
-                    default:
-                        break; // event type not implemented yet - skip rather than crash
+                    LoadDetails(eventDataById, baseIds, ids, getSet(_db));
                 }
             }
 
@@ -288,11 +262,11 @@ namespace StreamChatInator.Controllers
             return eventDataById;
         }
 
-        private void LoadDetails<TDetail>(
+        private static void LoadDetails(
             Dictionary<string, object?> eventDataById,
             List<string> baseIds,
             List<string> ids,
-            DbSet<TDetail> dbSet) where TDetail : Model
+            IQueryable<Model> dbSet)
         {
             var rows = dbSet.Where(r => ids.Contains(r.Id)).ToDictionary(r => r.Id);
             foreach (var id in ids)
