@@ -1,5 +1,5 @@
 import type { FrontEndEventData, ChatEventStandardPayForward } from "../../types";
-import UserNoticeItem from "./UserNoticeItem";
+import UserNoticeItem, { type InfoChip } from "./UserNoticeItem";
 
 type StandardPayForwardItemProps = {
     event: FrontEndEventData<ChatEventStandardPayForward>;
@@ -8,12 +8,18 @@ type StandardPayForwardItemProps = {
 function StandardPayForwardItem({ event }: StandardPayForwardItemProps) {
     const data = event.chatEventData;
 
-    const chips: string[] = [];
+    const chips: InfoChip[] = [];
     if (!data.msgParamPriorGifterAnonymous && data.msgParamPriorGifterDisplayName) {
-        chips.push(`from ${data.msgParamPriorGifterDisplayName}`);
+        chips.push({
+            label: `from ${data.msgParamPriorGifterDisplayName}`,
+            title: `Gift originally from ${data.msgParamPriorGifterDisplayName}`,
+        });
     }
     if (data.msgParamRecipientDisplayName) {
-        chips.push(`to ${data.msgParamRecipientDisplayName}`);
+        chips.push({
+            label: `to ${data.msgParamRecipientDisplayName}`,
+            title: `Paid forward to ${data.msgParamRecipientDisplayName}`,
+        });
     }
 
     return <UserNoticeItem event={event} pill="Pay Forward" chips={chips} />;

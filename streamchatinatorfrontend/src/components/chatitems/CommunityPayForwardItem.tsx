@@ -1,5 +1,5 @@
 import type { FrontEndEventData, ChatEventCommunityPayForward } from "../../types";
-import UserNoticeItem from "./UserNoticeItem";
+import UserNoticeItem, { type InfoChip } from "./UserNoticeItem";
 
 type CommunityPayForwardItemProps = {
     event: FrontEndEventData<ChatEventCommunityPayForward>;
@@ -8,9 +8,12 @@ type CommunityPayForwardItemProps = {
 function CommunityPayForwardItem({ event }: CommunityPayForwardItemProps) {
     const data = event.chatEventData;
 
-    const chips: string[] = [];
+    const chips: InfoChip[] = [];
     if (!data.msgParamPriorGifterAnonymous && data.msgParamPriorGifterDisplayName) {
-        chips.push(`from ${data.msgParamPriorGifterDisplayName}`);
+        chips.push({
+            label: `from ${data.msgParamPriorGifterDisplayName}`,
+            title: `Gift originally from ${data.msgParamPriorGifterDisplayName}`,
+        });
     }
 
     return <UserNoticeItem event={event} pill="Pay Forward" chips={chips} />;

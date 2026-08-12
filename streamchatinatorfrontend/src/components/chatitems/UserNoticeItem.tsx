@@ -2,6 +2,9 @@ import type { CSSProperties, ReactNode } from "react";
 import type { ChatUserNoticeBase, FrontEndEventData } from "../../types";
 import ChatBadges from "../ChatBadges";
 
+/** A small indicator chip. Give the chip a `title` for a longer tooltip. */
+export type InfoChip = string | { label: ReactNode; title?: string };
+
 type UserNoticeItemProps<T extends ChatUserNoticeBase> = {
     event: FrontEndEventData<T>;
     /** Short label shown in a colored pill, e.g. "Resub". */
@@ -9,7 +12,7 @@ type UserNoticeItemProps<T extends ChatUserNoticeBase> = {
     /** CSS color for the pill's text/border. */
     pillColor?: string;
     /** Small indicator chips appended after the message text. */
-    chips?: Array<string | ReactNode>;
+    chips?: InfoChip[];
     /** Prepend the user's colored display name + colon. */
     showUsername?: boolean;
     /** Main text; defaults to the notice's system message. */
@@ -63,11 +66,15 @@ function UserNoticeItem<T extends ChatUserNoticeBase>({
             <span className="text">{body}</span>
             {chips && chips.length > 0 && (
                 <span className="event-chips">
-                    {chips.map((chip, i) => (
-                        <span key={i} className="event-chip">
-                            {chip}
-                        </span>
-                    ))}
+                    {chips.map((chip, i) => {
+                        const label = typeof chip === "string" ? chip : chip.label;
+                        const title = typeof chip === "string" ? undefined : chip.title;
+                        return (
+                            <span key={i} className="event-chip" title={title}>
+                                {label}
+                            </span>
+                        );
+                    })}
                 </span>
             )}
             {children}

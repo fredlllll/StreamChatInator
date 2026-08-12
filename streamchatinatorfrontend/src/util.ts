@@ -2,6 +2,37 @@ export function isString(value: unknown): value is string {
     return typeof value === "string";
 }
 
+/**
+ * Extracts the event timestamp as a `Date`, preferring the Twitch server
+ * timestamp (`tmiSent`) and falling back to the event's database `created`
+ * time. Both are ISO 8601 strings.
+ */
+function eventTimestamp(data: unknown): Date | null {
+    if (data == null || typeof data !== "object") return null;
+    const record = data as Record<string, unknown>;
+    const iso =
+        typeof record.tmiSent === "string" && record.tmiSent
+            ? record.tmiSent
+            : typeof record.created === "string" && record.created
+              ? record.created
+              : null;
+    if (!iso) return null;
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Formats an event's timestamp as a compact HH:MM in the viewer's local time. */
+export function formatEventTime(data: unknown): string {
+    const date = eventTimestamp(data);
+    return date ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+}
+
+/** Formats an event's timestamp in full (date + time) for tooltips. */
+export function formatFullTime(data: unknown): string {
+    const date = eventTimestamp(data);
+    return date ? date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
+}
+
 function formatDuration(parts: { days: number; hours: number; minutes: number; seconds: number }): string {
     const out: string[] = [];
     if (parts.days) out.push(`${parts.days}d`);

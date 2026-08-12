@@ -1,5 +1,5 @@
 import type { FrontEndEventData, ChatEventReSubscriber } from "../../types";
-import UserNoticeItem from "./UserNoticeItem";
+import UserNoticeItem, { type InfoChip } from "./UserNoticeItem";
 
 type ReSubscriberItemProps = {
     event: FrontEndEventData<ChatEventReSubscriber>;
@@ -8,11 +8,15 @@ type ReSubscriberItemProps = {
 function ReSubscriberItem({ event }: ReSubscriberItemProps) {
     const data = event.chatEventData;
 
-    const chips: string[] = [];
-    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
-    if (data.msgParamCumulativeMonths > 0) chips.push(`${data.msgParamCumulativeMonths} mo`);
+    const chips: InfoChip[] = [];
+    if (data.msgParamSubPlanName) {
+        chips.push({ label: data.msgParamSubPlanName, title: `Subscription plan: ${data.msgParamSubPlanName}` });
+    }
     if (data.msgParamShouldShareStreak && data.msgParamStreakMonths > 0) {
-        chips.push(`${data.msgParamStreakMonths} streak`);
+        chips.push({
+            label: `${data.msgParamStreakMonths} streak`,
+            title: `Consecutive month streak: ${data.msgParamStreakMonths}`,
+        });
     }
 
     return (

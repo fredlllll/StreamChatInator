@@ -1,5 +1,5 @@
 import type { FrontEndEventData, ChatEventNewSubscriber } from "../../types";
-import UserNoticeItem from "./UserNoticeItem";
+import UserNoticeItem, { type InfoChip } from "./UserNoticeItem";
 
 type NewSubscriberItemProps = {
     event: FrontEndEventData<ChatEventNewSubscriber>;
@@ -8,9 +8,10 @@ type NewSubscriberItemProps = {
 function NewSubscriberItem({ event }: NewSubscriberItemProps) {
     const data = event.chatEventData;
 
-    const chips: string[] = [];
-    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
-    if (data.msgParamCumulativeMonths > 0) chips.push(`${data.msgParamCumulativeMonths} mo`);
+    const chips: InfoChip[] = [];
+    if (data.msgParamSubPlanName) {
+        chips.push({ label: data.msgParamSubPlanName, title: `Subscription plan: ${data.msgParamSubPlanName}` });
+    }
 
     return (
         <UserNoticeItem event={event} pill="New Sub" chips={chips}>

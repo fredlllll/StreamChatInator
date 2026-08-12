@@ -1,5 +1,5 @@
 import type { FrontEndEventData, ChatEventRitual } from "../../types";
-import UserNoticeItem from "./UserNoticeItem";
+import UserNoticeItem, { type InfoChip } from "./UserNoticeItem";
 
 type RitualItemProps = {
     event: FrontEndEventData<ChatEventRitual>;
@@ -8,8 +8,10 @@ type RitualItemProps = {
 function RitualItem({ event }: RitualItemProps) {
     const data = event.chatEventData;
 
-    const chips: string[] = [];
-    if (data.msgParamRitualName) chips.push(data.msgParamRitualName);
+    const chips: InfoChip[] = [];
+    if (data.msgParamRitualName) {
+        chips.push({ label: data.msgParamRitualName, title: `Ritual: ${data.msgParamRitualName}` });
+    }
 
     return (
         <UserNoticeItem event={event} pill="Ritual" chips={chips}>

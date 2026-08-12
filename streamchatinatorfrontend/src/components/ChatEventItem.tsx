@@ -1,6 +1,7 @@
 import eventComponents from "./eventComponents";
 import { useChatConnection } from "../ChatContext";
 import type { FrontEndEventData } from "../types";
+import { formatEventTime, formatFullTime } from "../util";
 
 type ChatEventItemProps = {
     event: FrontEndEventData;
@@ -15,6 +16,7 @@ function ChatEventItem({ event }: ChatEventItemProps) {
     }
 
     const seen = seenState[event.eventId] ?? event.seen;
+    const time = formatEventTime(event.chatEventData);
 
     return (
         <div className={`chat-event-item ${seen ? "seen" : "unseen"}`}>
@@ -26,6 +28,11 @@ function ChatEventItem({ event }: ChatEventItemProps) {
                 />
             </label>
             <Component event={event} />
+            {time && (
+                <span className="event-time" title={formatFullTime(event.chatEventData)}>
+                    {time}
+                </span>
+            )}
         </div>
     );
 }

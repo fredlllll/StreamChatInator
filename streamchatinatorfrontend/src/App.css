@@ -254,6 +254,16 @@
   font-size: 14px;
   word-break: break-word;
 }
+.event-time {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 6px;
+  margin-right: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
 .username {
   font-weight: 650;
   margin-right: 3px;

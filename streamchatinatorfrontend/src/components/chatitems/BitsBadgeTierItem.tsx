@@ -8,7 +8,14 @@ type BitsBadgeTierItemProps = {
 function BitsBadgeTierItem({ event }: BitsBadgeTierItemProps) {
     const data = event.chatEventData;
 
-    return <UserNoticeItem event={event} pill="Bits Badge" chips={[`${data.msgParamThreshold} bits`]} />;
+    const chips = [
+        {
+            label: `${data.msgParamThreshold} bits`,
+            title: `Earned the ${data.msgParamThreshold}-bit badge tier`,
+        },
+    ];
+
+    return <UserNoticeItem event={event} pill="Bits Badge" chips={chips} />;
 }
 
 export default BitsBadgeTierItem;

@@ -1,5 +1,5 @@
 import type { FrontEndEventData, ChatEventPrimePaidSubscriber } from "../../types";
-import UserNoticeItem from "./UserNoticeItem";
+import UserNoticeItem, { type InfoChip } from "./UserNoticeItem";
 
 type PrimePaidSubscriberItemProps = {
     event: FrontEndEventData<ChatEventPrimePaidSubscriber>;
@@ -8,8 +8,10 @@ type PrimePaidSubscriberItemProps = {
 function PrimePaidSubscriberItem({ event }: PrimePaidSubscriberItemProps) {
     const data = event.chatEventData;
 
-    const chips: string[] = [];
-    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
+    const chips: InfoChip[] = [];
+    if (data.msgParamSubPlanName) {
+        chips.push({ label: data.msgParamSubPlanName, title: `Subscription plan: ${data.msgParamSubPlanName}` });
+    }
 
     return (
         <UserNoticeItem event={event} pill="Prime Sub" chips={chips}>
