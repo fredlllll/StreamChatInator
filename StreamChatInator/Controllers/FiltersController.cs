@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
@@ -131,13 +132,20 @@ namespace StreamChatInator.Controllers
 
                 if (candidates.Count == 0) { exhausted = true; break; }
 
+                // Load detail rows for the whole batch in one query per event
+                // type (plus one for the shared user-notice base rows) instead
+                // of calling Find() once per candidate. The per-row Find() was
+                // N+1: with a sparse filter a single page could issue up to
+                // `batchSize * 2` round trips because of the separate base
+                // table lookups.
+                var eventDataById = LoadEventDataBatch(candidates);
+
                 foreach (var chatEvent in candidates)
                 {
                     scanCreated = chatEvent.Created;
                     scanId = chatEvent.Id;
 
-                    var eventData = LoadEventData(chatEvent);
-                    if (eventData == null)
+                    if (!eventDataById.TryGetValue(chatEvent.EventId, out var eventData) || eventData == null)
                     {
                         _logger.LogWarning("event data missing for {Type} event {EventId}, skipping", chatEvent.ChatEventType, chatEvent.Id);
                         continue;
@@ -182,38 +190,124 @@ namespace StreamChatInator.Controllers
             return (null, "");
         }
 
-        private object? LoadEventData(ChatEvent chatEvent)
+        /// <summary>
+        /// Loads the detail row for every event in <paramref name="chatEvents"/>
+        /// with one query per event type (plus one for the shared user-notice
+        /// base rows), keyed by <see cref="ChatEvent.EventId"/>. Returns null for
+        /// events whose detail row is missing so the caller can skip them rather
+        /// than crash on a single orphaned row.
+        /// </summary>
+        private Dictionary<string, object?> LoadEventDataBatch(IReadOnlyList<ChatEvent> chatEvents)
         {
-            var db = _db;
-            return chatEvent.ChatEventType switch
+            var eventDataById = new Dictionary<string, object?>(chatEvents.Count);
+            var baseIds = new List<string>();
+
+            foreach (var group in chatEvents.GroupBy(e => e.ChatEventType))
             {
-                ChatEventType.Announcement => FindWithChatUserNoticeBase(db.ChatEventAnnouncements.Find(chatEvent.EventId)),
-                ChatEventType.AnonGiftPaidUpgrade => FindWithChatUserNoticeBase(db.ChatEventAnonGiftPaidUpgrades.Find(chatEvent.EventId)),
-                ChatEventType.BitsBadgeTier => FindWithChatUserNoticeBase(db.ChatEventBitsBadgeTiers.Find(chatEvent.EventId)),
-                ChatEventType.ChatMessage => db.ChatEventChatMessages.Find(chatEvent.EventId),
-                ChatEventType.CommunityPayForward => FindWithChatUserNoticeBase(db.ChatEventCommunityPayForwards.Find(chatEvent.EventId)),
-                ChatEventType.CommunitySubscription => FindWithChatUserNoticeBase(db.ChatEventCommunitySubscriptions.Find(chatEvent.EventId)),
-                ChatEventType.ContinuedGiftedSubscription => FindWithChatUserNoticeBase(db.ChatEventContinuedGiftedSubscriptions.Find(chatEvent.EventId)),
-                ChatEventType.GiftedSubscription => FindWithChatUserNoticeBase(db.ChatEventGiftedSubscriptions.Find(chatEvent.EventId)),
-                ChatEventType.MessageCleared => db.ChatEventMessageCleareds.Find(chatEvent.EventId),
-                ChatEventType.NewSubscriber => FindWithChatUserNoticeBase(db.ChatEventNewSubscribers.Find(chatEvent.EventId)),
-                ChatEventType.PrimePaidSubscriber => FindWithChatUserNoticeBase(db.ChatEventPrimePaidSubscribers.Find(chatEvent.EventId)),
-                ChatEventType.ReSubscriber => FindWithChatUserNoticeBase(db.ChatEventReSubscribers.Find(chatEvent.EventId)),
-                ChatEventType.Ritual => FindWithChatUserNoticeBase(db.ChatEventRituals.Find(chatEvent.EventId)),
-                ChatEventType.StandardPayForward => FindWithChatUserNoticeBase(db.ChatEventStandardPayForwards.Find(chatEvent.EventId)),
-                ChatEventType.UserBanned => db.ChatEventUserBanneds.Find(chatEvent.EventId),
-                ChatEventType.UserJoined => db.ChatEventUserJoineds.Find(chatEvent.EventId),
-                ChatEventType.UserLeft => db.ChatEventUserLefts.Find(chatEvent.EventId),
-                ChatEventType.UserTimedout => db.ChatEventUserTimedouts.Find(chatEvent.EventId),
-                _ => null, // event type not implemented yet - skip rather than crash
-            };
+                var ids = group.Select(e => e.EventId).Distinct().ToList();
+                switch (group.Key)
+                {
+                    case ChatEventType.Announcement:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventAnnouncements);
+                        break;
+                    case ChatEventType.AnonGiftPaidUpgrade:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventAnonGiftPaidUpgrades);
+                        break;
+                    case ChatEventType.BitsBadgeTier:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventBitsBadgeTiers);
+                        break;
+                    case ChatEventType.ChatMessage:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventChatMessages);
+                        break;
+                    case ChatEventType.CommunityPayForward:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventCommunityPayForwards);
+                        break;
+                    case ChatEventType.CommunitySubscription:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventCommunitySubscriptions);
+                        break;
+                    case ChatEventType.ContinuedGiftedSubscription:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventContinuedGiftedSubscriptions);
+                        break;
+                    case ChatEventType.GiftedSubscription:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventGiftedSubscriptions);
+                        break;
+                    case ChatEventType.MessageCleared:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventMessageCleareds);
+                        break;
+                    case ChatEventType.NewSubscriber:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventNewSubscribers);
+                        break;
+                    case ChatEventType.PrimePaidSubscriber:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventPrimePaidSubscribers);
+                        break;
+                    case ChatEventType.ReSubscriber:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventReSubscribers);
+                        break;
+                    case ChatEventType.Ritual:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventRituals);
+                        break;
+                    case ChatEventType.StandardPayForward:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventStandardPayForwards);
+                        break;
+                    case ChatEventType.UserBanned:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserBanneds);
+                        break;
+                    case ChatEventType.UserJoined:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserJoineds);
+                        break;
+                    case ChatEventType.UserLeft:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserLefts);
+                        break;
+                    case ChatEventType.UserTimedout:
+                        LoadDetails(eventDataById, baseIds, ids, _db.ChatEventUserTimedouts);
+                        break;
+                    default:
+                        break; // event type not implemented yet - skip rather than crash
+                }
+            }
+
+            if (baseIds.Count > 0)
+            {
+                // Merge each notice detail with its shared base row. One query
+                // for every base referenced in the batch, then apply.
+                var bases = _db.ChatUserNoticeBases
+                    .Where(b => baseIds.Contains(b.Id))
+                    .ToDictionary(b => b.Id);
+
+                foreach (var (eventId, detail) in eventDataById.ToList())
+                {
+                    if (detail is ModelWithUserNoticeBase noticeDetail)
+                    {
+                        eventDataById[eventId] = bases.TryGetValue(noticeDetail.ChatUserNoticeBaseId, out var cunb)
+                            ? Util.MergeObjects(JsonNamingPolicy.CamelCase, cunb, detail)
+                            : null;
+                    }
+                }
+            }
+
+            return eventDataById;
         }
 
-        /// <summary>
-        /// Loads the event's detail row merged with its shared ChatUserNoticeBase.
-        /// Returns null (instead of throwing) when either row is missing, so a
-        /// single orphaned event can't take down the whole history request.
-        /// </summary>
+        private void LoadDetails<TDetail>(
+            Dictionary<string, object?> eventDataById,
+            List<string> baseIds,
+            List<string> ids,
+            DbSet<TDetail> dbSet) where TDetail : Model
+        {
+            var rows = dbSet.Where(r => ids.Contains(r.Id)).ToDictionary(r => r.Id);
+            foreach (var id in ids)
+            {
+                if (rows.TryGetValue(id, out var detail))
+                {
+                    eventDataById[id] = detail;
+                    if (detail is ModelWithUserNoticeBase noticeDetail)
+                    {
+                        baseIds.Add(noticeDetail.ChatUserNoticeBaseId);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Returns a reusable compiled evaluator for the filter. Compiling the
         /// Jint engine per page load is the expensive part of history queries,
@@ -228,20 +322,6 @@ namespace StreamChatInator.Controllers
                 entry.SlidingExpiration = TimeSpan.FromMinutes(30);
                 return new JsFilterEvaluator(filter.CodeJs);
             })!;
-        }
-
-        private object? FindWithChatUserNoticeBase(ModelWithUserNoticeBase? mwunb)
-        {
-            if (mwunb == null)
-            {
-                return null;
-            }
-            var cunb = _db.ChatUserNoticeBases.Find(mwunb.ChatUserNoticeBaseId);
-            if (cunb == null)
-            {
-                return null;
-            }
-            return Util.MergeObjects(JsonNamingPolicy.CamelCase, cunb, mwunb);
         }
     }
 }
