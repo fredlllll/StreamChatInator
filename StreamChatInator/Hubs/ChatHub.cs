@@ -25,11 +25,24 @@ namespace StreamChatInator.Hubs
             // Replay the current Twitch connection state so a client that joins
             // after the last broadcast still shows the correct indicator.
             await Clients.Caller.SendAsync(_data.Connected.IsInitialized && _data.Connected.Value ? "Connection" : "NoConnection");
+            // Replay the current tracking state for the same reason.
+            await Clients.Caller.SendAsync("TrackingState", _data.Tracking.IsInitialized && _data.Tracking.Value);
             await base.OnConnectedAsync();
         }
 
         // future client->server RPC methods go here, e.g.:
         // public Task<int> GetActiveViewerCount() => ...
+
+        /// <summary>
+        /// Pauses/resumes recording chat events. Internally this just updates the
+        /// shared tracking flag, which the <see cref="ChatReader"/> checks before
+        /// saving each event, and broadcasts the new state to every client.
+        /// </summary>
+        public void SetTracking(bool enabled)
+        {
+            if (_data.Tracking.IsInitialized && _data.Tracking.Value == enabled) return;
+            _data.Tracking.Post(enabled);
+        }
 
         public async Task SetEventSeen(string eventId, bool seen)
         {

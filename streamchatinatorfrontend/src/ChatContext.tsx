@@ -7,6 +7,7 @@ export interface ChatContextType {
     twitchConnected: boolean;
     signalRConnectedAt: Date | null;
     channelId: string | null;
+    tracking: boolean;
     seenState: Record<string, boolean>;
     // Bumped whenever the server purges all events, so views can drop their
     // cached history alongside the live list.
@@ -15,6 +16,7 @@ export interface ChatContextType {
     registerSeen: (eventId: string, seen: boolean) => void;
     undoSeen: () => void;
     canUndoSeen: boolean;
+    setTracking: (enabled: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -24,6 +26,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [twitchConnected, setTwitchConnected] = useState<boolean>(false);
     const [signalRConnectedAt, setSignalRConnectedAt] = useState<Date | null>(null);
     const [channelId, setChannelId] = useState<string | null>(null);
+    const [tracking, setTrackingState] = useState<boolean>(true);
     const [seenState, setSeenState] = useState<Record<string, boolean>>({});
     const [canUndoSeen, setCanUndoSeen] = useState(false);
     const [purgeVersion, setPurgeVersion] = useState(0);
@@ -63,6 +66,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setCanUndoSeen(undoStackRef.current.length > 0);
         applyEventSeen(entry.eventId, entry.previousSeen, false);
     }, [applyEventSeen]);
+
+    const setTracking = useCallback((enabled: boolean) => {
+        connectionRef.current?.invoke("SetTracking", enabled).catch((err) => console.error("Failed to set tracking:", err));
+    }, []);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -114,6 +121,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             setChannelId(_channelId);
         });
 
+        connection.on("TrackingState", (enabled: boolean) => {
+            setTrackingState(enabled);
+        });
+
         connection.on("EventsPurged", () => {
             setEvents([]);
             setSeenState({});
@@ -136,7 +147,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, [registerSeen]);
 
     return (
-        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, seenState, purgeVersion, setEventSeen, registerSeen, undoSeen, canUndoSeen }}>
+        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, purgeVersion, setEventSeen, registerSeen, undoSeen, canUndoSeen, setTracking }}>
             {children}
         </ChatContext.Provider>
     );

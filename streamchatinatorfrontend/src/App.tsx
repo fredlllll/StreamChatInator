@@ -6,6 +6,7 @@ import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
 import TwitchLoginButton from "./components/TwitchLoginButton";
 import LanLogin from "./components/LanLogin";
+import { useChatConnection } from "./ChatContext";
 import { getAuthStatus, logout } from "./api/authApi";
 import { purgeEvents } from "./api/eventsApi";
 import { useTheme } from "./theme";
@@ -13,6 +14,7 @@ import "./App.css";
 
 function App() {
     const { theme, toggleTheme } = useTheme();
+    const { tracking, setTracking } = useChatConnection();
     const [authChecking, setAuthChecking] = useState(true);
     const [authenticated, setAuthenticated] = useState(false);
 
@@ -69,6 +71,14 @@ function App() {
                     </div>
                     <div className="app-nav-actions">
                         <TwitchLoginButton />
+                        <button
+                            type="button"
+                            className={`btn btn-ghost${tracking ? "" : " tracking-paused"}`}
+                            onClick={() => setTracking(!tracking)}
+                            title={tracking ? "Pause recording chat events" : "Resume recording chat events"}
+                        >
+                            {tracking ? "Pause" : "Play"}
+                        </button>
                         <button type="button" className="btn btn-ghost" onClick={handlePurgeEvents}>
                             Clear all events
                         </button>

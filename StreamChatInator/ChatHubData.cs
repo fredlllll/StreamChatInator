@@ -15,9 +15,11 @@ namespace StreamChatInator
     {
         public ObservableValue<string> ChannelId { get; } = new ObservableValue<string>();
         public ObservableValue<bool> Connected { get; } = new ObservableValue<bool>();
+        public ObservableValue<bool> Tracking { get; } = new ObservableValue<bool>();
 
         public ChatHubData(IHubContext<ChatHub> hubContext)
         {
+            Tracking.Post(true);
             ChannelId.Subscribe(Observer.ToObserver<string>(value =>
             {
                 if (!value.HasValue) return;
@@ -29,6 +31,13 @@ namespace StreamChatInator
             {
                 if (!value.HasValue) return;
                 var task = hubContext.Clients.All.SendAsync(value.Value ? "Connection" : "NoConnection");
+                // fire-and-forget; a broadcast failing during shutdown is non-fatal
+                _ = task.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+            }));
+            Tracking.Subscribe(Observer.ToObserver<bool>(value =>
+            {
+                if (!value.HasValue) return;
+                var task = hubContext.Clients.All.SendAsync("TrackingState", value.Value);
                 // fire-and-forget; a broadcast failing during shutdown is non-fatal
                 _ = task.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
             }));

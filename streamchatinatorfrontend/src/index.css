@@ -232,6 +232,18 @@ input[type="text"] {
   border-color: var(--border);
 }
 
+/* Pause/play: draws attention when recording is paused. */
+.tracking-paused {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.tracking-paused:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
 .btn-danger {
   background: var(--danger-bg);
   border-color: transparent;

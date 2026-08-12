@@ -12,7 +12,6 @@ namespace StreamChatInator
 {
     public class ChatReader : IAsyncDisposable
     {
-        private volatile bool tracking = true;
         private TwitchClient _client;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly string _userName;
@@ -22,7 +21,7 @@ namespace StreamChatInator
         private readonly TaskCompletionSource _disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private string? _currentChannelId;
 
-        public bool IsTracking => tracking;
+        public bool IsTracking => _hubData.Tracking.IsInitialized && _hubData.Tracking.Value;
 
         public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory)
         {
@@ -123,7 +122,7 @@ namespace StreamChatInator
 
         private async Task HandleEventAsync<TEvent>(ChatEventType eventType, Func<TEvent> createEvent) where TEvent : Model
         {
-            if (!tracking) return;
+            if (!IsTracking) return;
             using var scope = _scopeFactory.CreateScope();
             using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             await EndEventHandler(db, eventType, createEvent());
@@ -131,7 +130,7 @@ namespace StreamChatInator
 
         private async Task HandleUserNoticeAsync<TDetail>(ChatEventType eventType, UserNoticeBase notice, Func<string, TDetail> createDetail) where TDetail : ModelWithUserNoticeBase
         {
-            if (!tracking) return;
+            if (!IsTracking) return;
             using var scope = _scopeFactory.CreateScope();
             using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             var cunb = ChatUserNoticeBase.FromUserNoticeBase(notice);
@@ -232,15 +231,22 @@ namespace StreamChatInator
             switch (command.Name.ToLower())
             {
                 case "stoptracking":
-                    tracking = false;
+                    SetTracking(false);
                     _logger.LogInformation("tracking stopped by {User}", e.ChatMessage.Username);
                     break;
                 case "starttracking":
-                    tracking = true;
+                    SetTracking(true);
                     _logger.LogInformation("tracking started by {User}", e.ChatMessage.Username);
                     break;
             }
         }
+
+        /// <summary>
+        /// Sets whether chat events are recorded and broadcast, notifying any
+        /// connected frontends so their pause/play button stays in sync. Used by
+        /// both the chat commands and the SignalR RPC.
+        /// </summary>
+        public void SetTracking(bool enabled) => _hubData.Tracking.Post(enabled);
         public async Task Run(CancellationToken stoppingToken)
         {
             // Return when the twitch client drops so the service can reconnect,
