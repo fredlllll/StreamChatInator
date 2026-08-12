@@ -148,13 +148,18 @@ namespace StreamChatInator.Controllers
         public async Task<IActionResult> PinLogin([FromBody] PinLoginRequest request)
         {
             if (!_lanAccess.Enabled) return NotFound();
-            if (_lanAccess.IsLockedOut()) return StatusCode(429, new { error = "too_many_attempts" });
+
+            // Lockout is per client IP so one device hammering the PIN doesn't
+            // lock everyone else out of the UI.
+            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? null;
+
+            if (_lanAccess.IsLockedOut(clientIp)) return StatusCode(429, new { error = "too_many_attempts" });
             if (!_lanAccess.ValidatePin(request.Pin))
             {
-                _lanAccess.RegisterFailure();
+                _lanAccess.RegisterFailure(clientIp);
                 return Unauthorized(new { error = "invalid_pin" });
             }
-            _lanAccess.ResetFailures();
+            _lanAccess.ResetFailures(clientIp);
 
             var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
