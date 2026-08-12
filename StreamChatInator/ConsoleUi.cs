@@ -93,23 +93,20 @@ namespace StreamChatInator
             History.Enqueue(line);
             while (History.Count > HistoryLimit) History.TryDequeue(out _);
 
-            lock (Sync)
+            RunLocked(() =>
             {
-                if (!_enabled) return;
                 foreach (var part in line.Replace("\r\n", "\n").Split('\n'))
                 {
                     WriteLineInternal(part);
                 }
-            }
+            });
         }
 
         /// <summary>Updates the status line inside the info panel (thread-safe).</summary>
         public static void SetStatus(string status)
         {
-            if (!_enabled) return;
-            lock (Sync)
+            RunLocked(() =>
             {
-                if (!_enabled) return;
                 _status = status;
                 var inner = Math.Max(1, _bufferWidth - 4);
                 var text = "Status: " + status;
@@ -117,7 +114,7 @@ namespace StreamChatInator
                 Console.SetCursorPosition(2, StatusRow);
                 Console.Write(text.PadRight(inner));
                 PositionCursorToLogRow();
-            }
+            });
         }
 
         /// <summary>
@@ -133,14 +130,28 @@ namespace StreamChatInator
         /// </remarks>
         public static void SetPin(string? pin)
         {
-            if (!_enabled) return;
-            lock (Sync)
+            RunLocked(() =>
             {
-                if (!_enabled) return;
                 _pin = pin ?? "";
                 _url = string.IsNullOrEmpty(_pin) ? _baseUrl : $"{_baseUrl}?pin={_pin}";
                 DrawPanel();
                 PositionCursorToLogRow();
+            });
+        }
+
+        /// <summary>
+        /// Runs <paramref name="action"/> while holding <see cref="Sync"/>, but
+        /// only when the UI is enabled. The double <c>_enabled</c> check lets a
+        /// caller bail before ever contending on the lock, while still guarding
+        /// against a shutdown that races in between.
+        /// </summary>
+        private static void RunLocked(Action action)
+        {
+            if (!_enabled) return;
+            lock (Sync)
+            {
+                if (!_enabled) return;
+                action();
             }
         }
 
