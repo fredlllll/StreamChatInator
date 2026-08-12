@@ -17,12 +17,16 @@ function App() {
     const { tracking, setTracking } = useChatConnection();
     const [authChecking, setAuthChecking] = useState(true);
     const [authenticated, setAuthenticated] = useState(false);
+    const [authenticationEnabled, setAuthenticationEnabled] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
         getAuthStatus()
             .then((status) => {
-                if (!cancelled) setAuthenticated(status.authenticated);
+                if (!cancelled) {
+                    setAuthenticated(status.authenticated);
+                    setAuthenticationEnabled(status.authenticationEnabled);
+                }
             })
             .finally(() => {
                 if (!cancelled) setAuthChecking(false);
@@ -82,9 +86,11 @@ function App() {
                         <button type="button" className="btn btn-ghost" onClick={handlePurgeEvents}>
                             Clear all events
                         </button>
-                        <button type="button" className="btn btn-ghost" onClick={handleLogout}>
-                            Lock
-                        </button>
+                        {authenticationEnabled && (
+                            <button type="button" className="btn btn-ghost" onClick={handleLogout}>
+                                Lock
+                            </button>
+                        )}
                         <button type="button" className="btn btn-ghost" onClick={toggleTheme}>
                             {theme === "dark" ? "Light mode" : "Dark mode"}
                         </button>

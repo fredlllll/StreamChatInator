@@ -135,7 +135,11 @@ namespace StreamChatInator.Controllers
         [HttpGet("me")]
         public IActionResult Me()
         {
-            return Ok(new { authenticated = !_lanAccess.Enabled || User.Identity?.IsAuthenticated == true });
+            return Ok(new
+            {
+                authenticated = !_lanAccess.Enabled || User.Identity?.IsAuthenticated == true,
+                authenticationEnabled = _lanAccess.Enabled,
+            });
         }
 
         /// <summary>

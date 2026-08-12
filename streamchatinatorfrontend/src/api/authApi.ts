@@ -1,5 +1,6 @@
 export interface AuthStatus {
     authenticated: boolean;
+    authenticationEnabled: boolean;
 }
 
 export async function getAuthStatus(): Promise<AuthStatus> {
