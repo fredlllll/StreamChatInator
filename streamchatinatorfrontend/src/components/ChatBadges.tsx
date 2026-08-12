@@ -57,6 +57,41 @@ const USER_FLAG_BADGES: Partial<Record<UserFlagName, BadgeSlot>> = {
     Staff: { set: "staff", version: "1", fallback: "Staff" },
 };
 
+// Full descriptive names used for the fallback badges' tooltips. The short
+// fallback labels above stay on screen; hovering reveals the full name.
+const BADGE_TITLES: Record<string, string> = {
+    broadcaster: "Channel Broadcaster",
+    moderator: "Moderator",
+    vip: "VIP",
+    subscriber: "Subscriber",
+    founder: "Founder",
+    global_mod: "Global Moderator",
+    admin: "Twitch Admin",
+    staff: "Twitch Staff",
+    turbo: "Twitch Turbo",
+    partner: "Twitch Partner",
+    bits: "Cheer Badge",
+    bits_charity: "Charity Cheer Badge",
+    bits_leaderboard: "Bits Leaderboard",
+    prediction: "Channel Predictions",
+    predictions: "Channel Predictions",
+    sub_gift_leaderboard: "Sub Gifter Leaderboard",
+    sub_gifter: "Sub Gifter",
+    premium: "Prime Gaming",
+    no_audio: "No Audio",
+    no_video: "No Video",
+    uploader: "Video Uploader",
+};
+
+/** Tooltip text for a fallback badge: full name, plus months for subscribers. */
+function buildBadgeTitle(set: string, version: string): string {
+    const base = BADGE_TITLES[set] ?? set;
+    if (set === "subscriber" && /^\d+$/.test(version) && +version > 0) {
+        return `${base} (${version} months)`;
+    }
+    return base;
+}
+
 // Parses the JSON badge array Twitch sends in the message's badge tag:
 //     [{"set":"broadcaster","version":"1"},{"set":"subscriber","version":"24"}]
 function parseMessageBadges(raw: string | null | undefined): BadgeSlot[] {
@@ -153,7 +188,7 @@ function ChatBadges({ event }: ChatBadgesItemProps) {
                     return img;
                 }
                 return (
-                    <span key={slot.set} className="badge">
+                    <span key={slot.set} className="badge" title={buildBadgeTitle(slot.set, slot.version)}>
                         {slot.fallback}
                     </span>
                 );
