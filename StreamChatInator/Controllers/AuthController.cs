@@ -154,8 +154,9 @@ namespace StreamChatInator.Controllers
             if (!_lanAccess.Enabled) return NotFound();
 
             // Lockout is per client IP so one device hammering the PIN doesn't
-            // lock everyone else out of the UI.
-            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? null;
+            // lock everyone else out of the UI. A null IP is fine: LanAccessService
+            // buckets all such clients together under a dedicated "unknown" key.
+            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 
             if (_lanAccess.IsLockedOut(clientIp)) return StatusCode(429, new { error = "too_many_attempts" });
             if (!_lanAccess.ValidatePin(request.Pin))

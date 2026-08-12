@@ -46,7 +46,7 @@ namespace StreamChatInator.Services
             return CryptographicOperations.FixedTimeEquals(a, b);
         }
 
-        public bool IsLockedOut(string clientIp)
+        public bool IsLockedOut(string? clientIp)
         {
             lock (_lock)
             {
@@ -57,7 +57,7 @@ namespace StreamChatInator.Services
             }
         }
 
-        public void RegisterFailure(string clientIp)
+        public void RegisterFailure(string? clientIp)
         {
             lock (_lock)
             {
@@ -78,7 +78,7 @@ namespace StreamChatInator.Services
             }
         }
 
-        public void ResetFailures(string clientIp)
+        public void ResetFailures(string? clientIp)
         {
             lock (_lock)
             {
