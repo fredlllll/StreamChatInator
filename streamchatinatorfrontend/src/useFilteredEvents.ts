@@ -34,6 +34,12 @@ export function useFilteredEvents(filterId: string | undefined) {
     const processedLenRef = useRef(0);
     const matcherRef = useRef<Matcher | null>(null);
     const seenVersionRef = useRef(0);
+    // Mirror of `purgeVersion` for in-flight history requests. A pending fetch
+    // began with some `purgeVersion`; if a purge happens before it resolves its
+    // response is stale (the events were deleted server-side) and must be
+    // dropped, or it would resurrect them into `history`. The async closure
+    // captures the render-time value, so compare against this ref instead.
+    const purgeVersionRef = useRef(purgeVersion);
 
     useEffect(() => {
         if (!filterId) return;
@@ -42,7 +48,13 @@ export function useFilteredEvents(filterId: string | undefined) {
 
     useEffect(() => {
         if (!filter || !signalRConnectedAt) return;
+        // Guard against a purge that lands while the request is in flight: the
+        // events would already be deleted server-side, so this page must not be
+        // applied. `purgeVersionRef.current` (not the closure) is the source of
+        // truth for the *current* purge state when the response arrives.
+        const startPurge = purgeVersionRef.current;
         getFilterHistory(filter.id, signalRConnectedAt.toISOString(), 50).then((res) => {
+            if (purgeVersionRef.current !== startPurge) return;
             setHistory([...res.events].reverse());
             setNextCursor(res.nextCursor);
             setHasMore(res.hasMore);
@@ -57,6 +69,7 @@ export function useFilteredEvents(filterId: string | undefined) {
     // accumulation effect below anyway (events becomes empty), but clearing it
     // here keeps the bookkeeping unambiguous.
     useEffect(() => {
+        purgeVersionRef.current = purgeVersion;
         if (purgeVersion === 0) return;
         setHistory([]);
         setNextCursor(null);
@@ -69,9 +82,14 @@ export function useFilteredEvents(filterId: string | undefined) {
         // can re-fire in quick succession and each concurrent call would
         // otherwise fetch the same page and duplicate events.
         if (!filter || !nextCursor || loadingOlder) return;
+        const startPurge = purgeVersionRef.current;
         setLoadingOlder(true);
         try {
             const res = await getFilterHistory(filter.id, nextCursor, 50);
+            // Drop the page if a purge happened while it was in flight; the
+            // events were deleted server-side and the cursor/history got reset
+            // by the purge effect above.
+            if (purgeVersionRef.current !== startPurge) return;
             setHistory((prev) => [...[...res.events].reverse(), ...prev]);
             setNextCursor(res.nextCursor);
             setHasMore(res.hasMore);
