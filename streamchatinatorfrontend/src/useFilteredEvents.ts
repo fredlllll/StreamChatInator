@@ -11,6 +11,30 @@ import type { FrontEndEventData, EventFilter } from "./types";
 const FIRST_ITEM_INDEX_OFFSET = 1_000_000;
 
 type Matcher = (eventData: FrontEndEventData) => boolean;
+type SeenOf = (eventData: FrontEndEventData) => boolean;
+
+// One full filter pass over `events`, reading `seen` through `seenOf` (the
+// current ChatContext seen state) so filters that evaluate eventData.seen see
+// fresh values. Used only when a rescan is actually required.
+function filterAll(events: readonly FrontEndEventData[], matcher: Matcher | null, seenOf: SeenOf): FrontEndEventData[] {
+    const kept: FrontEndEventData[] = [];
+    for (const e of events) {
+        if (matcher && matcher({ ...e, seen: seenOf(e) })) kept.push(e);
+    }
+    return kept;
+}
+
+// Appends the matches among the newly arrived `events[startIndex..]` onto
+// `prev`. Returns `prev` unchanged when nothing new matches, so the caller can
+// setState unconditionally and React still bails out of the re-render.
+function filterSince(prev: FrontEndEventData[], events: readonly FrontEndEventData[], startIndex: number, matcher: Matcher | null, seenOf: SeenOf): FrontEndEventData[] {
+    const matched: FrontEndEventData[] = [];
+    for (let i = startIndex; i < events.length; i++) {
+        const e = events[i];
+        if (matcher && matcher({ ...e, seen: seenOf(e) })) matched.push(e);
+    }
+    return matched.length > 0 ? [...prev, ...matched] : prev;
+}
 
 export function useFilteredEvents(filterId: string | undefined) {
     const [filter, setFilter] = useState<EventFilter | null>(null);
@@ -28,12 +52,13 @@ export function useFilteredEvents(filterId: string | undefined) {
     // something changes the outcome for *existing* events (the filter itself,
     // a seen flip, or a purge/reset of the backend backlog).
     const [live, setLive] = useState<FrontEndEventData[]>([]);
-    // Bookkeeping for the incremental append. Kept in a ref because it is only
-    // ever read/written inside the effect (safe), and we don't want its change
-    // to trigger a re-render by itself.
-    const processedLenRef = useRef(0);
-    const matcherRef = useRef<Matcher | null>(null);
-    const seenVersionRef = useRef(0);
+    // Bookkeeping for the incremental append: the inputs the current `live`
+    // list was derived from (how many events were processed, with which matcher
+    // and seenVersion). Kept in one ref because it is only ever read/written
+    // inside the effect (safe) and we don't want its changes to trigger a
+    // re-render by themselves. When any of these no longer match current
+    // inputs, a full rescan is required.
+    const provenanceRef = useRef({ processedLen: 0, matcher: null as Matcher | null, seenVersion: 0 });
     // Mirror of `purgeVersion` for in-flight history requests. A pending fetch
     // began with some `purgeVersion`; if a purge happens before it resolves its
     // response is stale (the events were deleted server-side) and must be
@@ -134,30 +159,18 @@ export function useFilteredEvents(filterId: string | undefined) {
     // catches it), or a purge happens (handled above), so the closure is never
     // stale when the effect runs.
     useEffect(() => {
+        const { processedLen, matcher: usedMatcher, seenVersion: usedSeenVersion } = provenanceRef.current;
         const needFullRescan =
-            matcherRef.current !== matcher ||
-            seenVersionRef.current !== seenVersion ||
-            processedLenRef.current > events.length;
+            usedMatcher !== matcher ||
+            usedSeenVersion !== seenVersion ||
+            processedLen > events.length;
 
         if (needFullRescan) {
-            const kept: FrontEndEventData[] = [];
-            for (const e of events) {
-                if (matcher ? matcher({ ...e, seen: seenOf(e) }) : false) kept.push(e);
-            }
-            setLive(kept);
-            processedLenRef.current = events.length;
-            matcherRef.current = matcher;
-            seenVersionRef.current = seenVersion;
-        } else if (processedLenRef.current < events.length) {
-            const matched: FrontEndEventData[] = [];
-            for (let i = processedLenRef.current; i < events.length; i++) {
-                const e = events[i];
-                if (matcher && matcher({ ...e, seen: seenOf(e) })) matched.push(e);
-            }
-            if (matched.length > 0) {
-                setLive((prev) => [...prev, ...matched]);
-            }
-            processedLenRef.current = events.length;
+            setLive(filterAll(events, matcher, seenOf));
+            provenanceRef.current = { processedLen: events.length, matcher, seenVersion };
+        } else if (processedLen < events.length) {
+            setLive((prev) => filterSince(prev, events, processedLen, matcher, seenOf));
+            provenanceRef.current = { processedLen: events.length, matcher, seenVersion };
         }
         // exhaustive-deps can't model the version-triggered invalidation, and
         // adding `seenOf`/`seenState` would re-run this on every delivery,
