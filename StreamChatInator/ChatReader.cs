@@ -221,16 +221,23 @@ namespace StreamChatInator
 
         async Task Client_OnChatCommandReceived(object? sender, OnChatCommandReceivedArgs e)
         {
-            var channel = e.ChatMessage.Channel;
             var command = e.Command;
+
+            // Only the channel owner (the Twitch account that authorized the app)
+            // may pause/resume tracking; otherwise anyone in chat could stop
+            // recording. The bot only joins its own channel, so IsBroadcaster is
+            // only ever true for the logged-in account.
+            if (!e.ChatMessage.IsBroadcaster) return;
 
             switch (command.Name.ToLower())
             {
                 case "stoptracking":
                     tracking = false;
+                    _logger.LogInformation("tracking stopped by {User}", e.ChatMessage.Username);
                     break;
                 case "starttracking":
                     tracking = true;
+                    _logger.LogInformation("tracking started by {User}", e.ChatMessage.Username);
                     break;
             }
         }
