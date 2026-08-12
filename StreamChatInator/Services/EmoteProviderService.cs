@@ -85,24 +85,15 @@ namespace StreamChatInator.Services
 
         private async Task<List<EmoteDto>> FetchBTTVAsync(string? channelId)
         {
-            try
+            var url = channelId is null
+                ? "https://api.betterttv.net/3/cached/emotes/global"
+                : $"https://api.betterttv.net/3/cached/users/twitch/{channelId}";
+
+            return await FetchProviderAsync(url, channelId, "BTTV", (root, result) =>
             {
-                var client = _httpFactory.CreateClient("emotes");
-                var url = channelId is null
-                    ? "https://api.betterttv.net/3/cached/emotes/global"
-                    : $"https://api.betterttv.net/3/cached/users/twitch/{channelId}";
-
-                using var resp = await client.GetAsync(url);
-                resp.EnsureSuccessStatusCode();
-                await using var stream = await resp.Content.ReadAsStreamAsync();
-                using var doc = await JsonDocument.ParseAsync(stream);
-
-                var result = new List<EmoteDto>();
-                var root = doc.RootElement;
-
                 if (channelId is null)
                 {
-                    foreach (var item in root.EnumerateArray()) AddBTTVEmote(result, item);
+                    foreach (var item in root.EnumerateArray()) AddNameCodeEmote(result, item, "code", "https://cdn.betterttv.net/emote/{0}/1x.webp");
                 }
                 else
                 {
@@ -110,112 +101,61 @@ namespace StreamChatInator.Services
                     {
                         if (root.TryGetProperty(propName, out var list))
                         {
-                            foreach (var item in list.EnumerateArray()) AddBTTVEmote(result, item);
+                            foreach (var item in list.EnumerateArray()) AddNameCodeEmote(result, item, "code", "https://cdn.betterttv.net/emote/{0}/1x.webp");
                         }
                     }
                 }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to fetch BTTV emotes for channel {ChannelId}", channelId);
-                return [];
-            }
-        }
-
-        private static void AddBTTVEmote(List<EmoteDto> result, JsonElement item)
-        {
-            if (item.TryGetProperty("id", out var id) && item.TryGetProperty("code", out var code)
-                && id.ValueKind == JsonValueKind.String && code.ValueKind == JsonValueKind.String
-                && !string.IsNullOrEmpty(id.GetString()) && !string.IsNullOrEmpty(code.GetString()))
-            {
-                result.Add(new EmoteDto(code.GetString()!, $"https://cdn.betterttv.net/emote/{id.GetString()}/1x.webp"));
-            }
+            });
         }
 
         private async Task<List<EmoteDto>> FetchSevenTVAsync(string? channelId)
         {
+            string url = "https://7tv.io/v3/emote-sets/global";
+            if (channelId is not null)
+            {
+                // First resolve the user's emote set id, then fetch that set's
+                // emotes. A missing/unresolvable set just means no channel emotes.
+                var resolved = await ResolveSevenTVSetUrlAsync(channelId);
+                if (resolved is null) return [];
+                url = resolved;
+            }
+
+            return await FetchProviderAsync(url, channelId, "7TV", (root, result) =>
+            {
+                if (root.TryGetProperty("emotes", out var emotes))
+                {
+                    foreach (var item in emotes.EnumerateArray()) AddNameCodeEmote(result, item, "name", "https://cdn.7tv.app/emote/{0}/1x.webp");
+                }
+            });
+        }
+
+        /// <summary>Resolves a channel's 7TV emote set URL. Returns null (no channel emotes) on failure.</summary>
+        private async Task<string?> ResolveSevenTVSetUrlAsync(string channelId)
+        {
             try
             {
                 var client = _httpFactory.CreateClient("emotes");
-                var result = new List<EmoteDto>();
-                var setUrl = channelId is null
-                    ? "https://7tv.io/v3/emote-sets/global"
-                    : await ResolveSevenTVSetUrlAsync(client, channelId);
-
-                if (setUrl is null) return result;
-
-                using var resp = await client.GetAsync(setUrl);
+                using var resp = await client.GetAsync($"https://7tv.io/v3/users/twitch/{channelId}");
                 resp.EnsureSuccessStatusCode();
                 await using var stream = await resp.Content.ReadAsStreamAsync();
                 using var doc = await JsonDocument.ParseAsync(stream);
-
-                if (doc.RootElement.TryGetProperty("emotes", out var emotes))
-                {
-                    foreach (var item in emotes.EnumerateArray()) AddSevenTVEmote(result, item);
-                }
-
-                return result;
+                return ResolveSevenTVSetUrl(doc.RootElement);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to fetch 7TV emotes for channel {ChannelId}", channelId);
-                return [];
-            }
-        }
-
-        private static async Task<string?> ResolveSevenTVSetUrlAsync(HttpClient client, string channelId)
-        {
-            using var resp = await client.GetAsync($"https://7tv.io/v3/users/twitch/{channelId}");
-            resp.EnsureSuccessStatusCode();
-            await using var stream = await resp.Content.ReadAsStreamAsync();
-            using var doc = await JsonDocument.ParseAsync(stream);
-
-            var root = doc.RootElement;
-            if (root.TryGetProperty("emote_set", out var set)
-                && set.TryGetProperty("id", out var setId) && setId.ValueKind == JsonValueKind.String
-                && !string.IsNullOrEmpty(setId.GetString()))
-            {
-                return $"https://7tv.io/v3/emote-sets/{setId.GetString()}";
-            }
-
-            if (root.TryGetProperty("emote_set_id", out var setIdOld)
-                && setIdOld.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(setIdOld.GetString()))
-            {
-                return $"https://7tv.io/v3/emote-sets/{setIdOld.GetString()}";
-            }
-
-            return null;
-        }
-
-        private static void AddSevenTVEmote(List<EmoteDto> result, JsonElement item)
-        {
-            if (item.TryGetProperty("id", out var id) && item.TryGetProperty("name", out var name)
-                && id.ValueKind == JsonValueKind.String && name.ValueKind == JsonValueKind.String
-                && !string.IsNullOrEmpty(id.GetString()) && !string.IsNullOrEmpty(name.GetString()))
-            {
-                result.Add(new EmoteDto(name.GetString()!, $"https://cdn.7tv.app/emote/{id.GetString()}/1x.webp"));
+                _logger.LogWarning(ex, "Failed to resolve 7TV emote set for channel {ChannelId}", channelId);
+                return null;
             }
         }
 
         private async Task<List<EmoteDto>> FetchFFZAsync(string? channelId)
         {
-            try
+            var url = channelId is null
+                ? "https://api.frankerfacez.com/v1/set/3"
+                : $"https://api.frankerfacez.com/v1/room/id/{channelId}";
+
+            return await FetchProviderAsync(url, channelId, "FFZ", (root, result) =>
             {
-                var client = _httpFactory.CreateClient("emotes");
-                var url = channelId is null
-                    ? "https://api.frankerfacez.com/v1/set/3"
-                    : $"https://api.frankerfacez.com/v1/room/id/{channelId}";
-
-                using var resp = await client.GetAsync(url);
-                resp.EnsureSuccessStatusCode();
-                await using var stream = await resp.Content.ReadAsStreamAsync();
-                using var doc = await JsonDocument.ParseAsync(stream);
-
-                var result = new List<EmoteDto>();
-                var root = doc.RootElement;
-
                 if (channelId is null)
                 {
                     if (root.TryGetProperty("set", out var set) && set.TryGetProperty("emoticons", out var emoticons))
@@ -233,14 +173,64 @@ namespace StreamChatInator.Services
                         }
                     }
                 }
+            });
+        }
 
+        /// <summary>
+        /// Shared scaffolding for the three emote providers: create the HTTP
+        /// client, GET <paramref name="url"/>, parse the JSON response, and hand
+        /// the root element to <paramref name="extract"/> to fill
+        /// <paramref name="result"/>. Any failure logs a warning and yields an
+        /// empty list rather than propagating (an emote provider going down
+        /// must not break chat).
+        /// </summary>
+        private async Task<List<EmoteDto>> FetchProviderAsync(string url, string? channelId, string provider, Action<JsonElement, List<EmoteDto>> extract)
+        {
+            try
+            {
+                var client = _httpFactory.CreateClient("emotes");
+                using var resp = await client.GetAsync(url);
+                resp.EnsureSuccessStatusCode();
+                await using var stream = await resp.Content.ReadAsStreamAsync();
+                using var doc = await JsonDocument.ParseAsync(stream);
+                var result = new List<EmoteDto>();
+                extract(doc.RootElement, result);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to fetch FFZ emotes for channel {ChannelId}", channelId);
+                _logger.LogWarning(ex, "Failed to fetch {Provider} emotes for channel {ChannelId}", provider, channelId);
                 return [];
             }
+        }
+
+        /// <summary>Adds an emote whose url is derived from a string "id" property and whose code comes from a named property.</summary>
+        private static void AddNameCodeEmote(List<EmoteDto> result, JsonElement item, string codeProperty, string urlTemplate)
+        {
+            if (item.TryGetProperty("id", out var id) && item.TryGetProperty(codeProperty, out var code)
+                && id.ValueKind == JsonValueKind.String && code.ValueKind == JsonValueKind.String
+                && !string.IsNullOrEmpty(id.GetString()) && !string.IsNullOrEmpty(code.GetString()))
+            {
+                result.Add(new EmoteDto(code.GetString()!, string.Format(urlTemplate, id.GetString())));
+            }
+        }
+
+        private static string? ResolveSevenTVSetUrl(JsonElement root)
+        {
+            if (root.TryGetProperty("emote_set", out var set)
+                && set.TryGetProperty("id", out var setId) && setId.ValueKind == JsonValueKind.String
+                && !string.IsNullOrEmpty(setId.GetString()))
+            {
+                return $"https://7tv.io/v3/emote-sets/{setId.GetString()}";
+            }
+
+            if (root.TryGetProperty("emote_set_id", out var setIdOld)
+                && setIdOld.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(setIdOld.GetString()))
+            {
+                return $"https://7tv.io/v3/emote-sets/{setIdOld.GetString()}";
+            }
+
+            return null;
         }
 
         private static void AddFFZEmote(List<EmoteDto> result, JsonElement item)
