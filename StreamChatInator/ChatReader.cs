@@ -2,6 +2,7 @@
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Hubs;
+using StreamChatInator.Services;
 using System.Text.Json;
 using TwitchLib.Client;
 using TwitchLib.Client.Enums;
@@ -15,6 +16,7 @@ namespace StreamChatInator
         private TwitchClient _client;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly string _userName;
+        private readonly string _joinChannel;
         private readonly ILogger<ChatReader> _logger;
         private readonly IHubContext<ChatHub> _hub;
         private readonly ChatHubData _hubData;
@@ -23,9 +25,15 @@ namespace StreamChatInator
 
         public bool IsTracking => _hubData.Tracking.IsInitialized && _hubData.Tracking.Value;
 
-        public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory)
+        /// <summary>
+        /// <paramref name="joinChannel"/> lets testing point the bot at a channel
+        /// other than the logged-in one; null falls back to the logged-in user's
+        /// own channel.
+        /// </summary>
+        public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory, string? joinChannel = null)
         {
             this._userName = userName;
+            this._joinChannel = string.IsNullOrWhiteSpace(joinChannel) ? userName : joinChannel;
             this._scopeFactory = scopeFactory;
             _logger = loggerFactory.CreateLogger<ChatReader>();
             _hub = hub;
@@ -118,14 +126,13 @@ namespace StreamChatInator
         private async Task _client_OnUserTimedout(object? sender, OnUserTimedoutArgs e)
             => await HandleEventAsync(ChatEventType.UserTimedout, () => ChatEventUserTimedout.FromUserTimedout(e.UserTimeout));
 
-        #region nonEventStuff
-
         private async Task HandleEventAsync<TEvent>(ChatEventType eventType, Func<TEvent> createEvent) where TEvent : Model
         {
             if (!IsTracking) return;
             using var scope = _scopeFactory.CreateScope();
             using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-            await EndEventHandler(db, eventType, createEvent());
+            var recorder = scope.ServiceProvider.GetRequiredService<EventRecorder>();
+            await recorder.RecordAsync(db, eventType, createEvent());
         }
 
         private async Task HandleUserNoticeAsync<TDetail>(ChatEventType eventType, UserNoticeBase notice, Func<string, TDetail> createDetail) where TDetail : ModelWithUserNoticeBase
@@ -133,51 +140,13 @@ namespace StreamChatInator
             if (!IsTracking) return;
             using var scope = _scopeFactory.CreateScope();
             using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            var recorder = scope.ServiceProvider.GetRequiredService<EventRecorder>();
             var cunb = ChatUserNoticeBase.FromUserNoticeBase(notice);
             var detail = createDetail(cunb.Id);
-            await EndEventHandler(db, eventType, detail, cunb);
+            await recorder.RecordAsync(db, eventType, detail, cunb);
         }
 
-        private async Task EndEventHandler<T, U>(DatabaseContext db, ChatEventType chatEventType, T eventData, U eventSubData) where T : Model where U : Model
-        {
-            var chatEvent = new ChatEvent()
-            {
-                Id = Model.GetNewId<ChatEvent>(),
-                ChatEventType = chatEventType,
-                EventId = eventData.Id,
-            };
-            db.Add(eventData);
-            db.Add(eventSubData);
-            db.ChatEvents.Add(chatEvent);
-            await db.SaveChangesAsync();
-
-            await SendEventToFrontend(chatEvent, eventData, eventSubData);
-        }
-
-        private async Task EndEventHandler<T>(DatabaseContext db, ChatEventType chatEventType, T eventData) where T : Model
-        {
-            var chatEvent = new ChatEvent()
-            {
-                Id = Model.GetNewId<ChatEvent>(),
-                ChatEventType = chatEventType,
-                EventId = eventData.Id,
-            };
-            db.Add(eventData);
-            db.ChatEvents.Add(chatEvent);
-            await db.SaveChangesAsync();
-
-            await SendEventToFrontend(chatEvent, eventData);
-        }
-
-        private async Task SendEventToFrontend(ChatEvent chatEvent, Model data)
-        {
-            await _hub.Clients.All.SendAsync("ReceiveEvent", Util.ToFrontendData(chatEvent, data));
-        }
-
-        private async Task SendEventToFrontend(ChatEvent chatEvent, Model data, Model subData)
-        {
-            await _hub.Clients.All.SendAsync("ReceiveEvent", Util.ToFrontendData(chatEvent, data, subData));
-        }
+        #region nonEventStuff
 
         public async Task ConnectAsync()
         {
@@ -187,7 +156,7 @@ namespace StreamChatInator
         async Task Client_OnConnected(object? sender, OnConnectedEventArgs e)
         {
             _logger.LogInformation("twitch client connected as " + e.BotUsername);
-            await _client.JoinChannelAsync(_userName);
+            await _client.JoinChannelAsync(_joinChannel);
         }
 
         private async Task Client_OnUserStateChanged(object? sender, OnUserStateChangedArgs e)

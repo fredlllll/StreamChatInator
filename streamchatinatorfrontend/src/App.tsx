@@ -8,7 +8,7 @@ import TwitchLoginButton from "./components/TwitchLoginButton";
 import LanLogin from "./components/LanLogin";
 import { useChatConnection } from "./ChatContext";
 import { getAuthStatus, logout } from "./api/authApi";
-import { purgeEvents } from "./api/eventsApi";
+import { purgeEvents, generateTestEvents } from "./api/eventsApi";
 import { useTheme } from "./theme";
 import "./App.css";
 
@@ -52,6 +52,15 @@ function App() {
         }
     }
 
+    async function handleTestEvents() {
+        try {
+            const created = await generateTestEvents();
+            window.alert(`Generated ${created} test events (one of each type).`);
+        } catch {
+            window.alert("Failed to generate test events. Please try again.");
+        }
+    }
+
     if (authChecking) {
         return <div className="auth-loading">Loading…</div>;
     }
@@ -85,6 +94,14 @@ function App() {
                         </button>
                         <button type="button" className="btn btn-ghost" onClick={handlePurgeEvents}>
                             Clear all events
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={handleTestEvents}
+                            title="Creates one event of each type as if it arrived from Twitch, so you can inspect the visuals"
+                        >
+                            Test events
                         </button>
                         {authenticationEnabled && (
                             <button type="button" className="btn btn-ghost" onClick={handleLogout}>

@@ -10,12 +10,16 @@ namespace StreamChatInator.Services
         private readonly ILogger<ChatReaderService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly TwitchTokenService _tokenService;
+        private readonly string? _joinChannel;
 
-        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenService tokenService)
+        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenService tokenService, IConfiguration config)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
             _tokenService = tokenService;
+            // Optional override for testing: when `Twitch:JoinChannel` is set,
+            // the bot joins that channel instead of the logged-in user's own.
+            _joinChannel = config["Twitch:JoinChannel"];
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,12 +57,16 @@ namespace StreamChatInator.Services
                     db.Dispose();
 
                     var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-                    var reader = new ChatReader(channelName, oauthToken, loggerFactory, hub, hubData, _scopeFactory);
+                    var reader = new ChatReader(channelName, oauthToken, loggerFactory, hub, hubData, _scopeFactory, _joinChannel);
                     try
                     {
                         await reader.ConnectAsync();
                         hubData.SetConnected(true);
                         _logger.LogInformation("chat reader connected as {User}", channelName);
+                        if (!string.IsNullOrWhiteSpace(_joinChannel))
+                        {
+                            _logger.LogInformation("joining overridden channel {Channel} instead of own channel", _joinChannel);
+                        }
                         ConsoleUi.SetStatus($"Connected as {channelName}");
                         // Run returns when the twitch client drops or the app shuts down.
                         await reader.Run(stoppingToken);

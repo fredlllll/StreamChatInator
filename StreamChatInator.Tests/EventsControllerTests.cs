@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using StreamChatInator.Controllers;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
+using StreamChatInator.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,7 @@ public class EventsControllerTests : IDisposable
     private readonly SqliteConnection _connection;
     private readonly DatabaseContext _db;
     private readonly FakeHubContext _hub;
+    private readonly EventRecorder _recorder;
 
     public EventsControllerTests()
     {
@@ -60,6 +62,7 @@ public class EventsControllerTests : IDisposable
             .Options);
         _db.Database.EnsureCreated();
         _hub = new FakeHubContext();
+        _recorder = new EventRecorder(_hub);
     }
 
     public void Dispose()
@@ -171,7 +174,7 @@ public class EventsControllerTests : IDisposable
         );
         _db.SaveChanges();
 
-        var controller = new EventsController(_db, _hub);
+        var controller = new EventsController(_db, _hub, _recorder);
         var result = await controller.PurgeAll();
 
         var ok = Assert.IsType<OkObjectResult>(result);
@@ -191,10 +194,23 @@ public class EventsControllerTests : IDisposable
     [Fact]
     public async Task PurgeAll_OnEmptyDatabase_Succeeds()
     {
-        var controller = new EventsController(_db, _hub);
+        var controller = new EventsController(_db, _hub, _recorder);
         var result = await controller.PurgeAll();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(0, ok.Value?.GetType().GetProperty("deleted")?.GetValue(ok.Value));
+    }
+
+    [Fact]
+    public async Task GenerateTestData_CreatesOneEventOfEveryType_AndBroadcasts()
+    {
+        var controller = new EventsController(_db, _hub, _recorder);
+        var result = await controller.GenerateTestData();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var expected = Enum.GetValues<ChatEventType>().Count(t => t != ChatEventType.None);
+        Assert.Equal(expected, ok.Value?.GetType().GetProperty("created")?.GetValue(ok.Value));
+        Assert.Equal(expected, _db.ChatEvents.Count());
+        Assert.Equal(expected, _hub.Clients.AllProxy.SendCount);
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using StreamChatInator.Database;
 using StreamChatInator.Hubs;
+using StreamChatInator.Services;
 
 namespace StreamChatInator.Controllers
 {
@@ -12,11 +13,13 @@ namespace StreamChatInator.Controllers
     {
         private readonly DatabaseContext _db;
         private readonly IHubContext<ChatHub> _hub;
+        private readonly EventRecorder _recorder;
 
-        public EventsController(DatabaseContext db, IHubContext<ChatHub> hub)
+        public EventsController(DatabaseContext db, IHubContext<ChatHub> hub, EventRecorder recorder)
         {
             _db = db;
             _hub = hub;
+            _recorder = recorder;
         }
 
         /// <summary>
@@ -56,6 +59,25 @@ namespace StreamChatInator.Controllers
 
             await _hub.Clients.All.SendAsync("EventsPurged");
             return Ok(new { deleted });
+        }
+
+        /// <summary>
+        /// Creates one synthetic event of every chat event type and broadcasts
+        /// them exactly as if they'd arrived from Twitch. Test-only convenience
+        /// for inspecting the visuals of each event type without live traffic.
+        /// Runs regardless of whether tracking is paused so the button always
+        /// produces something to look at.
+        /// </summary>
+        [HttpPost("testdata")]
+        public async Task<IActionResult> GenerateTestData()
+        {
+            var count = 0;
+            foreach (var (type, data, sub) in TestEventFactory.CreateAll())
+            {
+                await _recorder.RecordAsync(_db, type, data, sub);
+                count++;
+            }
+            return Ok(new { created = count });
         }
     }
 }

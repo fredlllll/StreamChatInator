@@ -56,6 +56,7 @@ namespace StreamChatInator
             builder.Services.AddSingleton<BadgeProviderService>();
             builder.Services.AddSingleton<LanAccessService>();
             builder.Services.AddSingleton<IAuthorizationHandler, LanAccessHandler>();
+            builder.Services.AddSingleton<EventRecorder>();
             builder.Services.AddAuthorization(options =>
             {
                 options.DefaultPolicy = new AuthorizationPolicyBuilder()
