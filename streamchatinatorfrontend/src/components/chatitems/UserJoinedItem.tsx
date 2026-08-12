@@ -8,8 +8,9 @@ function UserJoinedItem({ event }: UserJoinedItemProps) {
     const message = event.chatEventData;
 
     return (
-        <div className="chat-message">
-            <span className="text">SYSTEM: User {message.username} joined</span>
+        <div className="chat-message system-message">
+            <span className="event-pill">Joined</span>
+            <span className="text">{message.username} joined the chat</span>
         </div>
     );
 }

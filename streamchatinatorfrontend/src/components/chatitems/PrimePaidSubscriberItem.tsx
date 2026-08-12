@@ -1,22 +1,20 @@
 import type { FrontEndEventData, ChatEventPrimePaidSubscriber } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type PrimePaidSubscriberItemProps = {
     event: FrontEndEventData<ChatEventPrimePaidSubscriber>;
 };
 
 function PrimePaidSubscriberItem({ event }: PrimePaidSubscriberItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
+
+    const chips: string[] = [];
+    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
 
     return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">{JSON.stringify(message)}</span>
-        </div>
+        <UserNoticeItem event={event} pill="Prime Sub" chips={chips}>
+            {data.resubMessage ? <div className="notice-subtext">{data.resubMessage}</div> : null}
+        </UserNoticeItem>
     );
 }
 

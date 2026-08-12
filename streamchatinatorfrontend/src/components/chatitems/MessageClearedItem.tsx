@@ -9,7 +9,8 @@ function MessageClearedItem({ event }: MessageClearedItemProps) {
 
     return (
         <div className="chat-message">
-            <span className="text">{JSON.stringify(message)}</span>
+            <span className="event-pill">Cleared</span>
+            <span className="text cleared-text">{message.message || "Message removed"}</span>
         </div>
     );
 }

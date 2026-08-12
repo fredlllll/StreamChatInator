@@ -9,7 +9,8 @@ function UserBannedItem({ event }: UserBannedItemProps) {
 
     return (
         <div className="chat-message">
-            <span className="text">{JSON.stringify(message)}</span>
+            <span className="event-pill ban-pill">Banned</span>
+            <span className="text ban-text">{message.username} was banned</span>
         </div>
     );
 }

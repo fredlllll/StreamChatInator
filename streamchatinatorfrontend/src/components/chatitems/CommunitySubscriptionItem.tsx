@@ -1,23 +1,19 @@
 import type { FrontEndEventData, ChatEventCommunitySubscription } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type CommunitySubscriptionItemProps = {
     event: FrontEndEventData<ChatEventCommunitySubscription>;
 };
 
 function CommunitySubscriptionItem({ event }: CommunitySubscriptionItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
 
-    return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">JSON.stringify(message)</span>
-        </div>
-    );
+    const chips: string[] = [];
+    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
+    if (data.msgParamMassGiftCount > 0) chips.push(`${data.msgParamMassGiftCount} subs`);
+    if (data.msgParamSenderCount > 0) chips.push(`${data.msgParamSenderCount} total`);
+
+    return <UserNoticeItem event={event} pill="Mass Gift" chips={chips} />;
 }
 
 export default CommunitySubscriptionItem;

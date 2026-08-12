@@ -1,22 +1,21 @@
 import type { FrontEndEventData, ChatEventNewSubscriber } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type NewSubscriberItemProps = {
     event: FrontEndEventData<ChatEventNewSubscriber>;
 };
 
 function NewSubscriberItem({ event }: NewSubscriberItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
+
+    const chips: string[] = [];
+    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
+    if (data.msgParamCumulativeMonths > 0) chips.push(`${data.msgParamCumulativeMonths} mo`);
 
     return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">{JSON.stringify(message)}</span>
-        </div>
+        <UserNoticeItem event={event} pill="New Sub" chips={chips}>
+            {data.resubMessage ? <div className="notice-subtext">{data.resubMessage}</div> : null}
+        </UserNoticeItem>
     );
 }
 

@@ -1,23 +1,19 @@
 import type { FrontEndEventData, ChatEventGiftedSubscription } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type GiftedSubscriptionItemProps = {
     event: FrontEndEventData<ChatEventGiftedSubscription>;
 };
 
 function GiftedSubscriptionItem({ event }: GiftedSubscriptionItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
 
-    return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">{JSON.stringify(message)}</span>
-        </div>
-    );
+    const chips: string[] = [];
+    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
+    if (data.msgParamMultiMonthGiftDuration > 1) chips.push(`${data.msgParamMultiMonthGiftDuration}-mo gift`);
+    if (data.msgParamMonths > 1) chips.push(`${data.msgParamMonths} months`);
+
+    return <UserNoticeItem event={event} pill="Gift Sub" chips={chips} />;
 }
 
 export default GiftedSubscriptionItem;

@@ -1,22 +1,20 @@
 import type { FrontEndEventData, ChatEventRitual } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type RitualItemProps = {
     event: FrontEndEventData<ChatEventRitual>;
 };
 
 function RitualItem({ event }: RitualItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
+
+    const chips: string[] = [];
+    if (data.msgParamRitualName) chips.push(data.msgParamRitualName);
 
     return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">{JSON.stringify(message)}</span>
-        </div>
+        <UserNoticeItem event={event} pill="Ritual" chips={chips}>
+            {data.message ? <div className="notice-subtext">{data.message}</div> : null}
+        </UserNoticeItem>
     );
 }
 

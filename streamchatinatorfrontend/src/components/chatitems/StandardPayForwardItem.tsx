@@ -1,23 +1,22 @@
 import type { FrontEndEventData, ChatEventStandardPayForward } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type StandardPayForwardItemProps = {
     event: FrontEndEventData<ChatEventStandardPayForward>;
 };
 
 function StandardPayForwardItem({ event }: StandardPayForwardItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
 
-    return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">{JSON.stringify(message)}</span>
-        </div>
-    );
+    const chips: string[] = [];
+    if (!data.msgParamPriorGifterAnonymous && data.msgParamPriorGifterDisplayName) {
+        chips.push(`from ${data.msgParamPriorGifterDisplayName}`);
+    }
+    if (data.msgParamRecipientDisplayName) {
+        chips.push(`to ${data.msgParamRecipientDisplayName}`);
+    }
+
+    return <UserNoticeItem event={event} pill="Pay Forward" chips={chips} />;
 }
 
 export default StandardPayForwardItem;

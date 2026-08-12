@@ -1,23 +1,19 @@
 import type { FrontEndEventData, ChatEventContinuedGiftedSubscription } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type ContinuedGiftedSubscriptionItemProps = {
     event: FrontEndEventData<ChatEventContinuedGiftedSubscription>;
 };
 
 function ContinuedGiftedSubscriptionItem({ event }: ContinuedGiftedSubscriptionItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
 
-    return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">JSON.stringify(message)</span>
-        </div>
-    );
+    const chips: string[] = [];
+    if (data.msgParamSenderName) chips.push(`from ${data.msgParamSenderName}`);
+    if (data.msgParamPromoName) chips.push(`promo: ${data.msgParamPromoName}`);
+    if (data.msgParamPromoGiftTotal > 0) chips.push(`${data.msgParamPromoGiftTotal} gifts`);
+
+    return <UserNoticeItem event={event} pill="Gift Upgrade" chips={chips} />;
 }
 
 export default ContinuedGiftedSubscriptionItem;

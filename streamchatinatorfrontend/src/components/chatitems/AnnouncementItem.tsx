@@ -1,23 +1,33 @@
 import type { FrontEndEventData, ChatEventAnnouncement } from "../../types";
-import ChatBadges from "../ChatBadges";
-import EmoteReplacedMessage from "../EmoteReplacedMessage";
+import UserNoticeItem from "./UserNoticeItem";
+
+const ANNOUNCEMENT_COLORS: Record<string, string> = {
+    PRIMARY: "#7c3aed",
+    BLUE: "#1f6feb",
+    GREEN: "#1a7f37",
+    ORANGE: "#d97706",
+    PURPLE: "#8250df",
+};
 
 type AnnouncementItemProps = {
     event: FrontEndEventData<ChatEventAnnouncement>;
 };
 
 function AnnouncementItem({ event }: AnnouncementItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
+
+    const pillColor = ANNOUNCEMENT_COLORS[data.msgParamColor] ?? data.msgParamColor;
+
     return (
-        <div className="chat-message announcement" style={{ "borderColor": message.msgParamColor }}>
-            <span className="badge">Announcement</span>
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <EmoteReplacedMessage emotes={message.emotes} text={message.message} />
-        </div>
+        <UserNoticeItem
+            event={event}
+            className="announcement"
+            pill="Announcement"
+            pillColor={pillColor}
+            showUsername
+            text={data.message}
+            style={{ borderLeftColor: pillColor }}
+        />
     );
 }
 

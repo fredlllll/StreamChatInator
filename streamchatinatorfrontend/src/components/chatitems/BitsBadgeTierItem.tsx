@@ -1,23 +1,14 @@
 import type { FrontEndEventData, ChatEventBitsBadgeTier } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type BitsBadgeTierItemProps = {
     event: FrontEndEventData<ChatEventBitsBadgeTier>;
 };
 
 function BitsBadgeTierItem({ event }: BitsBadgeTierItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
 
-    return (
-        <div className="chat-message">
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">JSON.stringify(message)</span>
-        </div>
-    );
+    return <UserNoticeItem event={event} pill="Bits Badge" chips={[`${data.msgParamThreshold} bits`]} />;
 }
 
 export default BitsBadgeTierItem;

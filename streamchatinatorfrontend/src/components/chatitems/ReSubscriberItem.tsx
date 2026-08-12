@@ -1,24 +1,24 @@
 import type { FrontEndEventData, ChatEventReSubscriber } from "../../types";
-import ChatBadges from "../ChatBadges";
+import UserNoticeItem from "./UserNoticeItem";
 
 type ReSubscriberItemProps = {
     event: FrontEndEventData<ChatEventReSubscriber>;
 };
 
 function ReSubscriberItem({ event }: ReSubscriberItemProps) {
-    const message = event.chatEventData;
+    const data = event.chatEventData;
+
+    const chips: string[] = [];
+    if (data.msgParamSubPlanName) chips.push(data.msgParamSubPlanName);
+    if (data.msgParamCumulativeMonths > 0) chips.push(`${data.msgParamCumulativeMonths} mo`);
+    if (data.msgParamShouldShareStreak && data.msgParamStreakMonths > 0) {
+        chips.push(`${data.msgParamStreakMonths} streak`);
+    }
 
     return (
-        <div className="chat-message system-message">
-            <span className="text">{message.systemMsg}</span>
-            <br/>
-            <ChatBadges event={event} />
-            <span className="username" style={{ color: message.hexColor || "#888" }}>
-                {message.displayName}
-            </span>
-            <span className="colon">: </span>
-            <span className="text">{message.resubMessage}</span>
-        </div>
+        <UserNoticeItem event={event} pill="Resub" chips={chips}>
+            {data.resubMessage ? <div className="notice-subtext">{data.resubMessage}</div> : null}
+        </UserNoticeItem>
     );
 }
 
