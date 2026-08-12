@@ -7,6 +7,7 @@ import DashboardPage from "./pages/DashboardPage";
 import TwitchLoginButton from "./components/TwitchLoginButton";
 import LanLogin from "./components/LanLogin";
 import { getAuthStatus, logout } from "./api/authApi";
+import { purgeEvents } from "./api/eventsApi";
 import { useTheme } from "./theme";
 import "./App.css";
 
@@ -33,6 +34,18 @@ function App() {
         logout().finally(() => window.location.reload());
     }
 
+    async function handlePurgeEvents() {
+        const confirmed = window.confirm(
+            "Clear all chat events?\n\nThis permanently deletes every recorded event for all filters. Filters themselves are kept."
+        );
+        if (!confirmed) return;
+        try {
+            await purgeEvents();
+        } catch {
+            window.alert("Failed to clear events. Please try again.");
+        }
+    }
+
     if (authChecking) {
         return <div className="auth-loading">Loading…</div>;
     }
@@ -56,6 +69,9 @@ function App() {
                     </div>
                     <div className="app-nav-actions">
                         <TwitchLoginButton />
+                        <button type="button" className="btn btn-ghost" onClick={handlePurgeEvents}>
+                            Clear all events
+                        </button>
                         <button type="button" className="btn btn-ghost" onClick={handleLogout}>
                             Lock
                         </button>

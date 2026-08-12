@@ -9,7 +9,7 @@ namespace StreamChatInator.Database
         public DbSet<SettingValue> SettingValues { get; set; }
         public DbSet<ChatEvent> ChatEvents { get; set; }
         public DbSet<ChatUserNoticeBase> ChatUserNoticeBases { get; set; }
-        public DbSet<ChatEventFilter> EventFilters { get; set; }
+        public DbSet<ChatEventFilter> ChatEventFilters { get; set; }
 
 
         public DbSet<ChatEventAnnouncement> ChatEventAnnouncements { get; set; }
@@ -40,7 +40,7 @@ namespace StreamChatInator.Database
             modelBuilder.Entity<ChatEvent>().ToTable(nameof(ChatEvents));
             modelBuilder.Entity<ChatEvent>().HasIndex(e => e.Created);
             modelBuilder.Entity<ChatUserNoticeBase>().ToTable(nameof(ChatUserNoticeBases));
-            modelBuilder.Entity<ChatEventFilter>().ToTable(nameof(EventFilters));
+            modelBuilder.Entity<ChatEventFilter>().ToTable(nameof(ChatEventFilters));
 
             modelBuilder.Entity<ChatEventAnnouncement>().ToTable(nameof(ChatEventAnnouncements));
             modelBuilder.Entity<ChatEventAnonGiftPaidUpgrade>().ToTable(nameof(ChatEventAnonGiftPaidUpgrades));

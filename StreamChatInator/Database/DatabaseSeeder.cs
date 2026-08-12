@@ -7,11 +7,11 @@ namespace StreamChatInator.Database
     {
         public static void Seed(DatabaseContext db)
         {
-            if (db.EventFilters.Any()) return;
+            if (db.ChatEventFilters.Any()) return;
 
             foreach (var f in Defaults)
             {
-                db.EventFilters.Add(new ChatEventFilter
+                db.ChatEventFilters.Add(new ChatEventFilter
                 {
                     Id = Model.GetNewId<ChatEventFilter>(),
                     Name = f.Name,

@@ -17,7 +17,7 @@ export function useFilteredEvents(filterId: string | undefined) {
     const [hasMore, setHasMore] = useState(true);
     const [firstItemIndex, setFirstItemIndex] = useState(FIRST_ITEM_INDEX_OFFSET);
     const [loadingOlder, setLoadingOlder] = useState(false);
-    const { signalRConnectedAt, events, seenState, registerSeen } = useChatConnection();
+    const { signalRConnectedAt, events, seenState, registerSeen, purgeVersion } = useChatConnection();
 
     useEffect(() => {
         if (!filterId) return;
@@ -34,6 +34,17 @@ export function useFilteredEvents(filterId: string | undefined) {
             res.events.forEach((e) => registerSeen(e.eventId, e.seen));
         });
     }, [filter, signalRConnectedAt, registerSeen]);
+
+    // A purge drops the events server-side; the live list is cleared by
+    // ChatContext, but the cached history pages here need to go too so old
+    // events don't linger until the next refresh.
+    useEffect(() => {
+        if (purgeVersion === 0) return;
+        setHistory([]);
+        setNextCursor(null);
+        setHasMore(true);
+        setFirstItemIndex(FIRST_ITEM_INDEX_OFFSET);
+    }, [purgeVersion]);
 
     async function loadOlder() {
         // `loadingOlder` guards against overlapping requests: `startReached`

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
@@ -25,13 +25,13 @@ namespace StreamChatInator.Controllers
         [HttpGet]
         public ActionResult<List<ChatEventFilter>> GetAll()
         {
-            return _db.EventFilters.ToList();
+            return _db.ChatEventFilters.ToList();
         }
 
         [HttpGet("{id}")]
         public ActionResult<ChatEventFilter> GetById(string id)
         {
-            var filter = _db.EventFilters.Find(id);
+            var filter = _db.ChatEventFilters.Find(id);
             if (filter == null) return NotFound();
             return filter;
         }
@@ -47,7 +47,7 @@ namespace StreamChatInator.Controllers
                 CodeJs = request.CodeJs,
             };
 
-            _db.EventFilters.Add(filter);
+            _db.ChatEventFilters.Add(filter);
             _db.SaveChanges();
             return filter;
         }
@@ -55,7 +55,7 @@ namespace StreamChatInator.Controllers
         [HttpPut("{id}")]
         public IActionResult Update(string id, [FromBody] UpsertFilterRequest request)
         {
-            var filter = _db.EventFilters.Find(id);
+            var filter = _db.ChatEventFilters.Find(id);
             if (filter == null) return NotFound();
 
             filter.Name = request.Name;
@@ -70,10 +70,10 @@ namespace StreamChatInator.Controllers
         [HttpDelete("{id}")]
         public IActionResult Delete(string id)
         {
-            var filter = _db.EventFilters.Find(id);
+            var filter = _db.ChatEventFilters.Find(id);
             if (filter == null) return NotFound();
 
-            _db.EventFilters.Remove(filter);
+            _db.ChatEventFilters.Remove(filter);
             _db.SaveChanges();
             return NoContent();
         }
@@ -96,7 +96,7 @@ namespace StreamChatInator.Controllers
         [HttpGet("{id}/messages")]
         public ActionResult<HistoryResponse> GetMessages(string id, [FromQuery] string? before, [FromQuery] int take = 50)
         {
-            var filter = _db.EventFilters.Find(id);
+            var filter = _db.ChatEventFilters.Find(id);
             if (filter == null) return NotFound();
 
             // Clamp the page size so an arbitrary query param can't ask for an

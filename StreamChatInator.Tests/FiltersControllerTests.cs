@@ -41,7 +41,7 @@ public class FiltersControllerTests : IDisposable
             Code = "// compiled",
             CodeJs = codeJs,
         };
-        _db.EventFilters.Add(filter);
+        _db.ChatEventFilters.Add(filter);
         _db.SaveChanges();
         return filter;
     }

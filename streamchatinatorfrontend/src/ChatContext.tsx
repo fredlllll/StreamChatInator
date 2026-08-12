@@ -8,6 +8,9 @@ export interface ChatContextType {
     signalRConnectedAt: Date | null;
     channelId: string | null;
     seenState: Record<string, boolean>;
+    // Bumped whenever the server purges all events, so views can drop their
+    // cached history alongside the live list.
+    purgeVersion: number;
     setEventSeen: (eventId: string, seen: boolean) => void;
     registerSeen: (eventId: string, seen: boolean) => void;
     undoSeen: () => void;
@@ -23,6 +26,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [channelId, setChannelId] = useState<string | null>(null);
     const [seenState, setSeenState] = useState<Record<string, boolean>>({});
     const [canUndoSeen, setCanUndoSeen] = useState(false);
+    const [purgeVersion, setPurgeVersion] = useState(0);
     const connectionRef = useRef<signalR.HubConnection | null>(null);
     // Stack of that user's own seen toggles, newest on top, so Ctrl+Z can
     // revert them one by one. Only setEventSeen records undo entries; seen
@@ -110,6 +114,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             setChannelId(_channelId);
         });
 
+        connection.on("EventsPurged", () => {
+            setEvents([]);
+            setSeenState({});
+            undoStackRef.current = [];
+            setCanUndoSeen(false);
+            setPurgeVersion((v) => v + 1);
+        });
+
         // The history backfill anchor: set when the SignalR transport itself
         // comes up (initial start), not when the Twitch chat connects — those
         // are unrelated states.
@@ -124,7 +136,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, [registerSeen]);
 
     return (
-        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, seenState, setEventSeen, registerSeen, undoSeen, canUndoSeen }}>
+        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, seenState, purgeVersion, setEventSeen, registerSeen, undoSeen, canUndoSeen }}>
             {children}
         </ChatContext.Provider>
     );
