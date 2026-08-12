@@ -9,6 +9,11 @@ export interface ChatContextType {
     channelId: string | null;
     tracking: boolean;
     seenState: Record<string, boolean>;
+    // Bumped only when an existing event's seen value *flips* (a user toggle or
+    // a corrected value from the server). Pure additions of brand-new events do
+    // NOT bump it. Consumers use this to know when a re-filter (rather than an
+    // incremental append) is required because a filter may read eventData.seen.
+    seenVersion: number;
     // Bumped whenever the server purges all events, so views can drop their
     // cached history alongside the live list.
     purgeVersion: number;
@@ -30,7 +35,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [seenState, setSeenState] = useState<Record<string, boolean>>({});
     const [canUndoSeen, setCanUndoSeen] = useState(false);
     const [purgeVersion, setPurgeVersion] = useState(0);
+    const [seenVersion, setSeenVersion] = useState(0);
     const connectionRef = useRef<signalR.HubConnection | null>(null);
+    // Mirror of seenState for registering flips outside the state updater (side
+    // effects in an updater would run twice under StrictMode). New keys (event
+    // arrivals) are recorded but do not bump seenVersion.
+    const seenPriorRef = useRef<Record<string, boolean>>({});
     // Stack of that user's own seen toggles, newest on top, so Ctrl+Z can
     // revert them one by one. Only setEventSeen records undo entries; seen
     // changes from broadcasts/history loads (registerSeen) do not.
@@ -38,6 +48,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     const registerSeen = useCallback((eventId: string, seen: boolean) => {
         setSeenState((prev) => (prev[eventId] === seen ? prev : { ...prev, [eventId]: seen }));
+        const prior = seenPriorRef.current;
+        const hadKey = Object.prototype.hasOwnProperty.call(prior, eventId);
+        if (hadKey && prior[eventId] !== seen) {
+            setSeenVersion((v) => v + 1);
+        }
+        seenPriorRef.current = { ...prior, [eventId]: seen };
     }, []);
 
     const applyEventSeen = useCallback(
@@ -128,9 +144,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         connection.on("EventsPurged", () => {
             setEvents([]);
             setSeenState({});
+            seenPriorRef.current = {};
             undoStackRef.current = [];
             setCanUndoSeen(false);
             setPurgeVersion((v) => v + 1);
+            setSeenVersion((v) => v + 1);
         });
 
         // The history backfill anchor: set when the SignalR transport itself
@@ -147,7 +165,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, [registerSeen]);
 
     return (
-        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, purgeVersion, setEventSeen, registerSeen, undoSeen, canUndoSeen, setTracking }}>
+        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, seenVersion, purgeVersion, setEventSeen, registerSeen, undoSeen, canUndoSeen, setTracking }}>
             {children}
         </ChatContext.Provider>
     );
