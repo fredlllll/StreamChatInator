@@ -72,9 +72,9 @@ namespace StreamChatInator.Controllers
         public async Task<IActionResult> GenerateTestData()
         {
             var count = 0;
-            foreach (var (type, data, sub) in TestEventFactory.CreateAll())
+            foreach (var testEvent in TestEventFactory.CreateAll())
             {
-                await _recorder.RecordAsync(_db, type, data, sub);
+                await _recorder.RecordAsync(_db, testEvent.Type, testEvent.Data, testEvent.SubData);
                 count++;
             }
             return Ok(new { created = count });

@@ -14,57 +14,34 @@ namespace StreamChatInator.Services
     {
         private static readonly DateTime Now = DateTime.UtcNow;
 
-        public static IEnumerable<(ChatEventType Type, Model Data, Model? SubData)> CreateAll()
+        /// <summary>One synthetic event: the type plus its per-type detail row and optional shared user-notice base row.</summary>
+        public record TestEvent(ChatEventType Type, Model Data, Model? SubData);
+
+        public static IEnumerable<TestEvent> CreateAll()
         {
-            yield return (ChatEventType.ChatMessage, CreateChatMessage(), null);
-
-            var announcement = CreateAnnouncement();
-            yield return (ChatEventType.Announcement, announcement.Item1, announcement.Item2);
-
-            var anonUpgrade = CreateAnonGiftPaidUpgrade();
-            yield return (ChatEventType.AnonGiftPaidUpgrade, anonUpgrade.Item1, anonUpgrade.Item2);
-
-            var bitsBadge = CreateBitsBadgeTier();
-            yield return (ChatEventType.BitsBadgeTier, bitsBadge.Item1, bitsBadge.Item2);
-
-            var communityPayForward = CreateCommunityPayForward();
-            yield return (ChatEventType.CommunityPayForward, communityPayForward.Item1, communityPayForward.Item2);
-
-            var communitySub = CreateCommunitySubscription();
-            yield return (ChatEventType.CommunitySubscription, communitySub.Item1, communitySub.Item2);
-
-            var continuedGift = CreateContinuedGiftedSubscription();
-            yield return (ChatEventType.ContinuedGiftedSubscription, continuedGift.Item1, continuedGift.Item2);
-
-            var gift = CreateGiftedSubscription();
-            yield return (ChatEventType.GiftedSubscription, gift.Item1, gift.Item2);
-
-            yield return (ChatEventType.MessageCleared, CreateMessageCleared(), null);
-
-            var newSub = CreateNewSubscriber();
-            yield return (ChatEventType.NewSubscriber, newSub.Item1, newSub.Item2);
-
-            var primeSub = CreatePrimePaidSubscriber();
-            yield return (ChatEventType.PrimePaidSubscriber, primeSub.Item1, primeSub.Item2);
-
-            var resub = CreateReSubscriber();
-            yield return (ChatEventType.ReSubscriber, resub.Item1, resub.Item2);
-
-            var ritual = CreateRitual();
-            yield return (ChatEventType.Ritual, ritual.Item1, ritual.Item2);
-
-            var payForward = CreateStandardPayForward();
-            yield return (ChatEventType.StandardPayForward, payForward.Item1, payForward.Item2);
-
-            yield return (ChatEventType.UserBanned, CreateUserBanned(), null);
-            yield return (ChatEventType.UserJoined, CreateUserJoined(), null);
-            yield return (ChatEventType.UserLeft, CreateUserLeft(), null);
-            yield return (ChatEventType.UserTimedout, CreateUserTimedout(), null);
+            yield return CreateChatMessage();
+            yield return CreateAnnouncement();
+            yield return CreateAnonGiftPaidUpgrade();
+            yield return CreateBitsBadgeTier();
+            yield return CreateCommunityPayForward();
+            yield return CreateCommunitySubscription();
+            yield return CreateContinuedGiftedSubscription();
+            yield return CreateGiftedSubscription();
+            yield return CreateMessageCleared();
+            yield return CreateNewSubscriber();
+            yield return CreatePrimePaidSubscriber();
+            yield return CreateReSubscriber();
+            yield return CreateRitual();
+            yield return CreateStandardPayForward();
+            yield return CreateUserBanned();
+            yield return CreateUserJoined();
+            yield return CreateUserLeft();
+            yield return CreateUserTimedout();
         }
 
-        static ChatEventChatMessage CreateChatMessage()
+        static TestEvent CreateChatMessage()
         {
-            return new ChatEventChatMessage()
+            return new TestEvent(ChatEventType.ChatMessage, new ChatEventChatMessage()
             {
                 Id = Model.GetNewId<ChatEventChatMessage>(),
                 Bits = 100,
@@ -89,51 +66,48 @@ namespace StreamChatInator.Services
                 Badges = Util.SerializeBadges(new List<KeyValuePair<string, string>> { new("moderator", "1"), new("subscriber", "6") }),
                 UserFlags = UserDetails.Moderator | UserDetails.Subscriber | UserDetails.Vip,
                 UserType = UserType.Moderator,
-            };
+            }, null);
         }
 
-        static (ChatEventAnnouncement, ChatUserNoticeBase) CreateAnnouncement()
+        static TestEvent CreateAnnouncement()
         {
             var baseRow = MakeNoticeBase("announcer", "Announcer", "announcement", "announcer made an announcement");
-            var detail = new ChatEventAnnouncement()
+            return new TestEvent(ChatEventType.Announcement, new ChatEventAnnouncement()
             {
                 Id = Model.GetNewId<ChatEventAnnouncement>(),
                 MsgParamColor = "PRIMARY",
                 Message = "Check out the new schedule - streams every Tuesday and Friday!",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventAnonGiftPaidUpgrade, ChatUserNoticeBase) CreateAnonGiftPaidUpgrade()
+        static TestEvent CreateAnonGiftPaidUpgrade()
         {
             var baseRow = MakeNoticeBase("anonupgrader", "Anonymous", "anongiftpaidupgrade", "an anonymous user upgraded their gifted sub");
-            var detail = new ChatEventAnonGiftPaidUpgrade()
+            return new TestEvent(ChatEventType.AnonGiftPaidUpgrade, new ChatEventAnonGiftPaidUpgrade()
             {
                 Id = Model.GetNewId<ChatEventAnonGiftPaidUpgrade>(),
                 MsgParamPromoGiftTotal = 5,
                 MsgParamPromoName = "Subtember 2026",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventBitsBadgeTier, ChatUserNoticeBase) CreateBitsBadgeTier()
+        static TestEvent CreateBitsBadgeTier()
         {
             var baseRow = MakeNoticeBase("bitbadder", "BitBadder", "bitsbadgetier", "BitBadder earned the 1000-bit badge");
-            var detail = new ChatEventBitsBadgeTier()
+            return new TestEvent(ChatEventType.BitsBadgeTier, new ChatEventBitsBadgeTier()
             {
                 Id = Model.GetNewId<ChatEventBitsBadgeTier>(),
                 MsgParamThreshold = 1000,
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventCommunityPayForward, ChatUserNoticeBase) CreateCommunityPayForward()
+        static TestEvent CreateCommunityPayForward()
         {
             var baseRow = MakeNoticeBase("payforwarder", "PayForwarder", "communitypayforward", "PayForwarder is paying forward a gift from GifterOne to the community");
-            var detail = new ChatEventCommunityPayForward()
+            return new TestEvent(ChatEventType.CommunityPayForward, new ChatEventCommunityPayForward()
             {
                 Id = Model.GetNewId<ChatEventCommunityPayForward>(),
                 MsgParamPriorGifterAnonymous = false,
@@ -141,14 +115,13 @@ namespace StreamChatInator.Services
                 MsgParamPriorGifterId = "2001",
                 MsgParamPriorGifterUserName = "gifterone",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventCommunitySubscription, ChatUserNoticeBase) CreateCommunitySubscription()
+        static TestEvent CreateCommunitySubscription()
         {
             var baseRow = MakeNoticeBase("massgifter", "MassGifter", "subgift", "MassGifter gifted 10 subs to the community");
-            var detail = new ChatEventCommunitySubscription()
+            return new TestEvent(ChatEventType.CommunitySubscription, new ChatEventCommunitySubscription()
             {
                 Id = Model.GetNewId<ChatEventCommunitySubscription>(),
                 IsAnonymous = false,
@@ -158,14 +131,13 @@ namespace StreamChatInator.Services
                 MsgParamSenderCount = 25,
                 MsgParamSubPlan = SubscriptionPlan.Tier1,
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventContinuedGiftedSubscription, ChatUserNoticeBase) CreateContinuedGiftedSubscription()
+        static TestEvent CreateContinuedGiftedSubscription()
         {
             var baseRow = MakeNoticeBase("continued", "ContinuedGifter", "subgift", "ContinuedGifter's gifted sub to RecipientOne was renewed");
-            var detail = new ChatEventContinuedGiftedSubscription()
+            return new TestEvent(ChatEventType.ContinuedGiftedSubscription, new ChatEventContinuedGiftedSubscription()
             {
                 Id = Model.GetNewId<ChatEventContinuedGiftedSubscription>(),
                 MsgParamPromoGiftTotal = 3,
@@ -173,14 +145,13 @@ namespace StreamChatInator.Services
                 MsgParamSenderUsername = "gifterone",
                 MsgParamSenderName = "GifterOne",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventGiftedSubscription, ChatUserNoticeBase) CreateGiftedSubscription()
+        static TestEvent CreateGiftedSubscription()
         {
             var baseRow = MakeNoticeBase("recipientone", "RecipientOne", "subgift", "GifterOne gifted a Tier 1 sub to RecipientOne!");
-            var detail = new ChatEventGiftedSubscription()
+            return new TestEvent(ChatEventType.GiftedSubscription, new ChatEventGiftedSubscription()
             {
                 Id = Model.GetNewId<ChatEventGiftedSubscription>(),
                 IsAnonymous = false,
@@ -194,26 +165,25 @@ namespace StreamChatInator.Services
                 MsgParamSubPlanName = "Tier 1",
                 MsgParamMultiMonthGiftDuration = 3,
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static ChatEventMessageCleared CreateMessageCleared()
+        static TestEvent CreateMessageCleared()
         {
-            return new ChatEventMessageCleared()
+            return new TestEvent(ChatEventType.MessageCleared, new ChatEventMessageCleared()
             {
                 Id = Model.GetNewId<ChatEventMessageCleared>(),
                 Channel = "testchannel",
                 Message = "This message was deleted by a moderator",
                 TargetTwitchMessageId = "test-msg-2",
                 TmiSent = Now,
-            };
+            }, null);
         }
 
-        static (ChatEventNewSubscriber, ChatUserNoticeBase) CreateNewSubscriber()
+        static TestEvent CreateNewSubscriber()
         {
             var baseRow = MakeNoticeBase("brandnewfan", "BrandNewFan", "sub", "BrandNewFan subscribed at Tier 1!");
-            var detail = new ChatEventNewSubscriber()
+            return new TestEvent(ChatEventType.NewSubscriber, new ChatEventNewSubscriber()
             {
                 Id = Model.GetNewId<ChatEventNewSubscriber>(),
                 MsgParamCumulativeMonths = 1,
@@ -223,27 +193,25 @@ namespace StreamChatInator.Services
                 MsgParamSubPlanName = "Tier 1",
                 ResubMessage = "",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventPrimePaidSubscriber, ChatUserNoticeBase) CreatePrimePaidSubscriber()
+        static TestEvent CreatePrimePaidSubscriber()
         {
             var baseRow = MakeNoticeBase("primeuser", "PrimeUser", "sub", "PrimeUser subscribed with Amazon Prime!");
-            var detail = new ChatEventPrimePaidSubscriber()
+            return new TestEvent(ChatEventType.PrimePaidSubscriber, new ChatEventPrimePaidSubscriber()
             {
                 Id = Model.GetNewId<ChatEventPrimePaidSubscriber>(),
                 MsgParamSubPlan = SubscriptionPlan.Prime,
                 ResubMessage = "Using my free Prime sub, best use of it all month",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventReSubscriber, ChatUserNoticeBase) CreateReSubscriber()
+        static TestEvent CreateReSubscriber()
         {
             var baseRow = MakeNoticeBase("loyalfan", "LoyalFan", "resub", "LoyalFan resubscribed for 12 months at Tier 3!");
-            var detail = new ChatEventReSubscriber()
+            return new TestEvent(ChatEventType.ReSubscriber, new ChatEventReSubscriber()
             {
                 Id = Model.GetNewId<ChatEventReSubscriber>(),
                 MsgParamCumulativeMonths = 12,
@@ -253,27 +221,25 @@ namespace StreamChatInator.Services
                 MsgParamSubPlanName = "Tier 3",
                 ResubMessage = "Love this channel, best community on Twitch!",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventRitual, ChatUserNoticeBase) CreateRitual()
+        static TestEvent CreateRitual()
         {
             var baseRow = MakeNoticeBase("newviewer", "NewViewer", "ritual", "NewViewer is new here, say hi!");
-            var detail = new ChatEventRitual()
+            return new TestEvent(ChatEventType.Ritual, new ChatEventRitual()
             {
                 Id = Model.GetNewId<ChatEventRitual>(),
                 MsgParamRitualName = "new_chatter",
                 Message = "is new here, say hi!",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static (ChatEventStandardPayForward, ChatUserNoticeBase) CreateStandardPayForward()
+        static TestEvent CreateStandardPayForward()
         {
             var baseRow = MakeNoticeBase("payforwarder", "PayForwarder", "payforward", "PayForwarder is paying forward the gift they got from GifterOne to RecipientTwo");
-            var detail = new ChatEventStandardPayForward()
+            return new TestEvent(ChatEventType.StandardPayForward, new ChatEventStandardPayForward()
             {
                 Id = Model.GetNewId<ChatEventStandardPayForward>(),
                 MsgParamPriorGifterAnonymous = false,
@@ -284,52 +250,51 @@ namespace StreamChatInator.Services
                 MsgParamRecipientId = "3002",
                 MsgParamRecipientUserName = "recipienttwo",
                 ChatUserNoticeBaseId = baseRow.Id,
-            };
-            return (detail, baseRow);
+            }, baseRow);
         }
 
-        static ChatEventUserBanned CreateUserBanned()
+        static TestEvent CreateUserBanned()
         {
-            return new ChatEventUserBanned()
+            return new TestEvent(ChatEventType.UserBanned, new ChatEventUserBanned()
             {
                 Id = Model.GetNewId<ChatEventUserBanned>(),
                 Channel = "testchannel",
                 Username = "banneduser",
                 RoomId = "12345678",
                 TargetUserId = "4001",
-            };
+            }, null);
         }
 
-        static ChatEventUserJoined CreateUserJoined()
+        static TestEvent CreateUserJoined()
         {
-            return new ChatEventUserJoined()
+            return new TestEvent(ChatEventType.UserJoined, new ChatEventUserJoined()
             {
                 Id = Model.GetNewId<ChatEventUserJoined>(),
                 Channel = "testchannel",
                 Username = "viewer_one",
-            };
+            }, null);
         }
 
-        static ChatEventUserLeft CreateUserLeft()
+        static TestEvent CreateUserLeft()
         {
-            return new ChatEventUserLeft()
+            return new TestEvent(ChatEventType.UserLeft, new ChatEventUserLeft()
             {
                 Id = Model.GetNewId<ChatEventUserLeft>(),
                 Channel = "testchannel",
                 Username = "viewer_one",
-            };
+            }, null);
         }
 
-        static ChatEventUserTimedout CreateUserTimedout()
+        static TestEvent CreateUserTimedout()
         {
-            return new ChatEventUserTimedout()
+            return new TestEvent(ChatEventType.UserTimedout, new ChatEventUserTimedout()
             {
                 Id = Model.GetNewId<ChatEventUserTimedout>(),
                 Channel = "testchannel",
                 TimeoutDuration = TimeSpan.FromMinutes(10),
                 Username = "troublemaker",
                 TargetUserId = "4002",
-            };
+            }, null);
         }
 
         /// <summary>
