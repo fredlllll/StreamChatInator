@@ -91,7 +91,7 @@ function EmoteReplacedMessage({ emotes, text }: EmoteReplacedMessageProps) {
         elements.push(
             <img
                 key={`twitch-${emote.id}-${emote.startIndex}`}
-                src={`https://static-cdn.jtvnw.net/emoticons/v1/${emote.id}/1.0`}
+                src={`https://static-cdn.jtvnw.net/emoticons/v2/${emote.id}/default/light/2.0`}
                 alt={emote.text}
                 title={emote.text} /* Displays native browser tooltip on hover */
                 className="inline-emote"
