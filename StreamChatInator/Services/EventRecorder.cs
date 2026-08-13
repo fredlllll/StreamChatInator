@@ -14,10 +14,12 @@ namespace StreamChatInator.Services
     public class EventRecorder
     {
         private readonly IHubContext<ChatHub> _hub;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public EventRecorder(IHubContext<ChatHub> hub)
+        public EventRecorder(IHubContext<ChatHub> hub, IServiceScopeFactory scopeFactory)
         {
             _hub = hub;
+            _scopeFactory = scopeFactory;
         }
 
         /// <summary>
@@ -25,8 +27,10 @@ namespace StreamChatInator.Services
         /// detail row; <paramref name="subData"/> is an optional shared row (the
         /// ChatUserNoticeBase for user-notice events) merged into the payload.
         /// </summary>
-        public async Task RecordAsync(DatabaseContext db, ChatEventType chatEventType, Model eventData, Model? subData = null)
+        public async Task RecordAsync(ChatEventType chatEventType, Model eventData, Model? subData = null)
         {
+            var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             var chatEvent = new ChatEvent()
             {
                 Id = Model.GetNewId<ChatEvent>(),

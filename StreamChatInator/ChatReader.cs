@@ -1,11 +1,8 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Hubs;
 using StreamChatInator.Services;
-using System.Text.Json;
 using TwitchLib.Client;
-using TwitchLib.Client.Enums;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 
@@ -21,6 +18,7 @@ namespace StreamChatInator
         private readonly IHubContext<ChatHub> _hub;
         private readonly ChatHubData _hubData;
         private readonly TaskCompletionSource _disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly EventRecorder _eventRecorder;
         private string? _currentChannelId;
 
         public bool IsTracking => _hubData.Tracking.IsInitialized && _hubData.Tracking.Value;
@@ -30,7 +28,7 @@ namespace StreamChatInator
         /// other than the logged-in one; null falls back to the logged-in user's
         /// own channel.
         /// </summary>
-        public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory, string? joinChannel = null)
+        public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory, string? joinChannel = null, EventRecorder eventRecorder = null)
         {
             this._userName = userName;
             this._joinChannel = string.IsNullOrWhiteSpace(joinChannel) ? userName : joinChannel;
@@ -38,6 +36,7 @@ namespace StreamChatInator
             _logger = loggerFactory.CreateLogger<ChatReader>();
             _hub = hub;
             _hubData = hubData;
+            _eventRecorder = eventRecorder;
 
             var credentials = new ConnectionCredentials(userName, oauthToken);
             _client = new TwitchClient(loggerFactory: loggerFactory);
@@ -129,21 +128,15 @@ namespace StreamChatInator
         private async Task HandleEventAsync<TEvent>(ChatEventType eventType, Func<TEvent> createEvent) where TEvent : Model
         {
             if (!IsTracking) return;
-            using var scope = _scopeFactory.CreateScope();
-            using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-            var recorder = scope.ServiceProvider.GetRequiredService<EventRecorder>();
-            await recorder.RecordAsync(db, eventType, createEvent());
+            await _eventRecorder.RecordAsync(eventType, createEvent());
         }
 
         private async Task HandleUserNoticeAsync<TDetail>(ChatEventType eventType, UserNoticeBase notice, Func<string, TDetail> createDetail) where TDetail : ModelWithUserNoticeBase
         {
             if (!IsTracking) return;
-            using var scope = _scopeFactory.CreateScope();
-            using var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-            var recorder = scope.ServiceProvider.GetRequiredService<EventRecorder>();
             var cunb = ChatUserNoticeBase.FromUserNoticeBase(notice);
             var detail = createDetail(cunb.Id);
-            await recorder.RecordAsync(db, eventType, detail, cunb);
+            await _eventRecorder.RecordAsync(eventType, detail, cunb);
         }
 
         #region nonEventStuff
