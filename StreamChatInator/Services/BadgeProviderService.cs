@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
-using StreamChatInator.Apis;
 
 namespace StreamChatInator.Services
 {
@@ -15,6 +14,7 @@ namespace StreamChatInator.Services
     public class BadgeProviderService
     {
         private readonly IHttpClientFactory _httpFactory;
+        private readonly TwitchApiService _twitchApiService;
         private readonly ILogger<BadgeProviderService> _logger;
         private readonly IMemoryCache _cache;
         private readonly TwitchTokenService _tokenService;
@@ -25,12 +25,14 @@ namespace StreamChatInator.Services
 
         public BadgeProviderService(
             IHttpClientFactory httpFactory,
+            TwitchApiService twitchApiService,
             IMemoryCache cache,
             TwitchTokenService tokenService,
             IConfiguration config,
             ILogger<BadgeProviderService> logger)
         {
             _httpFactory = httpFactory;
+            _twitchApiService = twitchApiService;
             _cache = cache;
             _tokenService = tokenService;
             _config = config;
@@ -82,9 +84,7 @@ namespace StreamChatInator.Services
                     return merged;
                 }
 
-                var http = _httpFactory.CreateClient("twitch");
-
-                var globalBadges = await Twitch.GetGlobalBadgesAsync(http, ClientId, token);
+                var globalBadges = await _twitchApiService.GetGlobalBadgesAsync(ClientId, token);
                 if (globalBadges == null)
                 {
                     // The stored token may have been revoked outside its expiry
@@ -96,7 +96,7 @@ namespace StreamChatInator.Services
                     }
                     tokenRefreshed = true;
                     token = refreshed;
-                    globalBadges = await Twitch.GetGlobalBadgesAsync(http, ClientId, token);
+                    globalBadges = await _twitchApiService.GetGlobalBadgesAsync(ClientId, token);
                     if (globalBadges == null)
                     {
                         return merged;
@@ -106,7 +106,7 @@ namespace StreamChatInator.Services
 
                 if (!string.IsNullOrEmpty(channelId))
                 {
-                    var channelBadges = await Twitch.GetChannelBadgesAsync(http, ClientId, token, channelId);
+                    var channelBadges = await _twitchApiService.GetChannelBadgesAsync(ClientId, token, channelId);
                     if (channelBadges == null && !tokenRefreshed)
                     {
                         // The global call returned before noticing a stale token
@@ -117,7 +117,7 @@ namespace StreamChatInator.Services
                         {
                             tokenRefreshed = true;
                             token = refreshed;
-                            channelBadges = await Twitch.GetChannelBadgesAsync(http, ClientId, token, channelId);
+                            channelBadges = await _twitchApiService.GetChannelBadgesAsync(ClientId, token, channelId);
                         }
                     }
                     if (channelBadges != null)
@@ -159,7 +159,7 @@ namespace StreamChatInator.Services
 
         private static void Merge(
             Dictionary<string, Dictionary<string, BadgeDto>> merged,
-            IEnumerable<Twitch.TwitchBadgeSet> badgeSets,
+            IEnumerable<TwitchApiService.TwitchBadgeSet> badgeSets,
             bool overrideExisting = false)
         {
             foreach (var badgeSet in badgeSets)

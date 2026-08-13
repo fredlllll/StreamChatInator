@@ -1,4 +1,3 @@
-using StreamChatInator.Apis;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using System.Globalization;
@@ -22,10 +21,12 @@ namespace StreamChatInator.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _config;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly TwitchApiService _twitchApiService;
 
-        public TwitchTokenService(IHttpClientFactory httpClientFactory, IConfiguration config, IServiceScopeFactory scopeFactory)
+        public TwitchTokenService(IHttpClientFactory httpClientFactory, TwitchApiService twitchApiService, IConfiguration config, IServiceScopeFactory scopeFactory)
         {
             _httpClientFactory = httpClientFactory;
+            _twitchApiService = twitchApiService;
             _config = config;
             _scopeFactory = scopeFactory;
         }
@@ -134,8 +135,7 @@ namespace StreamChatInator.Services
                 return null;
             }
 
-            var httpClient = _httpClientFactory.CreateClient("twitch");
-            var refreshed = await Twitch.RefreshAccessTokenAsync(httpClient, ClientId, refreshToken);
+            var refreshed = await _twitchApiService.RefreshAccessTokenAsync(ClientId, refreshToken);
             if (refreshed == null || string.IsNullOrEmpty(refreshed.AccessToken))
             {
                 return null;

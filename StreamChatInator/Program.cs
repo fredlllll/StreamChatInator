@@ -50,6 +50,7 @@ namespace StreamChatInator
                 options.Filters.Add(new AuthorizeFilter());
             });
             builder.Services.AddHostedService<ChatReaderService>();
+            builder.Services.AddSingleton<TwitchApiService>();
             builder.Services.AddSingleton<ChatHubData>();
             builder.Services.AddSingleton<TwitchTokenService>();
             builder.Services.AddSingleton<EmoteProviderService>();

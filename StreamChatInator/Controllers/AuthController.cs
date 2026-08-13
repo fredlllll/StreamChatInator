@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StreamChatInator.Apis;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
@@ -29,12 +28,14 @@ namespace StreamChatInator.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly TwitchTokenService _tokenService;
         private readonly LanAccessService _lanAccess;
+        private readonly TwitchApiService _twitchApiService;
 
-        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchTokenService tokenService, LanAccessService lanAccess)
+        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchApiService twitchApiService, TwitchTokenService tokenService, LanAccessService lanAccess)
         {
             _config = config;
             _db = db;
             _httpClientFactory = httpClientFactory;
+            _twitchApiService = twitchApiService;
             _tokenService = tokenService;
             _lanAccess = lanAccess;
         }
@@ -47,8 +48,7 @@ namespace StreamChatInator.Controllers
         [HttpGet("login")]
         public async Task<IActionResult> Login()
         {
-            var httpClient = _httpClientFactory.CreateClient("twitch");
-            var device = await Twitch.RequestDeviceCodeAsync(httpClient, ClientId, Scopes);
+            var device = await _twitchApiService.RequestDeviceCodeAsync(ClientId, Scopes);
             if (device == null || string.IsNullOrEmpty(device.DeviceCode))
             {
                 return StatusCode(502, new { error = "twitch_unavailable" });
@@ -89,13 +89,12 @@ namespace StreamChatInator.Controllers
                 return Ok(new { status = "expired" });
             }
 
-            var httpClient = _httpClientFactory.CreateClient("twitch");
-            var result = await Twitch.PollDeviceCodeAsync(httpClient, ClientId, attempt.DeviceCode, Scopes);
-            if (result.Status == Twitch.DevicePollStatus.Pending)
+            var result = await _twitchApiService.PollDeviceCodeAsync(ClientId, attempt.DeviceCode, Scopes);
+            if (result.Status == TwitchApiService.DevicePollStatus.Pending)
             {
                 return Ok(new { status = "pending" });
             }
-            if (result.Status == Twitch.DevicePollStatus.Failed)
+            if (result.Status == TwitchApiService.DevicePollStatus.Failed)
             {
                 _deviceAttempts.TryRemove(id, out _);
                 return Ok(new { status = "failed" });
@@ -104,7 +103,7 @@ namespace StreamChatInator.Controllers
             _deviceAttempts.TryRemove(id, out _);
 
             var token = result.Token!;
-            var validation = await Twitch.ValidateTokenAsync(httpClient, token.AccessToken);
+            var validation = await _twitchApiService.ValidateTokenAsync(token.AccessToken);
             if (validation == null || !string.Equals(validation.ClientId, ClientId, StringComparison.Ordinal))
             {
                 return Ok(new { status = "failed" });
