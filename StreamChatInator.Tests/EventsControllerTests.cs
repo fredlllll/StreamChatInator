@@ -6,6 +6,7 @@ using StreamChatInator.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace StreamChatInator.Tests;
 
@@ -49,6 +50,7 @@ internal class FakeHubContext : IHubContext<StreamChatInator.Hubs.ChatHub>
 public class EventsControllerTests : IDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly IServiceScope _scope;
     private readonly DatabaseContext _db;
     private readonly FakeHubContext _hub;
     private readonly EventRecorder _recorder;
@@ -57,17 +59,23 @@ public class EventsControllerTests : IDisposable
     {
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
-        _db = new DatabaseContext(new DbContextOptionsBuilder<DatabaseContext>()
-            .UseSqlite(_connection)
-            .Options);
+
+        // Single DI container owns the DatabaseContext; _db and the recorder's
+        // per-event scopes all resolve from it against the same connection.
+        var services = new ServiceCollection();
+        services.AddDbContext<DatabaseContext>(options => options.UseSqlite(_connection));
+        var provider = services.BuildServiceProvider();
+        _scope = provider.CreateScope();
+        _db = _scope.ServiceProvider.GetRequiredService<DatabaseContext>();
         _db.Database.EnsureCreated();
+
         _hub = new FakeHubContext();
-        _recorder = new EventRecorder(_hub);
+        _recorder = new EventRecorder(_hub, provider.GetRequiredService<IServiceScopeFactory>());
     }
 
     public void Dispose()
     {
-        _db.Dispose();
+        _scope.Dispose();
         _connection.Dispose();
     }
 
