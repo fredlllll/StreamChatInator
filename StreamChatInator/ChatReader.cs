@@ -12,6 +12,7 @@ namespace StreamChatInator
     {
         private TwitchClient _client;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IServiceScope _scope;
         private readonly string _userName;
         private readonly string _joinChannel;
         private readonly ILogger<ChatReader> _logger;
@@ -28,15 +29,18 @@ namespace StreamChatInator
         /// other than the logged-in one; null falls back to the logged-in user's
         /// own channel.
         /// </summary>
-        public ChatReader(string userName, string oauthToken, ILoggerFactory loggerFactory, IHubContext<ChatHub> hub, ChatHubData hubData, IServiceScopeFactory scopeFactory, string? joinChannel = null, EventRecorder eventRecorder = null)
+        public ChatReader(IServiceScopeFactory scopeFactory, string userName, string oauthToken, string? joinChannel = null)
         {
-            this._userName = userName;
-            this._joinChannel = string.IsNullOrWhiteSpace(joinChannel) ? userName : joinChannel;
-            this._scopeFactory = scopeFactory;
+            _scopeFactory = scopeFactory;
+            _scope = _scopeFactory.CreateScope();
+
+            _userName = userName;
+            _joinChannel = string.IsNullOrWhiteSpace(joinChannel) ? userName : joinChannel;
+            var loggerFactory = _scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
             _logger = loggerFactory.CreateLogger<ChatReader>();
-            _hub = hub;
-            _hubData = hubData;
-            _eventRecorder = eventRecorder;
+            _hub = _scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
+            _hubData = _scope.ServiceProvider.GetRequiredService<ChatHubData>();
+            _eventRecorder = _scope.ServiceProvider.GetRequiredService<EventRecorder>();
 
             var credentials = new ConnectionCredentials(userName, oauthToken);
             _client = new TwitchClient(loggerFactory: loggerFactory);

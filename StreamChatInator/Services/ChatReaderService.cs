@@ -2,6 +2,7 @@
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Hubs;
+using StreamChatInator.Services.Twitch;
 
 namespace StreamChatInator.Services
 {
@@ -29,7 +30,6 @@ namespace StreamChatInator.Services
             while (!stoppingToken.IsCancellationRequested)
             {
                 using var scope = _scopeFactory.CreateScope();
-                var hub = scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
                 var hubData = scope.ServiceProvider.GetRequiredService<ChatHubData>();
                 try
                 {
@@ -56,8 +56,7 @@ namespace StreamChatInator.Services
 
                     db.Dispose();
 
-                    var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-                    var reader = new ChatReader(channelName, oauthToken, loggerFactory, hub, hubData, _scopeFactory, _joinChannel);
+                    var reader = new ChatReader(_scopeFactory, channelName, oauthToken, _joinChannel);
                     try
                     {
                         await reader.ConnectAsync();
