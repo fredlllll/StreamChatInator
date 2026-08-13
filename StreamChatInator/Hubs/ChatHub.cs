@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using StreamChatInator.Database;
-using System.Threading.Channels;
 
 namespace StreamChatInator.Hubs
 {

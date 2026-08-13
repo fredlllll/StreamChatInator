@@ -1,6 +1,5 @@
 ﻿using StreamChatInator.Database.Models;
 using System.Text.Json;
-using TwitchLib.Client.Enums;
 
 namespace StreamChatInator
 {

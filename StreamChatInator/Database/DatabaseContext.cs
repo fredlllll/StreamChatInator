@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Primitives;
 using StreamChatInator.Database.Models;
 
 namespace StreamChatInator.Database
