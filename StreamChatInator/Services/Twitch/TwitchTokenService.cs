@@ -2,7 +2,7 @@ using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using System.Globalization;
 
-namespace StreamChatInator.Services
+namespace StreamChatInator.Services.Twitch
 {
     /// <summary>
     /// Owns reading, persisting and refreshing the Twitch OAuth access token

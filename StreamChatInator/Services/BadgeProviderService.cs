@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
+using StreamChatInator.Services.Twitch;
 
 namespace StreamChatInator.Services
 {
@@ -159,7 +160,7 @@ namespace StreamChatInator.Services
 
         private static void Merge(
             Dictionary<string, Dictionary<string, BadgeDto>> merged,
-            IEnumerable<TwitchApiService.TwitchBadgeSet> badgeSets,
+            IEnumerable<BadgeSet> badgeSets,
             bool overrideExisting = false)
         {
             foreach (var badgeSet in badgeSets)

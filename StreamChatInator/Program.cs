@@ -6,6 +6,7 @@ using StreamChatInator.Auth;
 using StreamChatInator.Database;
 using StreamChatInator.Hubs;
 using StreamChatInator.Services;
+using StreamChatInator.Services.Twitch;
 
 namespace StreamChatInator
 {

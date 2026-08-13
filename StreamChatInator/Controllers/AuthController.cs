@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
+using StreamChatInator.Services.Twitch;
 using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -90,11 +91,11 @@ namespace StreamChatInator.Controllers
             }
 
             var result = await _twitchApiService.PollDeviceCodeAsync(ClientId, attempt.DeviceCode, Scopes);
-            if (result.Status == TwitchApiService.DevicePollStatus.Pending)
+            if (result.Status == DevicePollStatus.Pending)
             {
                 return Ok(new { status = "pending" });
             }
-            if (result.Status == TwitchApiService.DevicePollStatus.Failed)
+            if (result.Status == DevicePollStatus.Failed)
             {
                 _deviceAttempts.TryRemove(id, out _);
                 return Ok(new { status = "failed" });
