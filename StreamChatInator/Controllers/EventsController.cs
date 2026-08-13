@@ -74,7 +74,7 @@ namespace StreamChatInator.Controllers
             var count = 0;
             foreach (var testEvent in TestEventFactory.CreateAll())
             {
-                await _recorder.RecordAsync(_db, testEvent.Type, testEvent.Data, testEvent.SubData);
+                await _recorder.RecordAsync(testEvent.Type, testEvent.Data, testEvent.SubData);
                 count++;
             }
             return Ok(new { created = count });
