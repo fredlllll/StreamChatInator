@@ -3,13 +3,13 @@ using System.Security.Cryptography;
 namespace StreamChatInator.Services
 {
     /// <summary>
-    /// Holds the shared LAN-access PIN and whether gating is enabled. When
+    /// Holds the shared access PIN and whether gating is enabled. When
     /// enabled (the default), browsers must present a session cookie obtained
     /// via POST /api/auth/pin-login before any controller or hub call is
     /// allowed. When disabled (e.g. the app is behind a VPN or an nginx TLS
     /// reverse proxy that already gates access), every request passes.
     /// </summary>
-    public class LanAccessService
+    public class AccessControlService
     {
         private const int MaxFailedAttempts = 5;
         private static readonly TimeSpan LockoutDuration = TimeSpan.FromSeconds(30);
@@ -21,6 +21,9 @@ namespace StreamChatInator.Services
         private readonly object _lock = new();
         private readonly Dictionary<string, AttemptState> _attemptsByIp = new();
 
+        public bool Enabled { get; }
+        public string Pin { get; }
+
         private sealed class AttemptState
         {
             public int FailedAttempts;
@@ -28,15 +31,12 @@ namespace StreamChatInator.Services
             public DateTime LastFailureUtc = DateTime.MinValue;
         }
 
-        public LanAccessService(IConfiguration config)
+        public AccessControlService(IConfiguration config)
         {
             Enabled = config.GetValue("Auth:Enabled", true);
             var configuredPin = config["Auth:Pin"];
             Pin = string.IsNullOrWhiteSpace(configuredPin) ? GeneratePin() : configuredPin.Trim();
         }
-
-        public bool Enabled { get; }
-        public string Pin { get; }
 
         public bool ValidatePin(string? pin)
         {

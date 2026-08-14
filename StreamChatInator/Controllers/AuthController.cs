@@ -28,10 +28,10 @@ namespace StreamChatInator.Controllers
         private readonly DatabaseContext _db;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly TwitchTokenService _tokenService;
-        private readonly LanAccessService _lanAccess;
+        private readonly AccessControlService _lanAccess;
         private readonly TwitchApiService _twitchApiService;
 
-        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchApiService twitchApiService, TwitchTokenService tokenService, LanAccessService lanAccess)
+        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchApiService twitchApiService, TwitchTokenService tokenService, AccessControlService lanAccess)
         {
             _config = config;
             _db = db;
@@ -124,7 +124,7 @@ namespace StreamChatInator.Controllers
             return Ok(new { status = "ok", username = validation.Login });
         }
 
-        #region LAN access (PIN + session cookie)
+        #region access control (PIN + session cookie)
 
         /// <summary>
         /// Whether this browser is allowed in. When Auth:Enabled=false this is
@@ -143,7 +143,7 @@ namespace StreamChatInator.Controllers
         }
 
         /// <summary>
-        /// Validates the shared LAN PIN and issues a session cookie. A few bad
+        /// Validates the shared PIN and issues a session cookie. A few bad
         /// attempts briefly lock out further tries to make a short PIN harder
         /// to brute-force over the network.
         /// </summary>
@@ -154,7 +154,7 @@ namespace StreamChatInator.Controllers
             if (!_lanAccess.Enabled) return NotFound();
 
             // Lockout is per client IP so one device hammering the PIN doesn't
-            // lock everyone else out of the UI. A null IP is fine: LanAccessService
+            // lock everyone else out of the UI. A null IP is fine: AccessControlService
             // buckets all such clients together under a dedicated "unknown" key.
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 

@@ -5,7 +5,7 @@ namespace StreamChatInator.Tests;
 
 public class LanAccessServiceTests
 {
-    private static LanAccessService NewService(string? pin = "123456") => new(
+    private static AccessControlService NewService(string? pin = "123456") => new(
         new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Auth:Pin"] = pin,

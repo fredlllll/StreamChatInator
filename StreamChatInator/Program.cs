@@ -56,13 +56,13 @@ namespace StreamChatInator
             builder.Services.AddSingleton<TwitchTokenService>();
             builder.Services.AddSingleton<EmoteProviderService>();
             builder.Services.AddSingleton<BadgeProviderService>();
-            builder.Services.AddSingleton<LanAccessService>();
-            builder.Services.AddSingleton<IAuthorizationHandler, LanAccessHandler>();
+            builder.Services.AddSingleton<AccessControlService>();
+            builder.Services.AddSingleton<IAuthorizationHandler, AccessControlHandler>();
             builder.Services.AddSingleton<EventRecorder>();
             builder.Services.AddAuthorization(options =>
             {
                 options.DefaultPolicy = new AuthorizationPolicyBuilder()
-                    .AddRequirements(new LanAccessRequirement())
+                    .AddRequirements(new AccessControlRequirement())
                     .Build();
             });
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -146,7 +146,7 @@ namespace StreamChatInator
 
             app.Lifetime.ApplicationStopping.Register(ConsoleUi.Shutdown);
 
-            var lanAccess = app.Services.GetRequiredService<LanAccessService>();
+            var lanAccess = app.Services.GetRequiredService<AccessControlService>();
             if (lanAccess.Enabled)
             {
                 if (ConsoleUi.IsEnabled)
