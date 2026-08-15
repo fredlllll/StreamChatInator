@@ -1,4 +1,4 @@
-import type { EventFilter, FrontEndEventData } from "../types";
+import type { EventFilter, HistoryResponse } from "../types";
 
 const BASE_URL = "/api/filters";
 
@@ -57,12 +57,6 @@ export function getFilterByIdCached(id: string): Promise<EventFilter> {
 
 export function invalidateFilter(id: string): void {
     filterCache.delete(id);
-}
-
-export interface HistoryResponse {
-    events: FrontEndEventData[];
-    nextCursor: string;
-    hasMore: boolean;
 }
 
 export async function getFilterHistory(filterId: string, before: string, take = 50): Promise<HistoryResponse> {

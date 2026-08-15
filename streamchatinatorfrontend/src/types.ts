@@ -1,4 +1,4 @@
-import type { Model } from "./chatEventTypes";
+import type { FrontEndEventData, Model } from "./chatEventTypes";
 export * from "./chatEventTypes";
 
 export interface EventFilter extends Model {
@@ -15,3 +15,9 @@ export interface BadgeInfo {
 }
 
 export type BadgeMap = Record<string, Record<string, BadgeInfo>>;
+
+export interface HistoryResponse {
+    events: FrontEndEventData[];
+    nextCursor: string;
+    hasMore: boolean;
+}

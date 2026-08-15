@@ -1,79 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-    Actions,
-    DockLocation,
-    Layout,
-    Model,
-    type IJsonModel,
-    type IJsonTabNode,
-    type ILayoutApi,
-    type TabNode,
-} from "flexlayout-react";
+import { Actions, DockLocation, Layout, Model, type ILayoutApi, type TabNode } from "flexlayout-react";
 import "flexlayout-react/style/dark.css";
 import FilterTile from "../components/FilterTile";
+import WelcomeHint from "../components/WelcomeHint";
 import { getFilters } from "../api/filtersApi";
 import type { EventFilter } from "../types";
-
-const STORAGE_KEY = "streamchatinator.layout.v1";
-
-function filterToTab(filter: EventFilter): IJsonTabNode {
-    return {
-        type: "tab",
-        component: "filter",
-        name: filter.name,
-        config: { filterId: filter.id },
-    };
-}
-
-function modelForFilters(filters: EventFilter[]): IJsonModel {
-    const tabs: IJsonTabNode[] = filters.map(filterToTab);
-    if (tabs.length === 0) {
-        tabs.push({
-            type: "tab",
-            component: "welcome",
-            name: "Getting started",
-        });
-    }
-    return {
-        global: {
-            tabSetEnableDeleteWhenEmpty: false,
-            tabEnableRename: false,
-        },
-        borders: [],
-        layout: {
-            type: "row",
-            children: [
-                {
-                    type: "tabset",
-                    children: tabs,
-                },
-            ],
-        },
-    };
-}
-
-function loadModel(): Model {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-        try {
-            return Model.fromJson(JSON.parse(saved) as IJsonModel);
-        } catch {
-            // fall through to default
-        }
-    }
-    return Model.fromJson(modelForFilters([]));
-}
-
-function WelcomeHint() {
-    return (
-        <div className="welcome-hint">
-            <p>Pick a filter in the toolbar and click &quot;Add view&quot; to open it as a dockable panel.</p>
-            <p>Drag a tab around to dock it left, right, top, bottom or center - like Visual Studio.</p>
-            <p>Your layout is saved automatically in this browser.</p>
-        </div>
-    );
-}
+import { STORAGE_KEY, filterToTab, loadModel, modelForFilters } from "./dashboardLayout";
 
 function DashboardPage() {
     const [searchParams, setSearchParams] = useSearchParams();

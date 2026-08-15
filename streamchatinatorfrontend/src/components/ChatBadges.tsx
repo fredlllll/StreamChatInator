@@ -2,116 +2,12 @@ import { useEffect, useState } from "react";
 import { useChatConnection } from "../ChatContext";
 import { getBadgesCached } from "../api/badgesApi";
 import type { BadgeMap, FrontEndEventData, UserFlagName, UserTypeName } from "../types";
+import { USER_FLAG_BADGES, USER_TYPE_BADGES, type BadgeSlot } from "../badges/badgeDefinitions";
+import { buildBadgeTitle, parseMessageBadges } from "../badges/badgeFormat";
 
 type ChatBadgesItemProps = {
     event: FrontEndEventData<any>;
 };
-
-type BadgeSlot = {
-    set: string;
-    version: string;
-    fallback: string;
-};
-
-// Fallback labels shown (as text) when a badge's image can't be found in the
-// fetched badge map. The message's `badges` tag is the ground truth; the
-// flag/type fallbacks below are only used for badges Twitch didn't put there.
-const BADGE_LABELS: Record<string, string> = {
-    broadcaster: "Streamer",
-    moderator: "Mod",
-    vip: "Vip",
-    subscriber: "Sub",
-    founder: "Founder",
-    global_mod: "Global Mod",
-    admin: "Admin",
-    staff: "Staff",
-    turbo: "Turbo",
-    partner: "Partner",
-    bits: "Bits",
-    bits_charity: "Bits",
-    bits_leaderboard: "Bits Leader",
-    prediction: "Prediction",
-    predictions: "Prediction",
-    sub_gift_leaderboard: "Sub Gifter",
-    sub_gifter: "Sub Gifter",
-    premium: "Prime",
-    no_audio: "No Audio",
-    no_video: "No Video",
-    uploader: "Uploader",
-};
-
-const USER_TYPE_BADGES: Partial<Record<UserTypeName, BadgeSlot>> = {
-    Broadcaster: { set: "broadcaster", version: "1", fallback: "Streamer" },
-    Moderator: { set: "moderator", version: "1", fallback: "Mod" },
-    GlobalModerator: { set: "global_mod", version: "1", fallback: "Global Mod" },
-    Admin: { set: "admin", version: "1", fallback: "Admin" },
-    Staff: { set: "staff", version: "1", fallback: "Staff" },
-};
-
-const USER_FLAG_BADGES: Partial<Record<UserFlagName, BadgeSlot>> = {
-    Moderator: { set: "moderator", version: "1", fallback: "Mod" },
-    Subscriber: { set: "subscriber", version: "0", fallback: "Sub" },
-    Vip: { set: "vip", version: "1", fallback: "Vip" },
-    Partner: { set: "partner", version: "1", fallback: "Partner" },
-    Turbo: { set: "turbo", version: "1", fallback: "Turbo" },
-    Staff: { set: "staff", version: "1", fallback: "Staff" },
-};
-
-// Full descriptive names used for the fallback badges' tooltips. The short
-// fallback labels above stay on screen; hovering reveals the full name.
-const BADGE_TITLES: Record<string, string> = {
-    broadcaster: "Channel Broadcaster",
-    moderator: "Moderator",
-    vip: "VIP",
-    subscriber: "Subscriber",
-    founder: "Founder",
-    global_mod: "Global Moderator",
-    admin: "Twitch Admin",
-    staff: "Twitch Staff",
-    turbo: "Twitch Turbo",
-    partner: "Twitch Partner",
-    bits: "Cheer Badge",
-    bits_charity: "Charity Cheer Badge",
-    bits_leaderboard: "Bits Leaderboard",
-    prediction: "Channel Predictions",
-    predictions: "Channel Predictions",
-    sub_gift_leaderboard: "Sub Gifter Leaderboard",
-    sub_gifter: "Sub Gifter",
-    premium: "Prime Gaming",
-    no_audio: "No Audio",
-    no_video: "No Video",
-    uploader: "Video Uploader",
-};
-
-/** Tooltip text for a fallback badge: full name, plus months for subscribers. */
-function buildBadgeTitle(set: string, version: string): string {
-    const base = BADGE_TITLES[set] ?? set;
-    if (set === "subscriber" && /^\d+$/.test(version) && +version > 0) {
-        return `${base} (${version} months)`;
-    }
-    return base;
-}
-
-// Parses the JSON badge array Twitch sends in the message's badge tag:
-//     [{"set":"broadcaster","version":"1"},{"set":"subscriber","version":"24"}]
-function parseMessageBadges(raw: string | null | undefined): BadgeSlot[] {
-    if (!raw) return [];
-    try {
-        const parsed: unknown = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [];
-        const slots: BadgeSlot[] = [];
-        for (const badge of parsed) {
-            if (badge == null || typeof badge !== "object") continue;
-            const b = badge as { set?: unknown; version?: unknown };
-            if (typeof b.set !== "string" || b.set.length === 0) continue;
-            const version = typeof b.version === "string" && b.version.length > 0 ? b.version : "0";
-            slots.push({ set: b.set, version, fallback: BADGE_LABELS[b.set] ?? b.set });
-        }
-        return slots;
-    } catch {
-        return [];
-    }
-}
 
 function ChatBadges({ event }: ChatBadgesItemProps) {
     const { channelId } = useChatConnection();
