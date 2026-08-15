@@ -63,7 +63,7 @@ namespace StreamChatInator.Services
                 UserId = "1001",
                 Username = "alicethemod",
                 HexColor = "#00FF7F",
-                Badges = Util.SerializeBadges(new List<KeyValuePair<string, string>> { new("moderator", "1"), new("subscriber", "6") }),
+                Badges = BadgeSerializer.SerializeBadges(new List<KeyValuePair<string, string>> { new("moderator", "1"), new("subscriber", "6") }),
                 UserFlags = UserDetails.Moderator | UserDetails.Subscriber | UserDetails.Vip,
                 UserType = UserType.Moderator,
             }, null);
@@ -316,7 +316,7 @@ namespace StreamChatInator.Services
                 SystemMsg = systemMsg,
                 TmiSent = Now,
                 UserFlags = UserDetails.Subscriber | UserDetails.Vip,
-                Badges = Util.SerializeBadges(new List<KeyValuePair<string, string>> { new("subscriber", "1"), new("vip", "1") }),
+                Badges = BadgeSerializer.SerializeBadges(new List<KeyValuePair<string, string>> { new("subscriber", "1"), new("vip", "1") }),
                 UserId = $"u-{username}",
                 UserType = UserType.Viewer,
             };

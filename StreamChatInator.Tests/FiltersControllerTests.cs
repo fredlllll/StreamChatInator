@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using StreamChatInator.Controllers;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
+using StreamChatInator.Services;
 
 namespace StreamChatInator.Tests;
 
@@ -30,7 +31,12 @@ public class FiltersControllerTests : IDisposable
         _connection.Dispose();
     }
 
-    private FiltersController NewController() => new(_db, NullLogger<FiltersController>.Instance, new MemoryCache(new MemoryCacheOptions()));
+    private FiltersController NewController()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var history = new EventHistoryService(_db, NullLogger<EventHistoryService>.Instance, cache);
+        return new FiltersController(_db, history);
+    }
 
     private ChatEventFilter CreateFilter(string codeJs = "function __matches(eventData) { return true; }")
     {

@@ -57,7 +57,7 @@ namespace StreamChatInator.Database.Models
         /// </summary>
         public required string? Badges { get; set; }
 
-        public string[] UserFlagsNames => Util.FlagEnumNames(UserFlags);
+        public string[] UserFlagsNames => EnumHelper.FlagEnumNames(UserFlags);
 
         /// <summary>
         /// The user’s ID.
@@ -85,10 +85,10 @@ namespace StreamChatInator.Database.Models
                 SystemMsg = unb.SystemMsg,
                 TmiSent = unb.TmiSent.UtcDateTime,
                 TwitchMessageId = unb.Id,
-                UserFlags = Util.GetPrivateFieldNotNull<UserDetails>(unb.UserDetail, "_flags"),
+                UserFlags = ReflectionHelper.GetPrivateFieldNotNull<UserDetails>(unb.UserDetail, "_flags"),
                 UserId = unb.UserId,
                 UserType = unb.UserType,
-                Badges = Util.SerializeBadges(unb.Badges),
+                Badges = BadgeSerializer.SerializeBadges(unb.Badges),
             };
             return cunb;
         }

@@ -4,8 +4,6 @@ using StreamChatInator.Services.Twitch;
 
 namespace StreamChatInator.Services
 {
-    public record BadgeDto(string Title, string ImageUrl, string? ClickAction, string? ClickUrl);
-
     /// <summary>
     /// Fetches Twitch chat badges (global + the connected channel's custom
     /// badges) and exposes them as a lookup keyed by badge set id and version

@@ -120,7 +120,7 @@ namespace StreamChatInator.Database.Models
         /// UserFlags broken out into individual flag names, for easy client-side filtering
         /// (e.g. userFlagNames.includes("Moderator")) instead of dealing with the raw bitmask.
         /// </summary>
-        public string[] UserFlagsNames => Util.FlagEnumNames(UserFlags);
+        public string[] UserFlagsNames => EnumHelper.FlagEnumNames(UserFlags);
 
 
         /// <summary>
@@ -153,10 +153,10 @@ namespace StreamChatInator.Database.Models
                 DisplayName = msg.DisplayName,
                 UserId = msg.UserId,
                 Username = msg.Username,
-                UserFlags = Util.GetPrivateFieldNotNull<UserDetails>(msg.UserDetail, "_flags"),
+                UserFlags = ReflectionHelper.GetPrivateFieldNotNull<UserDetails>(msg.UserDetail, "_flags"),
                 UserType = msg.UserType,
                 HexColor = msg.HexColor,
-                Badges = Util.SerializeBadges(msg.Badges),
+                Badges = BadgeSerializer.SerializeBadges(msg.Badges),
             };
 
             return chatMessage;

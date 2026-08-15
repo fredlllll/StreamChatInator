@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace StreamChatInator.Tests;
 
-public class UtilTests
+public class HelperTests
 {
     [Flags]
     private enum TestFlags
@@ -17,27 +17,27 @@ public class UtilTests
     [Fact]
     public void FlagEnumNames_SplitsAndExcludesNone()
     {
-        var names = Util.FlagEnumNames(TestFlags.Alpha | TestFlags.Gamma);
+        var names = EnumHelper.FlagEnumNames(TestFlags.Alpha | TestFlags.Gamma);
         Assert.Equal(new[] { "Alpha", "Gamma" }, names);
     }
 
     [Fact]
     public void FlagEnumNames_ReturnsEmpty_ForNone()
     {
-        Assert.Empty(Util.FlagEnumNames(TestFlags.None));
+        Assert.Empty(EnumHelper.FlagEnumNames(TestFlags.None));
     }
 
     [Fact]
     public void SerializeBadges_ReturnsNull_ForNullOrEmpty()
     {
-        Assert.Null(Util.SerializeBadges(null));
-        Assert.Null(Util.SerializeBadges(new List<KeyValuePair<string, string>>()));
+        Assert.Null(BadgeSerializer.SerializeBadges(null));
+        Assert.Null(BadgeSerializer.SerializeBadges(new List<KeyValuePair<string, string>>()));
     }
 
     [Fact]
     public void SerializeBadges_DefaultsMissingVersionToZero()
     {
-        var json = Util.SerializeBadges(new List<KeyValuePair<string, string>>
+        var json = BadgeSerializer.SerializeBadges(new List<KeyValuePair<string, string>>
         {
             new("broadcaster", "1"),
             new("subscriber", ""),
@@ -49,7 +49,7 @@ public class UtilTests
     [Fact]
     public void SerializeBadges_FiltersBlankSetKeys()
     {
-        var json = Util.SerializeBadges(new List<KeyValuePair<string, string>>
+        var json = BadgeSerializer.SerializeBadges(new List<KeyValuePair<string, string>>
         {
             new("", "9"),
             new("vip", "1"),
@@ -61,7 +61,7 @@ public class UtilTests
     [Fact]
     public void MergeObjects_LaterValuesOverwriteEarlier()
     {
-        var result = (IDictionary<string, object?>)Util.MergeObjects(
+        var result = (IDictionary<string, object?>)ObjectMerger.MergeObjects(
             objects: new object[] { new Dictionary<string, object> { ["foo"] = 1 }, new { foo = 2, bar = "b" } });
 
         Assert.Equal(2, result["foo"]);
@@ -71,14 +71,14 @@ public class UtilTests
     [Fact]
     public void MergeObjects_AppliesCamelCaseNamingPolicy()
     {
-        var result = (IDictionary<string, object?>)Util.MergeObjects(JsonNamingPolicy.CamelCase, new { SomeProperty = 42 });
+        var result = (IDictionary<string, object?>)ObjectMerger.MergeObjects(JsonNamingPolicy.CamelCase, new { SomeProperty = 42 });
         Assert.Equal(42, result["someProperty"]);
     }
 
     [Fact]
     public void MergeObjects_SkipsNullEntries()
     {
-        var result = (IDictionary<string, object?>)Util.MergeObjects(objects: new object[] { new { a = 1 }, null! });
+        var result = (IDictionary<string, object?>)ObjectMerger.MergeObjects(objects: new object[] { new { a = 1 }, null! });
         Assert.Single(result);
         Assert.Equal(1, result["a"]);
     }
@@ -86,7 +86,7 @@ public class UtilTests
     [Fact]
     public void MergeObjects_Throws_WhenAllObjectsNull()
     {
-        Assert.Throws<ArgumentNullException>(() => Util.MergeObjects(null, (object[])null!));
+        Assert.Throws<ArgumentNullException>(() => ObjectMerger.MergeObjects(null, (object[])null!));
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class UtilTests
         };
         var data = new ChatEventUserJoined { Id = "uj_1", Username = "alice", Channel = "c" };
 
-        var frontend = Util.ToFrontendData(chatEvent, data);
+        var frontend = FrontEndEventMapper.ToFrontendData(chatEvent, data);
 
         Assert.Equal("evt_1", frontend.EventId);
         Assert.Equal(ChatEventType.UserJoined, frontend.ChatEventType);
@@ -131,7 +131,7 @@ public class UtilTests
         var subData = new BaseSub { Id = "sub_1", Value = "base" };
         var detail = new DetailModel { Id = "detail_1", Detail = "extra" };
 
-        var frontend = Util.ToFrontendData(chatEvent, detail, subData);
+        var frontend = FrontEndEventMapper.ToFrontendData(chatEvent, detail, subData);
         var dict = (IDictionary<string, object?>)frontend.ChatEventData;
 
         Assert.Equal("base", dict["value"]);
@@ -149,21 +149,21 @@ public class UtilTests
     public void GetPrivateFieldNotNull_ReadsPrivateField()
     {
         var holder = new FieldHolder();
-        Assert.Equal("hello", Util.GetPrivateFieldNotNull<string>(holder, "_secret"));
+        Assert.Equal("hello", ReflectionHelper.GetPrivateFieldNotNull<string>(holder, "_secret"));
     }
 
     [Fact]
     public void GetPrivateFieldNotNull_Throws_WhenFieldMissing()
     {
         var holder = new FieldHolder();
-        Assert.Throws<Exception>(() => Util.GetPrivateFieldNotNull<string>(holder, "nope"));
+        Assert.Throws<Exception>(() => ReflectionHelper.GetPrivateFieldNotNull<string>(holder, "nope"));
     }
 
     [Fact]
     public async Task RetryAsync_RetriesUntilSuccess()
     {
         var attempts = 0;
-        await Util.RetryAsync(() =>
+        await RetryHelper.RetryAsync(() =>
         {
             attempts++;
             return attempts >= 3;
@@ -175,6 +175,6 @@ public class UtilTests
     [Fact]
     public async Task RetryAsync_ThrowsTimeout_WhenExhausted()
     {
-        await Assert.ThrowsAsync<TimeoutException>(() => Util.RetryAsync(() => false, tries: 2, delay: 1));
+        await Assert.ThrowsAsync<TimeoutException>(() => RetryHelper.RetryAsync(() => false, tries: 2, delay: 1));
     }
 }

@@ -46,8 +46,8 @@ namespace StreamChatInator.Services
             await db.SaveChangesAsync();
 
             var frontendData = subData == null
-                ? Util.ToFrontendData(chatEvent, eventData)
-                : Util.ToFrontendData(chatEvent, eventData, subData);
+                ? FrontEndEventMapper.ToFrontendData(chatEvent, eventData)
+                : FrontEndEventMapper.ToFrontendData(chatEvent, eventData, subData);
             await _hub.Clients.All.SendAsync("ReceiveEvent", frontendData);
         }
     }

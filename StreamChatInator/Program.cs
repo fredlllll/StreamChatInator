@@ -55,10 +55,14 @@ namespace StreamChatInator
             builder.Services.AddSingleton<ChatHubData>();
             builder.Services.AddSingleton<TwitchTokenService>();
             builder.Services.AddSingleton<EmoteProviderService>();
+            builder.Services.AddSingleton<IEmoteFetcher, BttvEmoteFetcher>();
+            builder.Services.AddSingleton<IEmoteFetcher, SevenTvEmoteFetcher>();
+            builder.Services.AddSingleton<IEmoteFetcher, FfzEmoteFetcher>();
             builder.Services.AddSingleton<BadgeProviderService>();
             builder.Services.AddSingleton<AccessControlService>();
             builder.Services.AddSingleton<IAuthorizationHandler, AccessControlHandler>();
             builder.Services.AddSingleton<EventRecorder>();
+            builder.Services.AddSingleton<EventHistoryService>();
             builder.Services.AddAuthorization(options =>
             {
                 options.DefaultPolicy = new AuthorizationPolicyBuilder()

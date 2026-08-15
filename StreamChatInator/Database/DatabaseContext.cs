@@ -61,47 +61,5 @@ namespace StreamChatInator.Database
             modelBuilder.Entity<ChatEventUserTimedout>().ToTable(nameof(ChatEventUserTimedouts));
 
         }
-
-        /// <summary>
-        /// doesnt do save changes
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="value"></param>
-        public void SetSettingsValue(string name, string value)
-        {
-            var existing = SettingValues.Find(name);
-            if (existing != null)
-            {
-                existing.Value = value;
-                existing.Updated = DateTime.UtcNow;
-            }
-            else
-            {
-                var setting = new SettingValue() { Id = name, Value = value };
-                SettingValues.Add(setting);
-            }
-        }
-
-        public string GetSettingsValue(string name)
-        {
-            var entry = SettingValues.Find(name);
-            if (entry == null)
-            {
-                throw new Exception("no settings value for " + name);
-            }
-            return entry.Value;
-        }
-
-        public string? GetSettingsValueOrNull(string name)
-        {
-            try
-            {
-                return GetSettingsValue(name);
-            }
-            catch
-            {
-                return null;
-            }
-        }
     }
 }

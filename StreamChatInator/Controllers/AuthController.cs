@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StreamChatInator.ApiModels;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
@@ -176,11 +177,6 @@ namespace StreamChatInator.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return Ok();
-        }
-
-        public class PinLoginRequest
-        {
-            public required string Pin { get; set; }
         }
 
         #endregion

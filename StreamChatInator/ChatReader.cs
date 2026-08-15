@@ -11,7 +11,6 @@ namespace StreamChatInator
     public class ChatReader : IAsyncDisposable
     {
         private TwitchClient _client;
-        private readonly IServiceScopeFactory _scopeFactory;
         private readonly IServiceScope _scope;
         private readonly string _userName;
         private readonly string _joinChannel;
@@ -31,8 +30,7 @@ namespace StreamChatInator
         /// </summary>
         public ChatReader(IServiceScopeFactory scopeFactory, string userName, string oauthToken, string? joinChannel = null)
         {
-            _scopeFactory = scopeFactory;
-            _scope = _scopeFactory.CreateScope();
+            _scope = scopeFactory.CreateScope();
 
             _userName = userName;
             _joinChannel = string.IsNullOrWhiteSpace(joinChannel) ? userName : joinChannel;
