@@ -9,13 +9,13 @@ namespace StreamChatInator.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class EventsController : ControllerBase
+    public class ChatEventsController : ControllerBase
     {
         private readonly DatabaseContext _db;
         private readonly IHubContext<ChatHub> _hub;
         private readonly EventRecorder _recorder;
 
-        public EventsController(DatabaseContext db, IHubContext<ChatHub> hub, EventRecorder recorder)
+        public ChatEventsController(DatabaseContext db, IHubContext<ChatHub> hub, EventRecorder recorder)
         {
             _db = db;
             _hub = hub;
@@ -29,10 +29,10 @@ namespace StreamChatInator.Controllers
         /// clients to drop their in-memory copies.
         /// </summary>
         [HttpDelete]
-        public async Task<IActionResult> PurgeAll()
+        public async Task<IActionResult> Delete()
         {
             await using var transaction = await _db.Database.BeginTransactionAsync();
-            var deleted = await _db.ChatEvents.ExecuteDeleteAsync();
+            var numDeleted = await _db.ChatEvents.ExecuteDeleteAsync();
 
             // Every event table follows the "ChatEvent*" naming convention, so
             // new event types are picked up automatically and non-event tables
@@ -50,15 +50,14 @@ namespace StreamChatInator.Controllers
             // All remaining event tables in one batched command (single round
             // trip) instead of one await per table. SQLite allows only one
             // writer at a time, so parallelizing the deletes would just
-            // serialize them on the same connection - or throw "database is
-            // locked" - without being any faster.
+            // serialize them on the same connection without being any faster.
             await _db.Database.ExecuteSqlRawAsync(
                 string.Join(";\n", tables.Select(t => $"DELETE FROM \"{t}\"")));
 
             await transaction.CommitAsync();
 
             await _hub.Clients.All.SendAsync("EventsPurged");
-            return Ok(new { deleted });
+            return Ok(new { numDeleted });
         }
 
         /// <summary>

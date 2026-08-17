@@ -182,8 +182,8 @@ public class EventsControllerTests : IDisposable
         );
         _db.SaveChanges();
 
-        var controller = new EventsController(_db, _hub, _recorder);
-        var result = await controller.PurgeAll();
+        var controller = new ChatEventsController(_db, _hub, _recorder);
+        var result = await controller.Delete();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(3, ok.Value?.GetType().GetProperty("deleted")?.GetValue(ok.Value));
@@ -202,8 +202,8 @@ public class EventsControllerTests : IDisposable
     [Fact]
     public async Task PurgeAll_OnEmptyDatabase_Succeeds()
     {
-        var controller = new EventsController(_db, _hub, _recorder);
-        var result = await controller.PurgeAll();
+        var controller = new ChatEventsController(_db, _hub, _recorder);
+        var result = await controller.Delete();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(0, ok.Value?.GetType().GetProperty("deleted")?.GetValue(ok.Value));
@@ -212,7 +212,7 @@ public class EventsControllerTests : IDisposable
     [Fact]
     public async Task GenerateTestData_CreatesOneEventOfEveryType_AndBroadcasts()
     {
-        var controller = new EventsController(_db, _hub, _recorder);
+        var controller = new ChatEventsController(_db, _hub, _recorder);
         var result = await controller.GenerateTestData();
 
         var ok = Assert.IsType<OkObjectResult>(result);
