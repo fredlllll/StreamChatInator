@@ -25,18 +25,14 @@ namespace StreamChatInator.Controllers
 
         private const string Scopes = "chat:edit chat:read";
 
-        private readonly IConfiguration _config;
         private readonly DatabaseContext _db;
-        private readonly IHttpClientFactory _httpClientFactory;
         private readonly TwitchTokenService _tokenService;
         private readonly AccessControlService _lanAccess;
         private readonly TwitchApiService _twitchApiService;
 
-        public AuthController(IConfiguration config, DatabaseContext db, IHttpClientFactory httpClientFactory, TwitchApiService twitchApiService, TwitchTokenService tokenService, AccessControlService lanAccess)
+        public AuthController(DatabaseContext db, TwitchApiService twitchApiService, TwitchTokenService tokenService, AccessControlService lanAccess)
         {
-            _config = config;
             _db = db;
-            _httpClientFactory = httpClientFactory;
             _twitchApiService = twitchApiService;
             _tokenService = tokenService;
             _lanAccess = lanAccess;
@@ -47,27 +43,27 @@ namespace StreamChatInator.Controllers
         /// device code server-side, and returns everything the UI needs to show
         /// the user (verification URL + code) plus the polling id.
         /// </summary>
-        [HttpGet("login")]
-        public async Task<IActionResult> Login()
+        [HttpPost("begin_device_login")]
+        public async Task<IActionResult> BeginDeviceLogin()
         {
-            var device = await _twitchApiService.RequestDeviceCodeAsync(ClientId, Scopes);
-            if (device == null || string.IsNullOrEmpty(device.DeviceCode))
+            var response = await _twitchApiService.RequestDeviceCodeAsync(Scopes);
+            if (response == null || string.IsNullOrEmpty(response.DeviceCode))
             {
-                return StatusCode(502, new { error = "twitch_unavailable" });
+                return ResponseHelper.Reponse502("twitch_unavailable");
             }
 
             PruneExpiredAttempts();
 
-            var id = CreateRandom();
-            _deviceAttempts[id] = (device.DeviceCode, DateTime.UtcNow.AddSeconds(Math.Max(device.ExpiresIn, 60)));
+            var id = new Guid().ToString();
+            _deviceAttempts[id] = (response.DeviceCode, DateTime.UtcNow.AddSeconds(Math.Max(response.ExpiresIn, 60)));
 
             return Ok(new
             {
                 id,
-                userCode = device.UserCode,
-                verificationUri = device.VerificationUri,
-                expiresIn = device.ExpiresIn,
-                interval = device.Interval,
+                userCode = response.UserCode,
+                verificationUri = response.VerificationUri,
+                expiresIn = response.ExpiresIn,
+                interval = response.Interval,
             });
         }
 
@@ -82,33 +78,33 @@ namespace StreamChatInator.Controllers
         {
             if (string.IsNullOrEmpty(id) || !_deviceAttempts.TryGetValue(id, out var attempt))
             {
-                return Ok(new { status = "expired" });
+                return ResponseHelper.OkStatus("expired");
             }
 
             if (attempt.ExpiresAt < DateTime.UtcNow)
             {
                 _deviceAttempts.TryRemove(id, out _);
-                return Ok(new { status = "expired" });
+                return ResponseHelper.OkStatus("expired");
             }
 
-            var result = await _twitchApiService.PollDeviceCodeAsync(ClientId, attempt.DeviceCode, Scopes);
+            var result = await _twitchApiService.PollDeviceCodeAsync(attempt.DeviceCode, Scopes);
             if (result.Status == DevicePollStatus.Pending)
             {
-                return Ok(new { status = "pending" });
+                return ResponseHelper.OkStatus("pending");
             }
             if (result.Status == DevicePollStatus.Failed)
             {
                 _deviceAttempts.TryRemove(id, out _);
-                return Ok(new { status = "failed" });
+                return ResponseHelper.OkStatus("failed");
             }
 
             _deviceAttempts.TryRemove(id, out _);
 
             var token = result.Token!;
             var validation = await _twitchApiService.ValidateTokenAsync(token.AccessToken);
-            if (validation == null || !string.Equals(validation.ClientId, ClientId, StringComparison.Ordinal))
+            if (validation == null)
             {
-                return Ok(new { status = "failed" });
+                return ResponseHelper.OkStatus("failed");
             }
 
             _db.SetSettingsValue(SettingValue.SettingOAuthToken, token.AccessToken);
@@ -122,10 +118,9 @@ namespace StreamChatInator.Controllers
 
             _tokenService.SignalLogin();
 
-            return Ok(new { status = "ok", username = validation.Login });
+            return ResponseHelper.OkStatusUsername("ok", validation.Login);
         }
 
-        #region access control (PIN + session cookie)
 
         /// <summary>
         /// Whether this browser is allowed in. When Auth:Enabled=false this is
@@ -133,8 +128,8 @@ namespace StreamChatInator.Controllers
         /// entirely when gating is opted out.
         /// </summary>
         [AllowAnonymous]
-        [HttpGet("me")]
-        public IActionResult Me()
+        [HttpGet("status")]
+        public IActionResult Status()
         {
             return Ok(new
             {
@@ -177,20 +172,6 @@ namespace StreamChatInator.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return Ok();
-        }
-
-        #endregion
-
-        private string ClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
-
-        private static string CreateRandom()
-        {
-            return Base64UrlEncode(RandomNumberGenerator.GetBytes(24));
-        }
-
-        private static string Base64UrlEncode(byte[] bytes)
-        {
-            return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         }
 
         /// <summary>

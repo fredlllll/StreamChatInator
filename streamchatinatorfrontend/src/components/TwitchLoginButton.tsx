@@ -1,19 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ConnectionIndicator from "./ConnectionIndicator";
-
-type DeviceStartResponse = {
-    id: string;
-    userCode: string;
-    verificationUri: string;
-    expiresIn: number;
-    interval: number;
-};
-
-type DeviceStatusResponse =
-    | { status: "pending" }
-    | { status: "ok"; username: string }
-    | { status: "expired" }
-    | { status: "failed" };
+import { beginDeviceLogin, type DeviceStartResponse, getDeviceStatus } from "../api/authApi";
 
 function TwitchLoginButton() {
     const [device, setDevice] = useState<DeviceStartResponse | null>(null);
@@ -41,8 +28,7 @@ function TwitchLoginButton() {
             await wait(d.interval * 1000);
             if (cancelledRef.current) return;
             try {
-                const res = await fetch(`/api/auth/device-status?id=${encodeURIComponent(d.id)}`);
-                const data = (await res.json()) as DeviceStatusResponse;
+                const data = await getDeviceStatus(d.id);
                 if (cancelledRef.current) return;
                 if (data.status === "ok") {
                     cancel();
@@ -68,11 +54,7 @@ function TwitchLoginButton() {
         setError(null);
         cancelledRef.current = false;
         try {
-            const res = await fetch("/api/auth/login");
-            if (!res.ok) {
-                throw new Error(`Login could not be started (HTTP ${res.status}).`);
-            }
-            const data = (await res.json()) as DeviceStartResponse;
+            const data = await beginDeviceLogin();
             if (cancelledRef.current) return; // modal closed while the start request was in flight
             setDevice(data);
             void poll(data);

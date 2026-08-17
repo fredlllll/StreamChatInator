@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { loginWithPin } from "../api/authApi";
 
-export default function LanLogin() {
+export default function Login() {
     const [pin, setPin] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -40,7 +40,7 @@ export default function LanLogin() {
         }
     }
 
-    async function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.SubmitEvent) {
         e.preventDefault();
         if (!pin || submitting) return;
         setSubmitting(true);
