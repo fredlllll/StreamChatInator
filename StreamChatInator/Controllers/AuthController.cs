@@ -43,7 +43,7 @@ namespace StreamChatInator.Controllers
         /// device code server-side, and returns everything the UI needs to show
         /// the user (verification URL + code) plus the polling id.
         /// </summary>
-        [HttpPost("begin_device_login")]
+        [HttpPost]
         public async Task<IActionResult> BeginDeviceLogin()
         {
             var response = await _twitchApiService.RequestDeviceCodeAsync(Scopes);
@@ -73,7 +73,7 @@ namespace StreamChatInator.Controllers
         /// <c>interval</c> seconds. On success the tokens are persisted and the
         /// attempt is removed.
         /// </summary>
-        [HttpGet("device-status")]
+        [HttpGet]
         public async Task<IActionResult> DeviceStatus(string? id)
         {
             if (string.IsNullOrEmpty(id) || !_deviceAttempts.TryGetValue(id, out var attempt))
@@ -128,7 +128,7 @@ namespace StreamChatInator.Controllers
         /// entirely when gating is opted out.
         /// </summary>
         [AllowAnonymous]
-        [HttpGet("status")]
+        [HttpGet]
         public IActionResult Status()
         {
             return Ok(new
@@ -144,7 +144,7 @@ namespace StreamChatInator.Controllers
         /// to brute-force over the network.
         /// </summary>
         [AllowAnonymous]
-        [HttpPost("pin-login")]
+        [HttpPost]
         public async Task<IActionResult> PinLogin([FromBody] PinLoginRequest request)
         {
             if (!_lanAccess.Enabled) return NotFound();
@@ -167,7 +167,7 @@ namespace StreamChatInator.Controllers
             return Ok(new { ok = true });
         }
 
-        [HttpPost("logout")]
+        [HttpPost]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

@@ -18,13 +18,13 @@ export type DeviceStatusResponse =
     | { status: "failed" };
 
 export async function getAuthStatus(): Promise<AuthStatus> {
-    const res = await fetch("/api/auth/status");
+    const res = await fetch("/api/auth/Status");
     if (!res.ok) throw new Error("Failed to check auth status");
     return res.json();
 }
 
 export async function loginWithPin(pin: string): Promise<void> {
-    const res = await fetch("/api/auth/pin-login", {
+    const res = await fetch("/api/auth/PinLogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin }),
@@ -34,16 +34,16 @@ export async function loginWithPin(pin: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/Logout", { method: "POST" });
 }
 
 export async function getDeviceStatus(id: string): Promise<DeviceStatusResponse> {
-    const res = await fetch(`/api/auth/device-status?id=${encodeURIComponent(id)}`);
+    const res = await fetch(`/api/auth/DeviceStatus?id=${encodeURIComponent(id)}`);
     return (await res.json()) as DeviceStatusResponse;
 }
 
 export async function beginDeviceLogin(): Promise<DeviceStartResponse> {
-    const res = await fetch("/api/auth/begin_device_login", { method: "POST" });
+    const res = await fetch("/api/auth/BeginDeviceLogin", { method: "POST" });
     if (!res.ok) {
         throw new Error(`Login could not be started (HTTP ${res.status}).`);
     }
