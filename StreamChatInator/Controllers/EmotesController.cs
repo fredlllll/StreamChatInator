@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using StreamChatInator.Services;
+using StreamChatInator.Services.Emotes;
 
 namespace StreamChatInator.Controllers
 {

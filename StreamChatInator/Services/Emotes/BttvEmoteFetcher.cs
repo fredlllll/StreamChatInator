@@ -1,4 +1,4 @@
-namespace StreamChatInator.Services
+namespace StreamChatInator.Services.Emotes
 {
     public class BttvEmoteFetcher : EmoteFetcherBase
     {

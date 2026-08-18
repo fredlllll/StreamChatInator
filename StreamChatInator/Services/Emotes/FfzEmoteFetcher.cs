@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace StreamChatInator.Services
+namespace StreamChatInator.Services.Emotes
 {
     public class FfzEmoteFetcher : EmoteFetcherBase
     {

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace StreamChatInator.Services
+namespace StreamChatInator.Services.Emotes
 {
     /// <summary>
     /// Shared scaffolding for the emote providers: create the "emotes" HTTP

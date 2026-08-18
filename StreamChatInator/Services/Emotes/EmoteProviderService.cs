@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace StreamChatInator.Services
+namespace StreamChatInator.Services.Emotes
 {
     /// <summary>
     /// Gets the external emotes (BTTV/7TV/FFZ) for a channel, delegating the

@@ -1,4 +1,4 @@
-namespace StreamChatInator.Services
+namespace StreamChatInator.Services.Emotes
 {
     /// <summary>
     /// One external emote provider (BTTV/7TV/FFZ). Channel id is null for the
