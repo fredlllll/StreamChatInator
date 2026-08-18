@@ -5,7 +5,7 @@ import FilterEditorPage from "./pages/FilterEditorPage";
 import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
 import TwitchLoginButton from "./components/TwitchLoginButton";
-import LanLogin from "./components/LanLogin";
+import LanLogin from "./components/Login";
 import { useChatConnection } from "./ChatContext";
 import { getAuthStatus, logout } from "./api/authApi";
 import { purgeEvents, generateTestEvents } from "./api/eventsApi";

@@ -1,6 +1,7 @@
 ﻿using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Services.Twitch;
+using System.Reactive;
 
 namespace StreamChatInator.Services
 {
@@ -9,13 +10,15 @@ namespace StreamChatInator.Services
         private readonly ILogger<ChatReaderService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly TwitchTokenService _tokenService;
+        private readonly TwitchUsernameService _usernameService;
         private readonly ConfigService _config;
 
-        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenService tokenService, ConfigService config)
+        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenService tokenService, TwitchUsernameService usernameService, ConfigService config)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
             _tokenService = tokenService;
+            _usernameService = usernameService;
             _config = config;
         }
 
@@ -29,28 +32,19 @@ namespace StreamChatInator.Services
                 var hubData = scope.ServiceProvider.GetRequiredService<ChatHubData>();
                 try
                 {
-                    var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-                    var channelName = db.GetSettingsValueOrNull(SettingValue.SettingUserName);
-                    var oauthToken = await _tokenService.GetAccessTokenAsync(db);
+                    var channelName = _usernameService.GetUsername();
+                    var oauthToken = _tokenService.GetAccessToken();
 
-                    if (string.IsNullOrEmpty(channelName) || string.IsNullOrEmpty(oauthToken))
+                    if (string.IsNullOrEmpty(channelName))
                     {
-                        // No usable credentials: block until a login completes
-                        // instead of polling the settings table. The cancel token
-                        // wakes us on shutdown.
-                        _tokenService.ResetCredentialWait();
-                        try
-                        {
-                            await _tokenService.WaitForCredentialsAsync(stoppingToken);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            break;
-                        }
-                        continue;
+                        await _usernameService.WaitOnValueAsync(stoppingToken);
+                        channelName = _usernameService.GetUsername()!;
                     }
-
-                    db.Dispose();
+                    if (string.IsNullOrEmpty(oauthToken))
+                    {
+                        await _tokenService.WaitOnValueAsync(stoppingToken);
+                        oauthToken = _tokenService.GetAccessToken()!;
+                    }
 
                     string? joinChannel = _config.JoinChannel;
                     if (!string.IsNullOrWhiteSpace(joinChannel))

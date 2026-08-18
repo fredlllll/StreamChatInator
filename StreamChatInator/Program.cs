@@ -54,7 +54,7 @@ namespace StreamChatInator
             builder.Services.AddHostedService<ChatReaderService>();
             builder.Services.AddSingleton<TwitchApiService>();
             builder.Services.AddSingleton<ChatHubData>();
-            builder.Services.AddSingleton<TwitchTokenService>();
+            builder.Services.AddSingleton<TwitchAuthService>();
             builder.Services.AddSingleton<EmoteProviderService>();
             builder.Services.AddSingleton<IEmoteFetcher, BttvEmoteFetcher>();
             builder.Services.AddSingleton<IEmoteFetcher, SevenTvEmoteFetcher>();
@@ -65,6 +65,8 @@ namespace StreamChatInator
             builder.Services.AddSingleton<EventRecorder>();
             builder.Services.AddSingleton<EventHistoryService>();
             builder.Services.AddSingleton<ConfigService>();
+            builder.Services.AddSingleton<TwitchTokenService>();
+            builder.Services.AddSingleton<TwitchUsernameService>();
             builder.Services.AddAuthorization(options =>
             {
                 options.DefaultPolicy = new AuthorizationPolicyBuilder()

@@ -34,8 +34,9 @@ public class FiltersControllerTests : IDisposable
     private FiltersController NewController()
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var history = new EventHistoryService(_db, NullLogger<EventHistoryService>.Instance, cache);
-        return new FiltersController(_db, history);
+        //TODO: constructor changed, let AI fix this
+        //var history = new EventHistoryService(_db, NullLogger<EventHistoryService>.Instance, cache);
+        return new FiltersController(_db, null!);
     }
 
     private ChatEventFilter CreateFilter(string codeJs = "function __matches(eventData) { return true; }")

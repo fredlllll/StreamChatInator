@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using StreamChatInator.Database.Models;
 
 namespace StreamChatInator.Database
@@ -28,6 +29,11 @@ namespace StreamChatInator.Database
                 var setting = new SettingValue() { Id = name, Value = value };
                 db.SettingValues.Add(setting);
             }
+        }
+
+        public static void UnsetSettingsValue(this DatabaseContext db, string name)
+        {
+            db.SettingValues.Where(x => x.Id == name).Take(1).ExecuteDelete();
         }
 
         public static string GetSettingsValue(this DatabaseContext db, string name)

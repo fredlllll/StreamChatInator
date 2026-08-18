@@ -25,11 +25,11 @@ namespace StreamChatInator.Controllers
         private const string Scopes = "chat:edit chat:read";
 
         private readonly DatabaseContext _db;
-        private readonly TwitchTokenService _tokenService;
+        private readonly TwitchAuthService _tokenService;
         private readonly AccessControlService _lanAccess;
         private readonly TwitchApiService _twitchApiService;
 
-        public AuthController(DatabaseContext db, TwitchApiService twitchApiService, TwitchTokenService tokenService, AccessControlService lanAccess)
+        public AuthController(DatabaseContext db, TwitchApiService twitchApiService, TwitchAuthService tokenService, AccessControlService lanAccess)
         {
             _db = db;
             _twitchApiService = twitchApiService;
@@ -42,7 +42,7 @@ namespace StreamChatInator.Controllers
         /// device code server-side, and returns everything the UI needs to show
         /// the user (verification URL + code) plus the polling id.
         /// </summary>
-        [HttpPost]
+        [HttpPost("beginDeviceLogin")]
         public async Task<IActionResult> BeginDeviceLogin()
         {
             var response = await _twitchApiService.RequestDeviceCodeAsync(Scopes);
@@ -72,7 +72,7 @@ namespace StreamChatInator.Controllers
         /// <c>interval</c> seconds. On success the tokens are persisted and the
         /// attempt is removed.
         /// </summary>
-        [HttpGet]
+        [HttpGet("deviceStatus")]
         public async Task<IActionResult> DeviceStatus(string? id)
         {
             if (string.IsNullOrEmpty(id) || !_deviceAttempts.TryGetValue(id, out var attempt))
@@ -127,7 +127,7 @@ namespace StreamChatInator.Controllers
         /// entirely when gating is opted out.
         /// </summary>
         [AllowAnonymous]
-        [HttpGet]
+        [HttpGet("status")]
         public IActionResult Status()
         {
             return Ok(new
@@ -143,7 +143,7 @@ namespace StreamChatInator.Controllers
         /// to brute-force over the network.
         /// </summary>
         [AllowAnonymous]
-        [HttpPost]
+        [HttpPost("pinLogin")]
         public async Task<IActionResult> PinLogin([FromBody] PinLoginRequest request)
         {
             if (!_lanAccess.Enabled) return NotFound();
@@ -166,7 +166,7 @@ namespace StreamChatInator.Controllers
             return Ok(new { ok = true });
         }
 
-        [HttpPost]
+        [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

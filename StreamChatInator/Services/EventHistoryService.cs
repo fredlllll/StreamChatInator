@@ -14,7 +14,7 @@ namespace StreamChatInator.Services
     /// </summary>
     public class EventHistoryService
     {
-        private readonly DatabaseContext _db;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<EventHistoryService> _logger;
         private readonly IMemoryCache _cache;
 
@@ -44,9 +44,9 @@ namespace StreamChatInator.Services
             [ChatEventType.UserTimedout] = db => db.ChatEventUserTimedouts,
         };
 
-        public EventHistoryService(DatabaseContext db, ILogger<EventHistoryService> logger, IMemoryCache cache)
+        public EventHistoryService(IServiceScopeFactory scopeFactory, ILogger<EventHistoryService> logger, IMemoryCache cache)
         {
-            _db = db;
+            _scopeFactory = scopeFactory;
             _logger = logger;
             _cache = cache;
         }
@@ -57,7 +57,10 @@ namespace StreamChatInator.Services
         /// </summary>
         public HistoryResponse? GetMessages(string filterId, string? before, int take)
         {
-            var filter = _db.ChatEventFilters.Find(filterId);
+            var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+
+            var filter = db.ChatEventFilters.Find(filterId);
             if (filter == null) return null;
 
             // Clamp the page size so an arbitrary query param can't ask for an
@@ -74,7 +77,7 @@ namespace StreamChatInator.Services
 
             for (int batch = 0; batch < maxBatchesToScan; batch++)
             {
-                IQueryable<ChatEvent> query = _db.ChatEvents;
+                IQueryable<ChatEvent> query = db.ChatEvents;
                 if (scanCreated.HasValue)
                 {
                     var created = scanCreated.Value;
@@ -159,6 +162,9 @@ namespace StreamChatInator.Services
         /// </summary>
         private Dictionary<string, object?> LoadEventDataBatch(IReadOnlyList<ChatEvent> chatEvents)
         {
+            var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+
             var eventDataById = new Dictionary<string, object?>(chatEvents.Count);
             var baseIds = new List<string>();
 
@@ -170,7 +176,7 @@ namespace StreamChatInator.Services
                 // new case in a switch). Unimplemented types are skipped entirely.
                 if (EventSets.TryGetValue(group.Key, out var getSet))
                 {
-                    LoadDetails(eventDataById, baseIds, ids, getSet(_db));
+                    LoadDetails(eventDataById, baseIds, ids, getSet(db));
                 }
             }
 
@@ -178,7 +184,7 @@ namespace StreamChatInator.Services
             {
                 // Merge each notice detail with its shared base row. One query
                 // for every base referenced in the batch, then apply.
-                var bases = _db.ChatUserNoticeBases
+                var bases = db.ChatUserNoticeBases
                     .Where(b => baseIds.Contains(b.Id))
                     .ToDictionary(b => b.Id);
 

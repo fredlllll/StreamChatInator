@@ -15,7 +15,6 @@ namespace StreamChatInator
         private readonly string _userName;
         private readonly string _joinChannel;
         private readonly ILogger<ChatReader> _logger;
-        private readonly IHubContext<ChatHub> _hub;
         private readonly ChatHubData _hubData;
         private readonly TaskCompletionSource _disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly EventRecorder _eventRecorder;
@@ -36,7 +35,6 @@ namespace StreamChatInator
             _joinChannel = string.IsNullOrWhiteSpace(joinChannel) ? userName : joinChannel;
             var loggerFactory = _scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
             _logger = loggerFactory.CreateLogger<ChatReader>();
-            _hub = _scope.ServiceProvider.GetRequiredService<IHubContext<ChatHub>>();
             _hubData = _scope.ServiceProvider.GetRequiredService<ChatHubData>();
             _eventRecorder = _scope.ServiceProvider.GetRequiredService<EventRecorder>();
 

@@ -15,7 +15,7 @@ namespace StreamChatInator.Services
         private readonly TwitchApiService _twitchApiService;
         private readonly ILogger<BadgeProviderService> _logger;
         private readonly IMemoryCache _cache;
-        private readonly TwitchTokenService _tokenService;
+        private readonly TwitchAuthService _tokenService;
         private readonly ConcurrentDictionary<string, Task<Dictionary<string, Dictionary<string, BadgeDto>>>> _inFlight = new();
 
         private static readonly TimeSpan Ttl = TimeSpan.FromHours(24);
@@ -23,7 +23,7 @@ namespace StreamChatInator.Services
         public BadgeProviderService(
             TwitchApiService twitchApiService,
             IMemoryCache cache,
-            TwitchTokenService tokenService,
+            TwitchAuthService tokenService,
             ILogger<BadgeProviderService> logger)
         {
             _twitchApiService = twitchApiService;
