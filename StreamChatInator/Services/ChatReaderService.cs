@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using StreamChatInator.Database;
+﻿using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
-using StreamChatInator.Hubs;
 using StreamChatInator.Services.Twitch;
 
 namespace StreamChatInator.Services
@@ -11,16 +9,14 @@ namespace StreamChatInator.Services
         private readonly ILogger<ChatReaderService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly TwitchTokenService _tokenService;
-        private readonly string? _joinChannel;
+        private readonly ConfigService _config;
 
-        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenService tokenService, IConfiguration config)
+        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenService tokenService, ConfigService config)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
             _tokenService = tokenService;
-            // Optional override for testing: when `Twitch:JoinChannel` is set,
-            // the bot joins that channel instead of the logged-in user's own.
-            _joinChannel = config["Twitch:JoinChannel"];
+            _config = config;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -56,15 +52,15 @@ namespace StreamChatInator.Services
 
                     db.Dispose();
 
-                    var reader = new ChatReader(_scopeFactory, channelName, oauthToken, _joinChannel);
+                    var reader = new ChatReader(_scopeFactory, channelName, oauthToken, _config.JoinChannel);
                     try
                     {
                         await reader.ConnectAsync();
                         hubData.SetConnected(true);
                         _logger.LogInformation("chat reader connected as {User}", channelName);
-                        if (!string.IsNullOrWhiteSpace(_joinChannel))
+                        if (!string.IsNullOrWhiteSpace(_config.JoinChannel))
                         {
-                            _logger.LogInformation("joining overridden channel {Channel} instead of own channel", _joinChannel);
+                            _logger.LogInformation("joining overridden channel {Channel} instead of own channel", _config.JoinChannel);
                         }
                         ConsoleUi.SetStatus($"Connected as {channelName}");
                         // Run returns when the twitch client drops or the app shuts down.

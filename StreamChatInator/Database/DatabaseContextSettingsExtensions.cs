@@ -42,14 +42,8 @@ namespace StreamChatInator.Database
 
         public static string? GetSettingsValueOrNull(this DatabaseContext db, string name)
         {
-            try
-            {
-                return GetSettingsValue(db, name);
-            }
-            catch
-            {
-                return null;
-            }
+            var entry = db.SettingValues.Find(name);
+            return entry?.Value;
         }
     }
 }

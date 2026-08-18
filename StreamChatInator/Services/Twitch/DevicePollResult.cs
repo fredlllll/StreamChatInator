@@ -1,6 +1,4 @@
-﻿using static StreamChatInator.Services.Twitch.TwitchApiService;
-
-namespace StreamChatInator.Services.Twitch
+﻿namespace StreamChatInator.Services.Twitch
 {
     public enum DevicePollStatus
     {
@@ -9,6 +7,9 @@ namespace StreamChatInator.Services.Twitch
         Failed,
     }
 
+    /// <summary>
+    /// used internally, will not be json serialized, so no explicit field names
+    /// </summary>
     public class DevicePollResult
     {
         public DevicePollStatus Status { get; init; }

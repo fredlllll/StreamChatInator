@@ -17,21 +17,14 @@ namespace StreamChatInator.Services.Twitch
         // swaps in a fresh, unsignaled latch when stored credentials become
         // unusable, blocking until the next login.
         private TaskCompletionSource _loginReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IConfiguration _config;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly TwitchApiService _twitchApiService;
 
-        public TwitchTokenService(IHttpClientFactory httpClientFactory, TwitchApiService twitchApiService, IConfiguration config, IServiceScopeFactory scopeFactory)
+        public TwitchTokenService(TwitchApiService twitchApiService, IServiceScopeFactory scopeFactory)
         {
-            _httpClientFactory = httpClientFactory;
             _twitchApiService = twitchApiService;
-            _config = config;
             _scopeFactory = scopeFactory;
         }
-
-        private string ClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
 
         /// <summary>Called after credentials are persisted (device login completed).</summary>
         public void SignalLogin()
@@ -135,7 +128,7 @@ namespace StreamChatInator.Services.Twitch
                 return null;
             }
 
-            var refreshed = await _twitchApiService.RefreshAccessTokenAsync(ClientId, refreshToken);
+            var refreshed = await _twitchApiService.RefreshAccessTokenAsync(refreshToken);
             if (refreshed == null || string.IsNullOrEmpty(refreshed.AccessToken))
             {
                 return null;

@@ -29,9 +29,6 @@ namespace StreamChatInator.Hubs
             await base.OnConnectedAsync();
         }
 
-        // future client->server RPC methods go here, e.g.:
-        // public Task<int> GetActiveViewerCount() => ...
-
         /// <summary>
         /// Pauses/resumes recording chat events. Internally this just updates the
         /// shared tracking flag, which the <see cref="ChatReader"/> checks before

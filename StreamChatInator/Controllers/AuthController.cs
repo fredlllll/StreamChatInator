@@ -9,7 +9,6 @@ using StreamChatInator.Services;
 using StreamChatInator.Services.Twitch;
 using System.Collections.Concurrent;
 using System.Security.Claims;
-using System.Security.Cryptography;
 
 namespace StreamChatInator.Controllers
 {

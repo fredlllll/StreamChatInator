@@ -1,7 +1,6 @@
 ﻿using StreamChatInator.Services.Twitch.Responses;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
 namespace StreamChatInator.Services.Twitch
 {
@@ -13,12 +12,10 @@ namespace StreamChatInator.Services.Twitch
         private const string GlobalBadgesUrl = "https://api.twitch.tv/helix/chat/badges/global";
         private const string ChannelBadgesUrl = "https://api.twitch.tv/helix/chat/badges";
 
-        private string ClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
-
-        private readonly IConfiguration _config;
+        private readonly ConfigService _config;
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public TwitchApiService(IConfiguration config, IHttpClientFactory httpClientFactory)
+        public TwitchApiService(ConfigService config, IHttpClientFactory httpClientFactory)
         {
             _config = config;
             _httpClientFactory = httpClientFactory;
@@ -35,9 +32,9 @@ namespace StreamChatInator.Services.Twitch
 
             var content = new FormUrlEncodedContent(
             [
-                new KeyValuePair<string, string>("client_id",ClientId),
-                new KeyValuePair<string,string>("grant_type","refresh_token"),
-                new KeyValuePair<string,string>("refresh_token",refreshToken)
+                new KeyValuePair<string, string>("client_id",_config.ClientId),
+                new KeyValuePair<string, string>("grant_type","refresh_token"),
+                new KeyValuePair<string, string>("refresh_token",refreshToken)
             ]);
 
             using var response = await httpClient.PostAsync(TokenUrl, content);
@@ -60,7 +57,7 @@ namespace StreamChatInator.Services.Twitch
                 return null;
             }
             var validation = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
-            if (!string.Equals(validation?.ClientId, ClientId, StringComparison.Ordinal))
+            if (!string.Equals(validation?.ClientId, _config.ClientId, StringComparison.Ordinal))
             {
                 return null;
             }
@@ -72,7 +69,7 @@ namespace StreamChatInator.Services.Twitch
             var httpClient = GetHttpClient();
             var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = ClientId,
+                ["client_id"] = _config.ClientId,
                 ["scopes"] = scopes,
             });
 
@@ -89,7 +86,7 @@ namespace StreamChatInator.Services.Twitch
             var httpClient = GetHttpClient();
             var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = ClientId,
+                ["client_id"] = _config.ClientId,
                 ["device_code"] = deviceCode,
                 ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code",
                 ["scopes"] = scopes,
@@ -134,7 +131,7 @@ namespace StreamChatInator.Services.Twitch
             var httpClient = GetHttpClient();
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-            request.Headers.Add("Client-Id", ClientId);
+            request.Headers.Add("Client-Id", _config.ClientId);
 
             using var response = await httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)

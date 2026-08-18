@@ -63,6 +63,7 @@ namespace StreamChatInator
             builder.Services.AddSingleton<IAuthorizationHandler, AccessControlHandler>();
             builder.Services.AddSingleton<EventRecorder>();
             builder.Services.AddSingleton<EventHistoryService>();
+            builder.Services.AddSingleton<ConfigService>();
             builder.Services.AddAuthorization(options =>
             {
                 options.DefaultPolicy = new AuthorizationPolicyBuilder()

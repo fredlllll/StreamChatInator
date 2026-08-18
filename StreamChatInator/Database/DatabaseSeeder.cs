@@ -2,7 +2,7 @@ using StreamChatInator.Database.Models;
 
 namespace StreamChatInator.Database
 {
-    /// <summary>Inserts a set of sensible default filters the first time the app runs.</summary>
+    /// <summary>Inserts a set of sensible default filters if the filters table is empty</summary>
     public static class DatabaseSeeder
     {
         public static void Seed(DatabaseContext db)

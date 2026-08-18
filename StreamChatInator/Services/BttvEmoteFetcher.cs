@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace StreamChatInator.Services
 {
     public class BttvEmoteFetcher : EmoteFetcherBase

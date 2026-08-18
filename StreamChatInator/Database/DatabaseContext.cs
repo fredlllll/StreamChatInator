@@ -59,7 +59,6 @@ namespace StreamChatInator.Database
             modelBuilder.Entity<ChatEventUserJoined>().ToTable(nameof(ChatEventUserJoineds));
             modelBuilder.Entity<ChatEventUserLeft>().ToTable(nameof(ChatEventUserLefts));
             modelBuilder.Entity<ChatEventUserTimedout>().ToTable(nameof(ChatEventUserTimedouts));
-
         }
     }
 }
