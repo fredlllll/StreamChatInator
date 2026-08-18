@@ -52,16 +52,18 @@ namespace StreamChatInator.Services
 
                     db.Dispose();
 
-                    var reader = new ChatReader(_scopeFactory, channelName, oauthToken, _config.JoinChannel);
+                    string? joinChannel = _config.JoinChannel;
+                    if (!string.IsNullOrWhiteSpace(joinChannel))
+                    {
+                        _logger.LogInformation("joining overridden channel {Channel} instead of own channel", joinChannel);
+                    }
+
+                    var reader = new ChatReader(_scopeFactory, channelName, oauthToken, joinChannel);
                     try
                     {
                         await reader.ConnectAsync();
                         hubData.SetConnected(true);
                         _logger.LogInformation("chat reader connected as {User}", channelName);
-                        if (!string.IsNullOrWhiteSpace(_config.JoinChannel))
-                        {
-                            _logger.LogInformation("joining overridden channel {Channel} instead of own channel", _config.JoinChannel);
-                        }
                         ConsoleUi.SetStatus($"Connected as {channelName}");
                         // Run returns when the twitch client drops or the app shuts down.
                         await reader.Run(stoppingToken);
