@@ -31,11 +31,11 @@ namespace StreamChatInator.Services
             public DateTime LastFailureUtc = DateTime.MinValue;
         }
 
-        public AccessControlService(IConfiguration config)
+        public AccessControlService(ConfigService config)
         {
-            Enabled = config.GetValue("Auth:Enabled", true);
-            var configuredPin = config["Auth:Pin"];
-            Pin = string.IsNullOrWhiteSpace(configuredPin) ? GeneratePin() : configuredPin.Trim();
+            Enabled = config.AuthEnabled;
+            var configuredPin = config.AuthConfiguredPin?.Trim();
+            Pin = string.IsNullOrWhiteSpace(configuredPin) ? GeneratePin() : configuredPin;
         }
 
         public bool ValidatePin(string? pin)
@@ -43,7 +43,7 @@ namespace StreamChatInator.Services
             if (string.IsNullOrEmpty(pin) || pin.Length != Pin.Length) return false;
             var a = System.Text.Encoding.UTF8.GetBytes(pin);
             var b = System.Text.Encoding.UTF8.GetBytes(Pin);
-            return CryptographicOperations.FixedTimeEquals(a, b);
+            return CryptographicOperations.FixedTimeEquals(a, b); //i guess the AI really overshot here, a simple equals wouldve done too lol
         }
 
         public bool IsLockedOut(string? clientIp)
@@ -52,8 +52,7 @@ namespace StreamChatInator.Services
             {
                 PruneExpired();
                 var key = NormalizeIp(clientIp);
-                return _attemptsByIp.TryGetValue(key, out var state)
-                    && DateTime.UtcNow < state.LockedUntilUtc;
+                return _attemptsByIp.TryGetValue(key, out var state) && DateTime.UtcNow < state.LockedUntilUtc;
             }
         }
 
@@ -117,6 +116,10 @@ namespace StreamChatInator.Services
             }
         }
 
+        /// <summary>
+        /// generates a random 6 digit long pin
+        /// </summary>
+        /// <returns></returns>
         private static string GeneratePin()
         {
             Span<byte> bytes = stackalloc byte[4];

@@ -25,15 +25,15 @@ namespace StreamChatInator.Controllers
         private const string Scopes = "chat:edit chat:read";
 
         private readonly DatabaseContext _db;
-        private readonly TwitchAuthService _tokenService;
+        private readonly TwitchAuthService _twitchAuthService;
         private readonly AccessControlService _lanAccess;
         private readonly TwitchApiService _twitchApiService;
 
-        public AuthController(DatabaseContext db, TwitchApiService twitchApiService, TwitchAuthService tokenService, AccessControlService lanAccess)
+        public AuthController(DatabaseContext db, TwitchApiService twitchApiService, TwitchAuthService twitchAuthService, AccessControlService lanAccess)
         {
             _db = db;
             _twitchApiService = twitchApiService;
-            _tokenService = tokenService;
+            _twitchAuthService = twitchAuthService;
             _lanAccess = lanAccess;
         }
 
@@ -115,7 +115,7 @@ namespace StreamChatInator.Controllers
             _db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
             _db.SaveChanges();
 
-            _tokenService.SignalLogin();
+            _twitchAuthService.SignalLogin();
 
             return ResponseHelper.OkStatusUsername("ok", validation.Login);
         }

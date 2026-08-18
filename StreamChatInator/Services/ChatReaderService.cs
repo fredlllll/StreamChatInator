@@ -46,7 +46,7 @@ namespace StreamChatInator.Services
                         oauthToken = _tokenService.GetAccessToken()!;
                     }
 
-                    string? joinChannel = _config.JoinChannel;
+                    string? joinChannel = _config.TwitchJoinChannel;
                     if (!string.IsNullOrWhiteSpace(joinChannel))
                     {
                         _logger.LogInformation("joining overridden channel {Channel} instead of own channel", joinChannel);

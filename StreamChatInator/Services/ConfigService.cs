@@ -4,9 +4,12 @@
     {
         private IConfiguration _config;
 
-        public string ClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
+        public string TwitchClientId => _config["Twitch:ClientId"] ?? Constants.TwitchAppClientId;
 
-        public string? JoinChannel => _config["Twitch:JoinChannel"];
+        public string? TwitchJoinChannel => _config["Twitch:JoinChannel"];
+
+        public bool AuthEnabled => _config.GetValue("Auth:Enabled", true);
+        public string? AuthConfiguredPin => _config["Auth:Pin"];
 
         public ConfigService(IConfiguration config)
         {

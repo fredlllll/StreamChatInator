@@ -32,7 +32,7 @@ namespace StreamChatInator.Services.Twitch
 
             var content = new FormUrlEncodedContent(
             [
-                new KeyValuePair<string, string>("client_id",_config.ClientId),
+                new KeyValuePair<string, string>("client_id",_config.TwitchClientId),
                 new KeyValuePair<string, string>("grant_type","refresh_token"),
                 new KeyValuePair<string, string>("refresh_token",refreshToken)
             ]);
@@ -57,7 +57,7 @@ namespace StreamChatInator.Services.Twitch
                 return null;
             }
             var validation = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
-            if (!string.Equals(validation?.ClientId, _config.ClientId, StringComparison.Ordinal))
+            if (!string.Equals(validation?.ClientId, _config.TwitchClientId, StringComparison.Ordinal))
             {
                 return null;
             }
@@ -69,7 +69,7 @@ namespace StreamChatInator.Services.Twitch
             var httpClient = GetHttpClient();
             var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = _config.ClientId,
+                ["client_id"] = _config.TwitchClientId,
                 ["scopes"] = scopes,
             });
 
@@ -86,7 +86,7 @@ namespace StreamChatInator.Services.Twitch
             var httpClient = GetHttpClient();
             var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = _config.ClientId,
+                ["client_id"] = _config.TwitchClientId,
                 ["device_code"] = deviceCode,
                 ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code",
                 ["scopes"] = scopes,
@@ -131,7 +131,7 @@ namespace StreamChatInator.Services.Twitch
             var httpClient = GetHttpClient();
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-            request.Headers.Add("Client-Id", _config.ClientId);
+            request.Headers.Add("Client-Id", _config.TwitchClientId);
 
             using var response = await httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)

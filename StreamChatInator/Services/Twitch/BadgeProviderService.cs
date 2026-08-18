@@ -1,8 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
-using StreamChatInator.Services.Twitch;
 
-namespace StreamChatInator.Services
+namespace StreamChatInator.Services.Twitch
 {
     /// <summary>
     /// Fetches Twitch chat badges (global + the connected channel's custom
@@ -15,7 +14,7 @@ namespace StreamChatInator.Services
         private readonly TwitchApiService _twitchApiService;
         private readonly ILogger<BadgeProviderService> _logger;
         private readonly IMemoryCache _cache;
-        private readonly TwitchAuthService _tokenService;
+        private readonly TwitchAuthService _twitchAuthService;
         private readonly ConcurrentDictionary<string, Task<Dictionary<string, Dictionary<string, BadgeDto>>>> _inFlight = new();
 
         private static readonly TimeSpan Ttl = TimeSpan.FromHours(24);
@@ -23,12 +22,12 @@ namespace StreamChatInator.Services
         public BadgeProviderService(
             TwitchApiService twitchApiService,
             IMemoryCache cache,
-            TwitchAuthService tokenService,
+            TwitchAuthService twitchAuthService,
             ILogger<BadgeProviderService> logger)
         {
             _twitchApiService = twitchApiService;
             _cache = cache;
-            _tokenService = tokenService;
+            _twitchAuthService = twitchAuthService;
             _logger = logger;
         }
 
@@ -69,7 +68,7 @@ namespace StreamChatInator.Services
 
             try
             {
-                var token = await _tokenService.GetAccessTokenAsync();
+                var token = await _twitchAuthService.GetAccessTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
                     return merged;
@@ -139,7 +138,7 @@ namespace StreamChatInator.Services
             {
                 return null;
             }
-            var token = await _tokenService.RefreshAccessTokenAsync();
+            var token = await _twitchAuthService.RefreshAccessTokenAsync();
             if (string.IsNullOrEmpty(token))
             {
                 _logger.LogWarning("Could not obtain a valid token to fetch Twitch badges");
