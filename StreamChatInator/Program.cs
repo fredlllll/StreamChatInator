@@ -1,19 +1,12 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
-using StreamChatInator.Auth;
 using StreamChatInator.Database;
 using StreamChatInator.Hubs;
 using StreamChatInator.Services;
-using StreamChatInator.Services.Emotes;
-using StreamChatInator.Services.Twitch;
 
 namespace StreamChatInator
 {
     public class Program
     {
-        const int vitePort = 53401;
         const int defaultPort = 17455;
 
         public static void Main(string[] args)
@@ -45,79 +38,7 @@ namespace StreamChatInator
                     else
                         w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning);
                 }));
-            builder.Services.AddControllers(options =>
-            {
-                // Gate every controller action behind the LAN PIN by default.
-                // LanAccessHandler lets everything through when Auth:Enabled=false.
-                options.Filters.Add(new AuthorizeFilter());
-            });
-            builder.Services.AddHostedService<ChatReaderService>();
-            builder.Services.AddSingleton<TwitchApiService>();
-            builder.Services.AddSingleton<ChatHubData>();
-            builder.Services.AddSingleton<TwitchAuthService>();
-            builder.Services.AddSingleton<EmoteProviderService>();
-            builder.Services.AddSingleton<IEmoteFetcher, BttvEmoteFetcher>();
-            builder.Services.AddSingleton<IEmoteFetcher, SevenTvEmoteFetcher>();
-            builder.Services.AddSingleton<IEmoteFetcher, FfzEmoteFetcher>();
-            builder.Services.AddSingleton<BadgeProviderService>();
-            builder.Services.AddSingleton<AccessControlService>();
-            builder.Services.AddSingleton<IAuthorizationHandler, AccessControlHandler>();
-            builder.Services.AddSingleton<EventRecorder>();
-            builder.Services.AddSingleton<EventHistoryService>();
-            builder.Services.AddSingleton<ConfigService>();
-            builder.Services.AddSingleton<TwitchTokenService>();
-            builder.Services.AddSingleton<TwitchUsernameService>();
-            builder.Services.AddAuthorization(options =>
-            {
-                options.DefaultPolicy = new AuthorizationPolicyBuilder()
-                    .AddRequirements(new AccessControlRequirement())
-                    .Build();
-            });
-            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.Cookie.Name = "StreamChatInator.Auth";
-                    options.Cookie.HttpOnly = true;
-                    options.Cookie.SameSite = SameSiteMode.Lax;
-                    options.ExpireTimeSpan = TimeSpan.FromDays(30);
-                    options.SlidingExpiration = true;
-                    options.LoginPath = "/login";
-                    options.Events = new CookieAuthenticationEvents
-                    {
-                        // API calls get a 401 instead of a redirect to /login,
-                        // so fetch() and SignalR fail cleanly when unauthenticated.
-                        OnRedirectToLogin = context =>
-                        {
-                            if (context.Request.Path.StartsWithSegments("/api"))
-                            {
-                                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                                return Task.CompletedTask;
-                            }
-                            context.Response.Redirect(context.RedirectUri);
-                            return Task.CompletedTask;
-                        }
-                    };
-                });
-            builder.Services.AddMemoryCache();
-            builder.Services.AddHttpClient(HttpClientName.Emotes.ToString(), client =>
-            {
-                client.Timeout = TimeSpan.FromSeconds(15);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
-            });
-            builder.Services.AddHttpClient(HttpClientName.Twitch.ToString(), client =>
-            {
-                client.Timeout = TimeSpan.FromSeconds(15);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
-            });
-            builder.Services.AddSignalR();
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowReact", policy =>
-                    policy.WithOrigins($"http://localhost:{vitePort}")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .AllowCredentials());
-            });
+            builder.Services.AddApplicationServices(builder.Configuration);
 
             builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 

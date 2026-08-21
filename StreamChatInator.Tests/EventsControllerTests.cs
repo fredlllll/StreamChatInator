@@ -186,7 +186,7 @@ public class EventsControllerTests : IDisposable
         var result = await controller.Delete();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(3, ok.Value?.GetType().GetProperty("deleted")?.GetValue(ok.Value));
+        Assert.Equal(3, ok.Value?.GetType().GetProperty("numDeleted")?.GetValue(ok.Value));
 
         Assert.Equal(0, _db.ChatEvents.Count());
         Assert.Equal(0, _db.ChatEventChatMessages.Count());
@@ -206,7 +206,7 @@ public class EventsControllerTests : IDisposable
         var result = await controller.Delete();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(0, ok.Value?.GetType().GetProperty("deleted")?.GetValue(ok.Value));
+        Assert.Equal(0, ok.Value?.GetType().GetProperty("numDeleted")?.GetValue(ok.Value));
     }
 
     [Fact]

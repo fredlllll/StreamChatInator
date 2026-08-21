@@ -1,17 +1,19 @@
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using StreamChatInator.Services;
 
 namespace StreamChatInator.Tests;
 
-public class LanAccessServiceTests
+public class LanAccessServiceTests : IDisposable
 {
-    //another change in api that AI has to fix
-    private static AccessControlService NewService(string? pin = "123456") => null!;/* new(
-        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["Auth:Pin"] = pin,
-        }).Build());
-    */
+    private TestHost? _host;
+
+    public void Dispose() => _host?.Dispose();
+
+    private AccessControlService NewService(string? pin = "123456")
+    {
+        _host = new TestHost(config: new Dictionary<string, string?> { ["Auth:Pin"] = pin });
+        return _host.Provider.GetRequiredService<AccessControlService>();
+    }
 
     [Fact]
     public void InitiallyNotLockedOut()

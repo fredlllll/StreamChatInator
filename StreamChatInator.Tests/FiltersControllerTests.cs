@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using StreamChatInator.Controllers;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
@@ -13,31 +12,30 @@ namespace StreamChatInator.Tests;
 public class FiltersControllerTests : IDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly TestHost _host;
+    private readonly IServiceScope _scope;
     private readonly DatabaseContext _db;
 
     public FiltersControllerTests()
     {
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
-        _db = new DatabaseContext(new DbContextOptionsBuilder<DatabaseContext>()
-            .UseSqlite(_connection)
-            .Options);
+        _host = new TestHost(services =>
+            services.AddDbContext<DatabaseContext>(options => options.UseSqlite(_connection)));
+        _scope = _host.CreateScope();
+        _db = _scope.ServiceProvider.GetRequiredService<DatabaseContext>();
         _db.Database.EnsureCreated();
     }
 
     public void Dispose()
     {
-        _db.Dispose();
+        _scope.Dispose();
+        _host.Dispose();
         _connection.Dispose();
     }
 
-    private FiltersController NewController()
-    {
-        var cache = new MemoryCache(new MemoryCacheOptions());
-        //TODO: constructor changed, let AI fix this
-        //var history = new EventHistoryService(_db, NullLogger<EventHistoryService>.Instance, cache);
-        return new FiltersController(_db, null!);
-    }
+    private FiltersController NewController() =>
+        ActivatorUtilities.CreateInstance<FiltersController>(_scope.ServiceProvider);
 
     private ChatEventFilter CreateFilter(string codeJs = "function __matches(eventData) { return true; }")
     {
