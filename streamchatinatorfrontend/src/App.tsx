@@ -6,7 +6,7 @@ import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
 import TwitchLoginButton from "./components/TwitchLoginButton";
 import LanLogin from "./components/Login";
-import { useChatConnection } from "./ChatContext";
+import { useChatActions, useChatState } from "./ChatContext";
 import { getAuthStatus, logout } from "./api/authApi";
 import { purgeEvents, generateTestEvents } from "./api/eventsApi";
 import { useTheme } from "./theme";
@@ -14,7 +14,8 @@ import "./App.css";
 
 function App() {
     const { theme, toggleTheme } = useTheme();
-    const { tracking, setTracking } = useChatConnection();
+    const { tracking } = useChatState();
+    const { setTracking } = useChatActions();
     const [authChecking, setAuthChecking] = useState(true);
     const [authenticated, setAuthenticated] = useState(false);
     const [authenticationEnabled, setAuthenticationEnabled] = useState(false);

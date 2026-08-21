@@ -1,8 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import type { FrontEndEventData } from "./types";
 
-export interface ChatContextType {
+export interface ChatStateContextType {
     events: FrontEndEventData[];
     twitchConnected: boolean;
     signalRConnectedAt: Date | null;
@@ -17,6 +17,12 @@ export interface ChatContextType {
     // Bumped whenever the server purges all events, so views can drop their
     // cached history alongside the live list.
     purgeVersion: number;
+}
+
+// Actions are referentially stable across event arrivals, so components that
+// only invoke them (e.g. a chat item's seen checkbox) can subscribe to this
+// context alone and skip the per-message re-renders of the state half.
+export interface ChatActionsContextType {
     setEventSeen: (eventId: string, seen: boolean) => void;
     registerSeen: (eventId: string, seen: boolean) => void;
     undoSeen: () => void;
@@ -24,7 +30,15 @@ export interface ChatContextType {
     setTracking: (enabled: boolean) => void;
 }
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
+export type ChatContextType = ChatStateContextType & ChatActionsContextType;
+
+const ChatStateContext = createContext<ChatStateContextType | undefined>(undefined);
+const ChatActionsContext = createContext<ChatActionsContextType | undefined>(undefined);
+
+// Delays between initial-start retries. withAutomaticReconnect only covers
+// drops *after* a successful start, so a backend that isn't up yet needs this
+// manual backoff loop instead of a single dead attempt.
+const START_RETRY_DELAYS_MS = [1_000, 2_000, 5_000, 10_000];
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [events, setEvents] = useState<FrontEndEventData[]>([]);
@@ -49,26 +63,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const registerSeen = useCallback((eventId: string, seen: boolean) => {
         setSeenState((prev) => (prev[eventId] === seen ? prev : { ...prev, [eventId]: seen }));
         const prior = seenPriorRef.current;
-        const hadKey = Object.prototype.hasOwnProperty.call(prior, eventId);
-        if (hadKey && prior[eventId] !== seen) {
+        if (Object.prototype.hasOwnProperty.call(prior, eventId) && prior[eventId] !== seen) {
             setSeenVersion((v) => v + 1);
         }
-        seenPriorRef.current = { ...prior, [eventId]: seen };
+        // Mutated rather than spread-copied: this ref is never rendered, and
+        // copying the whole map on every event arrival made arrivals O(n²).
+        prior[eventId] = seen;
     }, []);
 
     const applyEventSeen = useCallback(
         (eventId: string, seen: boolean, recordUndo: boolean) => {
+            // Capture the previous value from the synchronous mirror *before*
+            // registerSeen overwrites it. Reading the seenState closure here
+            // would both staleness-prone and force these callbacks to be
+            // re-created on every arrival.
+            const previous = recordUndo ? seenPriorRef.current[eventId] : undefined;
             registerSeen(eventId, seen);
-            if (recordUndo) {
-                const previous = seenState[eventId];
-                if (previous !== undefined) {
-                    undoStackRef.current.push({ eventId, previousSeen: previous });
-                    setCanUndoSeen(true);
-                }
+            if (previous !== undefined) {
+                undoStackRef.current.push({ eventId, previousSeen: previous });
+                setCanUndoSeen(true);
             }
             connectionRef.current?.invoke("SetEventSeen", eventId, seen).catch((err) => console.error("Failed to set seen:", err));
         },
-        [registerSeen, seenState]
+        [registerSeen]
     );
 
     const setEventSeen = useCallback(
@@ -152,29 +169,85 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         });
 
         // The history backfill anchor: set when the SignalR transport itself
-        // comes up (initial start), not when the Twitch chat connects — those
-        // are unrelated states.
-        connection.start()
-            .then(() => setSignalRConnectedAt(new Date()))
-            .catch((err) => console.error("SignalR connection failed:", err));
+        // first comes up (initial start), not when the Twitch chat connects —
+        // those are unrelated states. Kept at the *first* successful start:
+        // resetting it on later reconnects would re-fetch history overlapping
+        // events already held live.
+        let disposed = false;
+
+        const startWithRetry = async () => {
+            for (let attempt = 0; ; attempt++) {
+                // The state check also defuses the start/stop races: if a
+                // previous loop (or SignalR itself) already moved the
+                // connection out of Disconnected, this loop just exits.
+                if (disposed || connection.state !== signalR.HubConnectionState.Disconnected) return;
+                try {
+                    await connection.start();
+                    if (!disposed) setSignalRConnectedAt((prev) => prev ?? new Date());
+                    return;
+                } catch (err) {
+                    if (disposed) return;
+                    const delay = START_RETRY_DELAYS_MS[Math.min(attempt, START_RETRY_DELAYS_MS.length - 1)];
+                    console.error(`SignalR start failed (attempt ${attempt + 1}); retrying in ${delay}ms:`, err);
+                    await new Promise((resolve) => setTimeout(resolve, delay));
+                }
+            }
+        };
+
+        void startWithRetry();
+
+        // withAutomaticReconnect gives up after its own retry budget (~30s of
+        // attempts); pick the restart back up manually when it does.
+        connection.onclose(() => {
+            if (!disposed) void startWithRetry();
+        });
 
         return () => {
+            disposed = true;
             connectionRef.current = null;
-            connection.stop();
+            void connection.stop();
         };
     }, [registerSeen]);
 
+    const actionsValue = useMemo(
+        () => ({ setEventSeen, registerSeen, undoSeen, canUndoSeen, setTracking }),
+        [setEventSeen, registerSeen, undoSeen, canUndoSeen, setTracking]
+    );
+    const stateValue = useMemo(
+        () => ({ events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, seenVersion, purgeVersion }),
+        [events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, seenVersion, purgeVersion]
+    );
+
     return (
-        <ChatContext.Provider value={{ events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, seenVersion, purgeVersion, setEventSeen, registerSeen, undoSeen, canUndoSeen, setTracking }}>
-            {children}
-        </ChatContext.Provider>
+        <ChatActionsContext.Provider value={actionsValue}>
+            <ChatStateContext.Provider value={stateValue}>
+                {children}
+            </ChatStateContext.Provider>
+        </ChatActionsContext.Provider>
     );
 }
 
-export function useChatConnection(): ChatContextType {
-    const context = useContext(ChatContext);
+export function useChatActions(): ChatActionsContextType {
+    const context = useContext(ChatActionsContext);
     if (!context) {
-        throw new Error("useChatConnection must be used within a ChatProvider");
+        throw new Error("useChatActions must be used within a ChatProvider");
     }
     return context;
+}
+
+export function useChatState(): ChatStateContextType {
+    const context = useContext(ChatStateContext);
+    if (!context) {
+        throw new Error("useChatState must be used within a ChatProvider");
+    }
+    return context;
+}
+
+export function useChatConnection(): ChatContextType {
+    const state = useContext(ChatStateContext);
+    const actions = useContext(ChatActionsContext);
+    if (!state || !actions) {
+        throw new Error("useChatConnection must be used within a ChatProvider");
+    }
+    return { ...state, ...actions };
 }

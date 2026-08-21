@@ -1,6 +1,5 @@
 import type { ReactEmoteParser } from "../emoteReplace/ReactEmoteParser";
 import { useEmoteParser } from "../useEmoteParser";
-import { isString } from "../util";
 
 export class Emote {
     readonly id: string;
@@ -16,6 +15,10 @@ export class Emote {
     }
 }
 
+// Constructing a Segmenter isn't free and messages render constantly; one
+// instance is stateless and reusable.
+const graphemeSegmenter = new Intl.Segmenter();
+
 export function extractEmotes(
     rawEmoteSetString: string | null | undefined,
     message: string | null | undefined
@@ -25,9 +28,8 @@ export function extractEmotes(
     }
 
     // Segment message by grapheme clusters (mirrors C# StringInfo behavior)
-    const segmenter = new Intl.Segmenter();
     const graphemes: string[] = Array.from(
-        segmenter.segment(message),
+        graphemeSegmenter.segment(message),
         (s: Intl.SegmentData) => s.segment
     );
 
@@ -79,16 +81,19 @@ function EmoteReplacedMessage({ emotes, text }: EmoteReplacedMessageProps) {
 
     // Slice out native Twitch emotes by their positions first; the plain-text
     // segments left in between go through the external (BTTV/7TV/FFZ) parser.
-    const elements: React.ReactNode[] = [];
+    // Each text segment is parsed with its character offset in the full
+    // message as `keyBase`, so identical codes at the same token index in
+    // different segments can't collide on React keys.
+    const rendered: React.ReactNode[] = [];
     const emoteList = extractEmotes(emotes, text).sort((a, b) => a.startIndex - b.startIndex);
 
     let lastIndex = 0;
-    emoteList.forEach((emote) => {
+    for (const emote of emoteList) {
         if (emote.startIndex > lastIndex) {
-            elements.push(text.slice(lastIndex, emote.startIndex));
+            rendered.push(...emoteParser.parse(text.slice(lastIndex, emote.startIndex), lastIndex));
         }
 
-        elements.push(
+        rendered.push(
             <img
                 key={`twitch-${emote.id}-${emote.startIndex}`}
                 src={`https://static-cdn.jtvnw.net/emoticons/v2/${emote.id}/default/light/2.0`}
@@ -99,23 +104,14 @@ function EmoteReplacedMessage({ emotes, text }: EmoteReplacedMessageProps) {
         );
 
         lastIndex = emote.endIndex + 1;
-    });
+    }
 
     if (lastIndex < text.length) {
-        elements.push(text.slice(lastIndex));
+        rendered.push(...emoteParser.parse(text.slice(lastIndex), lastIndex));
     }
-    if (elements.length === 0) {
-        elements.push(text);
+    if (rendered.length === 0) {
+        rendered.push(text);
     }
-
-    const rendered: React.ReactNode[] = [];
-    elements.forEach((value) => {
-        if (isString(value)) {
-            rendered.push(...emoteParser.parse(value));
-        } else {
-            rendered.push(value);
-        }
-    });
 
     return <span className="text">{rendered}</span>;
 }

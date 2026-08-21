@@ -1,21 +1,28 @@
+import { memo } from "react";
 import eventComponents from "./eventComponents";
-import { useChatConnection } from "../ChatContext";
+import { useChatActions } from "../ChatContext";
 import type { FrontEndEventData } from "../types";
 import { formatEventTime, formatFullTime } from "../util";
 
 type ChatEventItemProps = {
     event: FrontEndEventData;
+    // Resolved by the list (which already tracks seenState), so this component
+    // doesn't have to subscribe to it — seenState changes on every arrival,
+    // which would defeat the memo below.
+    seen: boolean;
 };
 
-function ChatEventItem({ event }: ChatEventItemProps) {
-    const { seenState, setEventSeen } = useChatConnection();
+// Memoized over primitive props + stable refs from ChatActionsContext: when a
+// new message arrives only the items whose own seen flag changed re-render,
+// instead of every visible item in every tile.
+function ChatEventItem({ event, seen }: ChatEventItemProps) {
+    const { setEventSeen } = useChatActions();
     const Component = eventComponents[event.chatEventType];
 
     if (!Component) {
         return <div className="unknown-event">Unhandled event type: {event.chatEventType}</div>;
     }
 
-    const seen = seenState[event.eventId] ?? event.seen;
     const time = formatEventTime(event.chatEventData);
 
     return (
@@ -37,4 +44,4 @@ function ChatEventItem({ event }: ChatEventItemProps) {
     );
 }
 
-export default ChatEventItem;
+export default memo(ChatEventItem);

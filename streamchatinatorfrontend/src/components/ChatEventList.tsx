@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import ChatEventItem from "./ChatEventItem";
+import { useChatState } from "../ChatContext";
 import type { FrontEndEventData } from "../types";
 import type { CSSProperties } from "react";
 
@@ -14,6 +15,7 @@ type ChatEventListProps = {
 function ChatEventList({ events, firstItemIndex, onStartReached, style }: ChatEventListProps) {
     const virtuosoRef = useRef<VirtuosoHandle>(null);
     const [atBottom, setAtBottom] = useState(true);
+    const { seenState } = useChatState();
 
     // Wait for data before mounting: `initialTopMostItemIndex` is only honored
     // at mount time, and with an empty list it would pin the view to the top
@@ -37,7 +39,9 @@ function ChatEventList({ events, firstItemIndex, onStartReached, style }: ChatEv
                 followOutput="smooth"
                 startReached={onStartReached}
                 atBottomStateChange={setAtBottom}
-                itemContent={(_, event) => <ChatEventItem event={event} />}
+                itemContent={(_, event) => (
+                    <ChatEventItem event={event} seen={seenState[event.eventId] ?? event.seen} />
+                )}
             />
             {!atBottom && (
                 <button

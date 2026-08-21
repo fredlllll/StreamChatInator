@@ -11,7 +11,13 @@ export class ReactEmoteParser {
         this.emotes = emotes;
     }
 
-    public parse(text: string): ReactNode[] {
+    /**
+     * `keyBase` disambiguates keys when one message is parsed in multiple
+     * segments: two segments could otherwise emit the same code at the same
+     * token index and produce duplicate React keys. Callers pass a value
+     * unique to the segment (e.g. its character offset in the full message).
+     */
+    public parse(text: string, keyBase: number | string = ""): ReactNode[] {
         const tokens = text.split(/(\s+)/);
 
         return tokens.flatMap((token, index) => {
@@ -19,7 +25,7 @@ export class ReactEmoteParser {
 
             // Exact match first: covers codes that contain non-word characters.
             if (this.emotes.has(token)) {
-                return [this.renderEmote(token, index)];
+                return [this.renderEmote(token, index, keyBase)];
             }
 
             // Otherwise try to match a word part surrounded by punctuation,
@@ -28,7 +34,7 @@ export class ReactEmoteParser {
             if (match && this.emotes.has(match[2])) {
                 const nodes: ReactNode[] = [];
                 if (match[1]) nodes.push(match[1]);
-                nodes.push(this.renderEmote(match[2], index));
+                nodes.push(this.renderEmote(match[2], index, keyBase));
                 if (match[3]) nodes.push(match[3]);
                 return nodes;
             }
@@ -37,10 +43,10 @@ export class ReactEmoteParser {
         });
     }
 
-    private renderEmote(code: string, index: number): ReactNode {
+    private renderEmote(code: string, index: number, keyBase: number | string): ReactNode {
         return (
             <img
-                key={`${code}-${index}`}
+                key={`${keyBase}-${code}-${index}`}
                 src={this.emotes.get(code)!}
                 alt={code}
                 title={code}
