@@ -5,11 +5,13 @@ namespace StreamChatInator.Tests;
 
 public class LanAccessServiceTests
 {
-    private static AccessControlService NewService(string? pin = "123456") => new(
+    //another change in api that AI has to fix
+    private static AccessControlService NewService(string? pin = "123456") => null!;/* new(
         new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Auth:Pin"] = pin,
         }).Build());
+    */
 
     [Fact]
     public void InitiallyNotLockedOut()
