@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
             options.Filters.Add(new AuthorizeFilter());
         });
         services.AddHostedService<ChatReaderService>();
+        services.AddHostedService<TwitchTokenRefreshService>();
         services.AddSingleton<ChatHubData>();
         services.AddSingleton<TwitchAuthService>();
         services.AddSingleton<EmoteProviderService>();

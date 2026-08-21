@@ -37,6 +37,7 @@ namespace StreamChatInator.Services
         {
             Value.Post(value);
             _db.SetSettingsValue(_settingName, value);
+            _db.SaveChanges();
         }
 
         protected void UnsetValue()

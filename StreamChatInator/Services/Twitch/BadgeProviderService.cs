@@ -14,7 +14,7 @@ namespace StreamChatInator.Services.Twitch
         private readonly TwitchApiService _twitchApiService;
         private readonly ILogger<BadgeProviderService> _logger;
         private readonly IMemoryCache _cache;
-        private readonly TwitchAuthService _twitchAuthService;
+        private readonly TwitchTokenService _tokenService;
         private readonly ConcurrentDictionary<string, Task<Dictionary<string, Dictionary<string, BadgeDto>>>> _inFlight = new();
 
         private static readonly TimeSpan s_ttl = TimeSpan.FromHours(24);
@@ -24,12 +24,12 @@ namespace StreamChatInator.Services.Twitch
         public BadgeProviderService(
             TwitchApiService twitchApiService,
             IMemoryCache cache,
-            TwitchAuthService twitchAuthService,
+            TwitchTokenService tokenService,
             ILogger<BadgeProviderService> logger)
         {
             _twitchApiService = twitchApiService;
             _cache = cache;
-            _twitchAuthService = twitchAuthService;
+            _tokenService = tokenService;
             _logger = logger;
         }
 
@@ -63,14 +63,12 @@ namespace StreamChatInator.Services.Twitch
         private async Task<Dictionary<string, Dictionary<string, BadgeDto>>> FetchAsync(string? channelId)
         {
             var merged = new Dictionary<string, Dictionary<string, BadgeDto>>();
-            // Set once per fetch when the stored token proves stale/revoked, so
-            // the global and channel steps each get one refresh-and-retry but we
-            // never refresh more than once in a single request.
-            var tokenRefreshed = false;
 
             try
             {
-                var token = await _twitchAuthService.GetAccessTokenAsync();
+                // The background TwitchTokenRefreshService keeps the stored
+                // token fresh; no refresh handling needed here.
+                var token = _tokenService.GetAccessToken();
                 if (string.IsNullOrEmpty(token))
                 {
                     return merged;
@@ -79,39 +77,13 @@ namespace StreamChatInator.Services.Twitch
                 var globalBadges = await _twitchApiService.GetGlobalBadgesAsync(token);
                 if (globalBadges == null)
                 {
-                    // The stored token may have been revoked outside its expiry
-                    // window; force a refresh and retry once before giving up.
-                    var refreshed = await RefreshTokenOnceAsync(tokenRefreshed);
-                    if (refreshed == null)
-                    {
-                        return merged;
-                    }
-                    tokenRefreshed = true;
-                    token = refreshed;
-                    globalBadges = await _twitchApiService.GetGlobalBadgesAsync(token);
-                    if (globalBadges == null)
-                    {
-                        return merged;
-                    }
+                    return merged;
                 }
                 Merge(merged, globalBadges);
 
                 if (!string.IsNullOrEmpty(channelId))
                 {
                     var channelBadges = await _twitchApiService.GetChannelBadgesAsync(token, channelId);
-                    if (channelBadges == null && !tokenRefreshed)
-                    {
-                        // The global call returned before noticing a stale token
-                        // (e.g. only the channel-scoped endpoint 401s), so retry
-                        // the channel fetch with a freshly refreshed token too.
-                        var refreshed = await RefreshTokenOnceAsync(tokenRefreshed);
-                        if (refreshed != null)
-                        {
-                            tokenRefreshed = true;
-                            token = refreshed;
-                            channelBadges = await _twitchApiService.GetChannelBadgesAsync(token, channelId);
-                        }
-                    }
                     if (channelBadges != null)
                     {
                         Merge(merged, channelBadges, overrideExisting: true);
@@ -126,27 +98,6 @@ namespace StreamChatInator.Services.Twitch
             }
 
             return merged;
-        }
-
-        /// <summary>
-        /// Refreshes the Twitch access token unless this request already did. The
-        /// <paramref name="alreadyRefreshed"/> flag is honored so a broken token can
-        /// only cause a single refresh per fetch; returns null when no usable token
-        /// can be obtained.
-        /// </summary>
-        private async Task<string?> RefreshTokenOnceAsync(bool alreadyRefreshed)
-        {
-            if (alreadyRefreshed)
-            {
-                return null;
-            }
-            var token = await _twitchAuthService.RefreshAccessTokenAsync();
-            if (string.IsNullOrEmpty(token))
-            {
-                _logger.LogWarning("Could not obtain a valid token to fetch Twitch badges");
-                return null;
-            }
-            return token;
         }
 
         private static void Merge(

@@ -5,10 +5,10 @@ using System.Globalization;
 namespace StreamChatInator.Services.Twitch
 {
     /// <summary>
-    /// Owns reading, persisting and refreshing the Twitch OAuth access token
-    /// stored in the settings table. Both the chat reader and other services
-    /// that call the Twitch API (e.g. badge/emote fetchers) depend on this
-    /// instead of duplicating the refresh logic.
+    /// Owns the Twitch credential lifecycle: login signaling, persisting fresh
+    /// credentials, and keeping the stored token refreshed (via
+    /// <see cref="TwitchTokenRefreshService"/>). Consumers read the current
+    /// token from <see cref="TwitchTokenService"/> - they never need this class.
     /// </summary>
     public class TwitchAuthService
     {
@@ -61,82 +61,43 @@ namespace StreamChatInator.Services.Twitch
         }
 
         /// <summary>
-        /// Returns a usable access token, creating its own scope. Null when no
-        /// credentials exist or the refresh fails (a re-login is needed).
+        /// Refreshes the stored token when it is inside the expiry window.
+        /// Called periodically by <see cref="TwitchTokenRefreshService"/> so
+        /// consumers reading the token from <see cref="TwitchTokenService"/>
+        /// always get a usable one without refresh logic of their own. No-op
+        /// when no credentials exist or the token is still fresh.
         /// </summary>
-        public async Task<string?> GetAccessTokenAsync()
+        public async Task EnsureFreshTokenAsync()
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-            return await GetAccessTokenAsync(db);
-        }
 
-        /// <summary>
-        /// Returns a usable access token using a caller-owned context (e.g. the
-        /// scoped context a background service already has open).
-        /// </summary>
-        public async Task<string?> GetAccessTokenAsync(DatabaseContext db)
-        {
             var token = _twitchTokenService.GetAccessToken();
-            if (string.IsNullOrEmpty(token))
+            if (string.IsNullOrEmpty(token) || !NeedsRefresh(db))
             {
-                return null;
+                return;
             }
 
-            if (!NeedsRefresh(db))
-            {
-                return token;
-            }
-
-            var refreshed = await RefreshAsync(db);
-            if (!string.IsNullOrEmpty(refreshed))
-            {
-                return refreshed;
-            }
-
-            // Refresh failed (e.g. Twitch's API is briefly unreachable or the
-            // refresh token was revoked, but the access token still works). Keep
-            // using the stored token while it's still within its expiry window
-            // instead of forcing a full re-login; only give up once it's actually
-            // expired and would 401 anyway.
-            return TokenStillValid(db) ? token : null;
+            await RefreshAsync(db);
         }
 
-        private static bool TokenStillValid(DatabaseContext db)
-        {
-            var expiresRaw = db.GetSettingsValueOrNull(SettingValue.SettingOAuthTokenExpiresAt);
-            if (string.IsNullOrEmpty(expiresRaw)) return false;
-            if (!DateTime.TryParse(expiresRaw, null, DateTimeStyles.RoundtripKind, out var expires)) return false;
-            return expires > DateTime.UtcNow;
-        }
-
-        /// <summary>
-        /// Forces a token refresh in a fresh scope, even when the stored expiry
-        /// still looks valid. Useful to recover from a 401 where the token was
-        /// revoked outside its expiry window.
-        /// </summary>
-        public async Task<string?> RefreshAccessTokenAsync()
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-            return await RefreshAsync(db);
-        }
-
-        private async Task<string?> RefreshAsync(DatabaseContext db)
+        private async Task RefreshAsync(DatabaseContext db)
         {
             var refreshToken = db.GetSettingsValueOrNull(SettingValue.SettingOAuthRefreshToken);
             if (string.IsNullOrEmpty(refreshToken))
             {
-                return null;
+                return;
             }
 
             var refreshed = await _twitchOAuthClient.RefreshAccessTokenAsync(refreshToken);
             if (refreshed == null || string.IsNullOrEmpty(refreshed.AccessToken))
             {
-                return null;
+                return;
             }
 
-            db.SetSettingsValue(SettingValue.SettingOAuthToken, refreshed.AccessToken);
+            // Persist the rotation details first, then publish the new token
+            // through TwitchTokenService last, so watchers never see a new
+            // token alongside a stale expiry.
             if (!string.IsNullOrEmpty(refreshed.RefreshToken))
             {
                 db.SetSettingsValue(SettingValue.SettingOAuthRefreshToken, refreshed.RefreshToken);
@@ -144,7 +105,7 @@ namespace StreamChatInator.Services.Twitch
             db.SetSettingsValue(SettingValue.SettingOAuthTokenExpiresAt, DateTime.UtcNow.AddSeconds(refreshed.ExpiresIn).ToString("o"));
             db.SaveChanges();
 
-            return refreshed.AccessToken;
+            _twitchTokenService.SetAccessToken(refreshed.AccessToken);
         }
 
         private static bool NeedsRefresh(DatabaseContext db)

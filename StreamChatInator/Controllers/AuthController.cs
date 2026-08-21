@@ -26,14 +26,16 @@ namespace StreamChatInator.Controllers
 
         private readonly DatabaseContext _db;
         private readonly TwitchAuthService _twitchAuthService;
+        private readonly TwitchTokenService _twitchTokenService;
         private readonly AccessControlService _lanAccess;
         private readonly TwitchOAuthClient _twitchOAuthClient;
 
-        public AuthController(DatabaseContext db, TwitchOAuthClient twitchOAuthClient, TwitchAuthService twitchAuthService, AccessControlService lanAccess)
+        public AuthController(DatabaseContext db, TwitchOAuthClient twitchOAuthClient, TwitchAuthService twitchAuthService, TwitchTokenService twitchTokenService, AccessControlService lanAccess)
         {
             _db = db;
             _twitchOAuthClient = twitchOAuthClient;
             _twitchAuthService = twitchAuthService;
+            _twitchTokenService = twitchTokenService;
             _lanAccess = lanAccess;
         }
 
@@ -106,7 +108,9 @@ namespace StreamChatInator.Controllers
                 return ResponseHelper.OkStatus("failed");
             }
 
-            _db.SetSettingsValue(SettingValue.SettingOAuthToken, token.AccessToken);
+            // Persist the rotation details first, then publish the new token
+            // through TwitchTokenService last, so watchers never see a new
+            // token alongside a stale expiry.
             if (!string.IsNullOrEmpty(token.RefreshToken))
             {
                 _db.SetSettingsValue(SettingValue.SettingOAuthRefreshToken, token.RefreshToken);
@@ -115,6 +119,7 @@ namespace StreamChatInator.Controllers
             _db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
             _db.SaveChanges();
 
+            _twitchTokenService.SetAccessToken(token.AccessToken);
             _twitchAuthService.SignalLogin();
 
             return ResponseHelper.OkStatusUsername("ok", validation.Login);
