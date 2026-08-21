@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StreamChatInator.ApiModels;
-using StreamChatInator.Database;
-using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
 using StreamChatInator.Services.Twitch;
 using StreamChatInator.Services.Twitch.Settings;
@@ -25,16 +23,20 @@ namespace StreamChatInator.Controllers
 
         private const string Scopes = "chat:edit chat:read";
 
-        private readonly DatabaseContext _db;
         private readonly TwitchTokenSettingService _twitchTokenService;
+        private readonly TwitchRefreshTokenSettingService _twitchRefreshTokenService;
+        private readonly TwitchTokenExpiresAtSettingService _twitchTokenExpiresAtService;
+        private readonly TwitchUsernameService _twitchUsernameService;
         private readonly AccessControlService _lanAccess;
         private readonly TwitchOAuthService _twitchOAuthClient;
 
-        public AuthController(DatabaseContext db, TwitchOAuthService twitchOAuthClient, TwitchTokenSettingService twitchTokenService, AccessControlService lanAccess)
+        public AuthController(TwitchOAuthService twitchOAuthClient, TwitchTokenSettingService twitchTokenService, TwitchRefreshTokenSettingService twitchRefreshTokenService, TwitchTokenExpiresAtSettingService twitchTokenExpiresAtService, TwitchUsernameService twitchUsernameService, AccessControlService lanAccess)
         {
-            _db = db;
             _twitchOAuthClient = twitchOAuthClient;
             _twitchTokenService = twitchTokenService;
+            _twitchRefreshTokenService = twitchRefreshTokenService;
+            _twitchTokenExpiresAtService = twitchTokenExpiresAtService;
+            _twitchUsernameService = twitchUsernameService;
             _lanAccess = lanAccess;
         }
 
@@ -54,7 +56,7 @@ namespace StreamChatInator.Controllers
 
             PruneExpiredAttempts();
 
-            var id = new Guid().ToString();
+            var id = Guid.NewGuid().ToString();
             _deviceAttempts[id] = (response.DeviceCode, DateTime.UtcNow.AddSeconds(Math.Max(response.ExpiresIn, 60)));
 
             return Ok(new
@@ -108,15 +110,14 @@ namespace StreamChatInator.Controllers
             }
 
             // Persist the rotation details first, then publish the new token
-            // through TwitchTokenService last, so watchers never see a new
+            // through the token service last, so watchers never see a new
             // token alongside a stale expiry.
             if (!string.IsNullOrEmpty(token.RefreshToken))
             {
-                _db.SetSettingsValue(SettingValue.SettingOAuthRefreshToken, token.RefreshToken);
+                _twitchRefreshTokenService.SetRefreshToken(token.RefreshToken);
             }
-            _db.SetSettingsValue(SettingValue.SettingOAuthTokenExpiresAt, DateTime.UtcNow.AddSeconds(token.ExpiresIn).ToString("o"));
-            _db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
-            _db.SaveChanges();
+            _twitchTokenExpiresAtService.SetTokenExpiresAt(DateTime.UtcNow.AddSeconds(token.ExpiresIn).ToString("o"));
+            _twitchUsernameService.SetUsername(validation.Login);
 
             _twitchTokenService.SetToken(token.AccessToken);
 

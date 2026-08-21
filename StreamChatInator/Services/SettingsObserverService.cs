@@ -68,10 +68,26 @@ namespace StreamChatInator.Services
         /// </summary>
         public async Task WaitOnChangeFromAsync(string? knownValue, CancellationToken stoppingToken)
         {
-            while (string.Equals(GetValue(), knownValue, StringComparison.Ordinal))
+            // Subscribing replays the currently cached value, so the filter
+            // must ignore it - otherwise every wait would complete instantly
+            // and this method would degrade into a busy-loop.
+            var completionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var tokenRegistration = stoppingToken.Register(() => completionSource.SetCanceled(stoppingToken));
+            using var observerRegistration = Value.Subscribe(Observer.ToObserver<string?>(notification =>
             {
-                await WaitOnValueAsync(stoppingToken);
+                var newValue = notification.HasValue ? notification.Value : null;
+                if (!string.Equals(newValue, knownValue, StringComparison.Ordinal))
+                {
+                    completionSource.TrySetResult();
+                }
+            }));
+
+            if (!string.Equals(GetValue(), knownValue, StringComparison.Ordinal))
+            {
+                completionSource.TrySetResult();
             }
+
+            await completionSource.Task;
         }
     }
 }
