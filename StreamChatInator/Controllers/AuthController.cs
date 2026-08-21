@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using StreamChatInator.ApiModels;
+using StreamChatInator.Auth;
 using StreamChatInator.Services;
 using StreamChatInator.Services.Twitch;
 using StreamChatInator.Services.Twitch.Settings;
@@ -16,10 +18,8 @@ namespace StreamChatInator.Controllers
     public class AuthController : ControllerBase
     {
         // Device-code login attempts, keyed by the id handed back to the
-        // frontend so it can poll for completion. The device code is single-use
-        // (removed once the login resolves) and short-lived, so concurrent
-        // logins don't clobber each other and an in-flight login dies cleanly.
-        private static readonly ConcurrentDictionary<string, (string DeviceCode, DateTime ExpiresAt)> _deviceAttempts = new();
+        // frontend so it can poll for completion.
+        private static readonly ConcurrentDictionary<string, DeviceLoginAttempt> _deviceAttempts = new();
 
         private const string Scopes = "chat:edit chat:read";
 
@@ -29,8 +29,9 @@ namespace StreamChatInator.Controllers
         private readonly TwitchUsernameService _twitchUsernameService;
         private readonly AccessControlService _lanAccess;
         private readonly TwitchOAuthService _twitchOAuthClient;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(TwitchOAuthService twitchOAuthClient, TwitchTokenSettingService twitchTokenService, TwitchRefreshTokenSettingService twitchRefreshTokenService, TwitchTokenExpiresAtSettingService twitchTokenExpiresAtService, TwitchUsernameService twitchUsernameService, AccessControlService lanAccess)
+        public AuthController(TwitchOAuthService twitchOAuthClient, TwitchTokenSettingService twitchTokenService, TwitchRefreshTokenSettingService twitchRefreshTokenService, TwitchTokenExpiresAtSettingService twitchTokenExpiresAtService, TwitchUsernameService twitchUsernameService, AccessControlService lanAccess, ILogger<AuthController> logger)
         {
             _twitchOAuthClient = twitchOAuthClient;
             _twitchTokenService = twitchTokenService;
@@ -38,6 +39,7 @@ namespace StreamChatInator.Controllers
             _twitchTokenExpiresAtService = twitchTokenExpiresAtService;
             _twitchUsernameService = twitchUsernameService;
             _lanAccess = lanAccess;
+            _logger = logger;
         }
 
         /// <summary>
@@ -57,7 +59,7 @@ namespace StreamChatInator.Controllers
             PruneExpiredAttempts();
 
             var id = Guid.NewGuid().ToString();
-            _deviceAttempts[id] = (response.DeviceCode, DateTime.UtcNow.AddSeconds(Math.Max(response.ExpiresIn, 60)));
+            _deviceAttempts[id] = new DeviceLoginAttempt { DeviceCode = response.DeviceCode, ExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(response.ExpiresIn, 60)) };
 
             return Ok(new
             {
@@ -89,21 +91,55 @@ namespace StreamChatInator.Controllers
                 return ResponseHelper.OkStatus("expired");
             }
 
-            var result = await _twitchOAuthClient.PollDeviceCodeAsync(attempt.DeviceCode, Scopes);
-            if (result.Status == DevicePollStatus.Pending)
+            TokenResponse? token = attempt.IssuedToken;
+            if (token == null)
             {
+                DevicePollResult result;
+                try
+                {
+                    result = await _twitchOAuthClient.PollDeviceCodeAsync(attempt.DeviceCode, Scopes);
+                }
+                catch (Exception ex)
+                {
+                    // A network blip during polling says nothing about the
+                    // login; pending keeps the UI polling.
+                    _logger.LogWarning(ex, "twitch device login poll failed");
+                    return ResponseHelper.OkStatus("pending");
+                }
+
+                if (result.Status == DevicePollStatus.Pending)
+                {
+                    return ResponseHelper.OkStatus("pending");
+                }
+                if (result.Status == DevicePollStatus.Failed)
+                {
+                    _deviceAttempts.TryRemove(id, out _);
+                    return ResponseHelper.OkStatus("failed");
+                }
+
+                token = result.Token!;
+                // The device code is single-use: cache the granted tokens so a
+                // retried poll validates them instead of re-polling a consumed code.
+                _deviceAttempts[id] = new DeviceLoginAttempt { DeviceCode = attempt.DeviceCode, ExpiresAt = attempt.ExpiresAt, IssuedToken = token };
+            }
+
+            TokenValidationResponse? validation;
+            try
+            {
+                validation = await _twitchOAuthClient.ValidateTokenAsync(token.AccessToken);
+            }
+            catch (Exception ex)
+            {
+                // Transient failure - the attempt (with its cached token) stays
+                // alive so the next poll retries validation instead of forcing
+                // the user through a full re-login.
+                _logger.LogWarning(ex, "twitch token validation failed after device login");
                 return ResponseHelper.OkStatus("pending");
             }
-            if (result.Status == DevicePollStatus.Failed)
-            {
-                _deviceAttempts.TryRemove(id, out _);
-                return ResponseHelper.OkStatus("failed");
-            }
 
+            // The outcome is final; release the single-use device code.
             _deviceAttempts.TryRemove(id, out _);
 
-            var token = result.Token!;
-            var validation = await _twitchOAuthClient.ValidateTokenAsync(token.AccessToken);
             if (validation == null)
             {
                 return ResponseHelper.OkStatus("failed");
