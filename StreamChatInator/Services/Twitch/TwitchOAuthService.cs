@@ -120,11 +120,23 @@ namespace StreamChatInator.Services.Twitch
                 return new DevicePollResult { Status = DevicePollStatus.Failed, Message = body };
             }
 
-            var messageResponse = await response.Content.ReadFromJsonAsync<MessageResponse>();
-            return messageResponse?.Message switch
+            MessageResponse? messageResponse = null;
+            try
             {
-                "authorization_pending" or "slow_down" => new DevicePollResult { Status = DevicePollStatus.Pending, Message = messageResponse.Message },
-                _ => new DevicePollResult { Status = DevicePollStatus.Failed, Message = messageResponse?.Message ?? await response.Content.ReadAsStringAsync() },
+                messageResponse = JsonSerializer.Deserialize<MessageResponse>(body);
+            }
+            catch (JsonException)
+            {
+                // non-JSON error body - falls through to generic failure below
+            }
+
+            // Device-flow errors use the RFC-6749 "error" field on some
+            // endpoints and "message" on others; both carry the same tokens.
+            var reason = messageResponse?.Error ?? messageResponse?.Message;
+            return reason switch
+            {
+                "authorization_pending" or "slow_down" => new DevicePollResult { Status = DevicePollStatus.Pending, Message = reason },
+                _ => new DevicePollResult { Status = DevicePollStatus.Failed, Message = reason ?? body },
             };
         }
     }

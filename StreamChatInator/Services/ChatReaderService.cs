@@ -164,8 +164,19 @@ namespace StreamChatInator.Services
 
             client.OnConnected += async (_, _) =>
             {
-                _logger.LogInformation("twitch client connected as " + username);
-                await client.JoinChannelAsync(joinChannel);
+                _logger.LogInformation("twitch client connected as {User}", username);
+                try
+                {
+                    await client.JoinChannelAsync(joinChannel);
+                }
+                catch (Exception ex)
+                {
+                    // Escaping this async-void handler would take down the
+                    // process; ending the run instead makes the reconnect
+                    // loop deal with it like any other drop.
+                    _logger.LogError(ex, "failed to join channel {Channel}", joinChannel);
+                    disconnected.TrySetResult();
+                }
             };
             client.OnJoinedChannel += (_, e) =>
             {

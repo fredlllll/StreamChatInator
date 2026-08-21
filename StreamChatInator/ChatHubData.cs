@@ -37,7 +37,7 @@ namespace StreamChatInator
             Tracking.Subscribe(Observer.ToObserver<bool>(value =>
             {
                 if (!value.HasValue) return;
-                var task = hubContext.Clients.All.SendAsync("TrackingState", value.Value);
+                var task = hubContext.Clients.All.SendAsync(SignalREvents.TrackingState, value.Value);
                 // fire-and-forget; a broadcast failing during shutdown is non-fatal
                 _ = task.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
             }));
