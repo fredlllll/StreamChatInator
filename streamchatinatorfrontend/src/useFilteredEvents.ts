@@ -43,7 +43,7 @@ export function useFilteredEvents(filterId: string | undefined) {
     const [hasMore, setHasMore] = useState(true);
     const [firstItemIndex, setFirstItemIndex] = useState(FIRST_ITEM_INDEX_OFFSET);
     const [loadingOlder, setLoadingOlder] = useState(false);
-    const { signalRConnectedAt, events, seenState, seenVersion, registerSeen, purgeVersion } = useChatConnection();
+    const { signalRConnectedAt, events, eventsStart, seenState, seenVersion, registerSeen, purgeVersion } = useChatConnection();
 
     // Accumulated filtered live list (in arrival order) + the inputs that
     // produced it. `live` is state (filled by the accumulation effect below),
@@ -53,12 +53,15 @@ export function useFilteredEvents(filterId: string | undefined) {
     // a seen flip, or a purge/reset of the backend backlog).
     const [live, setLive] = useState<FrontEndEventData[]>([]);
     // Bookkeeping for the incremental append: the inputs the current `live`
-    // list was derived from (how many events were processed, with which matcher
-    // and seenVersion). Kept in one ref because it is only ever read/written
-    // inside the effect (safe) and we don't want its changes to trigger a
-    // re-render by themselves. When any of these no longer match current
-    // inputs, a full rescan is required.
-    const provenanceRef = useRef({ processedLen: 0, matcher: null as Matcher | null, seenVersion: 0 });
+    // list was derived from (how many arrivals were processed, with which
+    // matcher and seenVersion). Tracked in *absolute* arrival indices — not
+    // array offsets — because ChatContext trims old events off the front of
+    // `events` once its cap is reached, which would otherwise stall or corrupt
+    // length-based bookkeeping. Kept in one ref because it is only ever
+    // read/written inside the effect (safe) and we don't want its changes to
+    // trigger a re-render by themselves. When any of these no longer match
+    // current inputs, a full rescan is required.
+    const provenanceRef = useRef({ processedAbs: 0, matcher: null as Matcher | null, seenVersion: 0 });
     // Mirror of `purgeVersion` for in-flight history requests. A pending fetch
     // began with some `purgeVersion`; if a purge happens before it resolves its
     // response is stale (the events were deleted server-side) and must be
@@ -159,22 +162,30 @@ export function useFilteredEvents(filterId: string | undefined) {
     // catches it), or a purge happens (handled above), so the closure is never
     // stale when the effect runs.
     useEffect(() => {
-        const { processedLen, matcher: usedMatcher, seenVersion: usedSeenVersion } = provenanceRef.current;
+        const { processedAbs, matcher: usedMatcher, seenVersion: usedSeenVersion } = provenanceRef.current;
+        const absEnd = eventsStart + events.length;
         const needFullRescan =
             usedMatcher !== matcher ||
             usedSeenVersion !== seenVersion ||
-            processedLen > events.length;
+            processedAbs > absEnd;
 
         if (needFullRescan) {
             setLive(filterAll(events, matcher, seenOf));
-            provenanceRef.current = { processedLen: events.length, matcher, seenVersion };
-        } else if (processedLen < events.length) {
-            setLive((prev) => filterSince(prev, events, processedLen, matcher, seenOf));
-            provenanceRef.current = { processedLen: events.length, matcher, seenVersion };
+            provenanceRef.current = { processedAbs: absEnd, matcher, seenVersion };
+        } else if (processedAbs < absEnd) {
+            // Convert the absolute watermark into an index within the current
+            // (possibly trimmed) buffer; everything before it was already
+            // processed. The max() is belt-and-suspenders: a trim can only
+            // drop events that were already processed, since processing runs
+            // in an effect before the next arrival can be handled.
+            const startIndex = Math.max(0, processedAbs - eventsStart);
+            setLive((prev) => filterSince(prev, events, startIndex, matcher, seenOf));
+            provenanceRef.current = { processedAbs: absEnd, matcher, seenVersion };
         }
         // exhaustive-deps can't model the version-triggered invalidation, and
         // adding `seenOf`/`seenState` would re-run this on every delivery,
-        // which is exactly the cost this is avoiding.
+        // which is exactly the cost this is avoiding. `eventsStart` moves in
+        // lockstep with `events` (same handler), so it needs no separate dep.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [events, matcher, seenVersion]);
 

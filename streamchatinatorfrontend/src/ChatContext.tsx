@@ -4,6 +4,11 @@ import type { FrontEndEventData } from "./types";
 
 export interface ChatStateContextType {
     events: FrontEndEventData[];
+    // Absolute index of `events[0]` within the session's full arrival stream
+    // (rises as old events are trimmed from the capped live buffer). Lets
+    // consumers keep "processed up to here" bookkeeping across trims without
+    // relying on array length, which stalls once the cap is reached.
+    eventsStart: number;
     twitchConnected: boolean;
     signalRConnectedAt: Date | null;
     channelId: string | null;
@@ -40,6 +45,16 @@ const ChatActionsContext = createContext<ChatActionsContextType | undefined>(und
 // manual backoff loop instead of a single dead attempt.
 const START_RETRY_DELAYS_MS = [1_000, 2_000, 5_000, 10_000];
 
+// Upper bound on the live event buffer. Appends copy the whole array, so an
+// uncapped list makes every arrival O(n) and memory unbounded — over a long
+// session that's O(n²) total copying and real GC pressure. 20k events is
+// several hours of a very busy channel; older data remains available through
+// the server-side history API. Note the cap applies to the *live buffer* only:
+// events already matched into a view's `live` list stay there until the next
+// full re-scan (filter edit / seen flip), and seen toggles for trimmed events
+// keep working because seenState is intentionally not capped.
+const MAX_LIVE_EVENTS = 20_000;
+
 export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [events, setEvents] = useState<FrontEndEventData[]>([]);
     const [twitchConnected, setTwitchConnected] = useState<boolean>(false);
@@ -55,6 +70,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // effects in an updater would run twice under StrictMode). New keys (event
     // arrivals) are recorded but do not bump seenVersion.
     const seenPriorRef = useRef<Record<string, boolean>>({});
+    // Total events received this session. Bumped inside the ReceiveEvent
+    // handler (an event handler — ref writes there are safe; inside a state
+    // updater they are not). Combined with `events.length` it yields the
+    // buffer's absolute start index even after trimming begins.
+    const arrivalCountRef = useRef(0);
     // Stack of that user's own seen toggles, newest on top, so Ctrl+Z can
     // revert them one by one. Only setEventSeen records undo entries; seen
     // changes from broadcasts/history loads (registerSeen) do not.
@@ -134,7 +154,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         connectionRef.current = connection;
 
         connection.on("ReceiveEvent", (envelope: FrontEndEventData) => {
-            setEvents((prev) => [...prev, envelope]);
+            arrivalCountRef.current += 1;
+            setEvents((prev) => {
+                // Updater stays pure: trimming is derived from `prev` alone.
+                // Post-cap, `slice(1)` + push keeps it to a single copy per
+                // arrival (spread + slice would make two).
+                if (prev.length >= MAX_LIVE_EVENTS) {
+                    const next = prev.slice(1);
+                    next.push(envelope);
+                    return next;
+                }
+                return [...prev, envelope];
+            });
             registerSeen(envelope.eventId, envelope.seen);
         });
 
@@ -160,8 +191,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
         connection.on("EventsPurged", () => {
             setEvents([]);
-            setSeenState({});
             seenPriorRef.current = {};
+            arrivalCountRef.current = 0;
+            setSeenState({});
             undoStackRef.current = [];
             setCanUndoSeen(false);
             setPurgeVersion((v) => v + 1);
@@ -214,7 +246,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         [setEventSeen, registerSeen, undoSeen, canUndoSeen, setTracking]
     );
     const stateValue = useMemo(
-        () => ({ events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, seenVersion, purgeVersion }),
+        () => ({
+            events,
+            // Pure derivation (render-phase ref *reads* are fine): how many
+            // arrivals have already been trimmed off the front of `events`.
+            eventsStart: Math.max(0, arrivalCountRef.current - events.length),
+            twitchConnected,
+            signalRConnectedAt,
+            channelId,
+            tracking,
+            seenState,
+            seenVersion,
+            purgeVersion
+        }),
         [events, twitchConnected, signalRConnectedAt, channelId, tracking, seenState, seenVersion, purgeVersion]
     );
 
