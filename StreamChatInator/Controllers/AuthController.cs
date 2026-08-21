@@ -27,12 +27,12 @@ namespace StreamChatInator.Controllers
         private readonly DatabaseContext _db;
         private readonly TwitchAuthService _twitchAuthService;
         private readonly AccessControlService _lanAccess;
-        private readonly TwitchApiService _twitchApiService;
+        private readonly TwitchOAuthClient _twitchOAuthClient;
 
-        public AuthController(DatabaseContext db, TwitchApiService twitchApiService, TwitchAuthService twitchAuthService, AccessControlService lanAccess)
+        public AuthController(DatabaseContext db, TwitchOAuthClient twitchOAuthClient, TwitchAuthService twitchAuthService, AccessControlService lanAccess)
         {
             _db = db;
-            _twitchApiService = twitchApiService;
+            _twitchOAuthClient = twitchOAuthClient;
             _twitchAuthService = twitchAuthService;
             _lanAccess = lanAccess;
         }
@@ -45,7 +45,7 @@ namespace StreamChatInator.Controllers
         [HttpPost("beginDeviceLogin")]
         public async Task<IActionResult> BeginDeviceLogin()
         {
-            var response = await _twitchApiService.RequestDeviceCodeAsync(Scopes);
+            var response = await _twitchOAuthClient.RequestDeviceCodeAsync(Scopes);
             if (response == null || string.IsNullOrEmpty(response.DeviceCode))
             {
                 return ResponseHelper.Response502("twitch_unavailable");
@@ -86,7 +86,7 @@ namespace StreamChatInator.Controllers
                 return ResponseHelper.OkStatus("expired");
             }
 
-            var result = await _twitchApiService.PollDeviceCodeAsync(attempt.DeviceCode, Scopes);
+            var result = await _twitchOAuthClient.PollDeviceCodeAsync(attempt.DeviceCode, Scopes);
             if (result.Status == DevicePollStatus.Pending)
             {
                 return ResponseHelper.OkStatus("pending");
@@ -100,7 +100,7 @@ namespace StreamChatInator.Controllers
             _deviceAttempts.TryRemove(id, out _);
 
             var token = result.Token!;
-            var validation = await _twitchApiService.ValidateTokenAsync(token.AccessToken);
+            var validation = await _twitchOAuthClient.ValidateTokenAsync(token.AccessToken);
             if (validation == null)
             {
                 return ResponseHelper.OkStatus("failed");

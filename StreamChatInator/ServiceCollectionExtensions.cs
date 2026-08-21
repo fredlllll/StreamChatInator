@@ -53,6 +53,7 @@ public static class ServiceCollectionExtensions
         // sync. The fetchers end up captured by the singleton EmoteProvider-
         // Service; that's safe (handlers are kept alive while referenced) at
         // the cost of a long-lived handler.
+        services.AddHttpClient<TwitchOAuthClient>(ConfigureEmotesAndTwitchClient);
         services.AddHttpClient<TwitchApiService>(ConfigureEmotesAndTwitchClient);
         services.AddHttpClient<IEmoteFetcher, BttvEmoteFetcher>(ConfigureEmotesAndTwitchClient);
         services.AddHttpClient<IEmoteFetcher, SevenTvEmoteFetcher>(ConfigureEmotesAndTwitchClient);

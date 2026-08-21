@@ -18,12 +18,12 @@ namespace StreamChatInator.Services.Twitch
         // unusable, blocking until the next login.
         private TaskCompletionSource _loginReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly TwitchApiService _twitchApiService;
+        private readonly TwitchOAuthClient _twitchOAuthClient;
         private readonly TwitchTokenService _twitchTokenService;
 
-        public TwitchAuthService(TwitchApiService twitchApiService, IServiceScopeFactory scopeFactory, TwitchTokenService twitchTokenService)
+        public TwitchAuthService(TwitchOAuthClient twitchOAuthClient, IServiceScopeFactory scopeFactory, TwitchTokenService twitchTokenService)
         {
-            _twitchApiService = twitchApiService;
+            _twitchOAuthClient = twitchOAuthClient;
             _scopeFactory = scopeFactory;
             _twitchTokenService = twitchTokenService;
         }
@@ -130,7 +130,7 @@ namespace StreamChatInator.Services.Twitch
                 return null;
             }
 
-            var refreshed = await _twitchApiService.RefreshAccessTokenAsync(refreshToken);
+            var refreshed = await _twitchOAuthClient.RefreshAccessTokenAsync(refreshToken);
             if (refreshed == null || string.IsNullOrEmpty(refreshed.AccessToken))
             {
                 return null;
