@@ -6,7 +6,7 @@ namespace StreamChatInator.Services.Twitch
 {
     public class TwitchUsernameService : SettingsObserverService
     {
-        public ObservableValue<string?> Token => Value;
+        public ObservableValue<string?> Username => Value;
         public TwitchUsernameService(IServiceScopeFactory scopeFactory) : base(SettingValue.SettingUserName, scopeFactory) { }
 
 

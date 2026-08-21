@@ -19,25 +19,25 @@ namespace StreamChatInator
         private const int LogStartRow = PanelHeight;  // first log row (0-based)
         private const int HistoryLimit = 200;
 
-        private static readonly object Sync = new();
-        private static readonly ConcurrentQueue<string> History = new();
-        private static CancellationTokenSource? _cts;
-        private static string _status = "";
-        private static string _baseUrl = "";
-        private static string _url = "";
-        private static string _pin = "";
-        private static int _bufferWidth;
-        private static int _bufferHeight;
-        private static int _logRow = LogStartRow;
-        private static bool _enabled;
+        private static readonly object s_sync = new();
+        private static readonly ConcurrentQueue<string> s_history = new();
+        private static CancellationTokenSource? s_cts;
+        private static string s_status = "";
+        private static string s_baseUrl = "";
+        private static string s_url = "";
+        private static string s_pin = "";
+        private static int s_bufferWidth;
+        private static int s_bufferHeight;
+        private static int s_logRow = LogStartRow;
+        private static bool s_enabled;
 
-        public static bool IsEnabled => _enabled;
+        public static bool IsEnabled => s_enabled;
 
         /// <summary>Draws the console UI and arms the log scroll region. Returns false when the fancy UI can't be used (e.g. output is redirected).</summary>
         public static bool Init(string title, string url)
         {
-            _baseUrl = url;
-            _url = url;
+            s_baseUrl = url;
+            s_url = url;
             try
             {
                 if (Console.IsOutputRedirected) return false;
@@ -47,13 +47,13 @@ namespace StreamChatInator
                 EnableVirtualTerminal();
                 Console.CursorVisible = false;
 
-                _cts = new CancellationTokenSource();
+                s_cts = new CancellationTokenSource();
                 ResizeBufferToWindow();
-                lock (Sync)
+                lock (s_sync)
                 {
                     Redraw();
-                    _enabled = true;
-                    foreach (var line in History)
+                    s_enabled = true;
+                    foreach (var line in s_history)
                     {
                         WriteLineInternal(line);
                     }
@@ -63,7 +63,7 @@ namespace StreamChatInator
             }
             catch
             {
-                _enabled = false;
+                s_enabled = false;
                 return false;
             }
         }
@@ -71,10 +71,10 @@ namespace StreamChatInator
         /// <summary>Restores the console before the app exits.</summary>
         public static void Shutdown()
         {
-            _cts?.Cancel();
-            lock (Sync)
+            s_cts?.Cancel();
+            lock (s_sync)
             {
-                if (!_enabled) return;
+                if (!s_enabled) return;
                 try
                 {
                     Console.Write("\x1b[r");
@@ -88,9 +88,9 @@ namespace StreamChatInator
         /// <summary>Appends a line to the log area (thread-safe).</summary>
         public static void WriteLogLine(string line)
         {
-            if (!_enabled) return;
-            History.Enqueue(line);
-            while (History.Count > HistoryLimit) History.TryDequeue(out _);
+            if (!s_enabled) return;
+            s_history.Enqueue(line);
+            while (s_history.Count > HistoryLimit) s_history.TryDequeue(out _);
 
             RunLocked(() =>
             {
@@ -106,8 +106,8 @@ namespace StreamChatInator
         {
             RunLocked(() =>
             {
-                _status = status;
-                var inner = Math.Max(1, _bufferWidth - 4);
+                s_status = status;
+                var inner = Math.Max(1, s_bufferWidth - 4);
                 var text = "Status: " + status;
                 if (text.Length > inner) text = text[..inner];
                 Console.SetCursorPosition(2, StatusRow);
@@ -131,25 +131,25 @@ namespace StreamChatInator
         {
             RunLocked(() =>
             {
-                _pin = pin ?? "";
-                _url = string.IsNullOrEmpty(_pin) ? _baseUrl : $"{_baseUrl}?pin={_pin}";
+                s_pin = pin ?? "";
+                s_url = string.IsNullOrEmpty(s_pin) ? s_baseUrl : $"{s_baseUrl}?pin={s_pin}";
                 DrawPanel();
                 PositionCursorToLogRow();
             });
         }
 
         /// <summary>
-        /// Runs <paramref name="action"/> while holding <see cref="Sync"/>, but
-        /// only when the UI is enabled. The double <c>_enabled</c> check lets a
+        /// Runs <paramref name="action"/> while holding <see cref="s_sync"/>, but
+        /// only when the UI is enabled. The double <c>s_enabled</c> check lets a
         /// caller bail before ever contending on the lock, while still guarding
         /// against a shutdown that races in between.
         /// </summary>
         private static void RunLocked(Action action)
         {
-            if (!_enabled) return;
-            lock (Sync)
+            if (!s_enabled) return;
+            lock (s_sync)
             {
-                if (!_enabled) return;
+                if (!s_enabled) return;
                 action();
             }
         }
@@ -165,10 +165,10 @@ namespace StreamChatInator
                 if (Console.BufferWidth != width) Console.BufferWidth = width;
                 if (Console.BufferHeight != height) Console.BufferHeight = height;
             }
-            _bufferWidth = width;
-            _bufferHeight = height;
-            if (_logRow < LogStartRow) _logRow = LogStartRow;
-            if (_logRow >= _bufferHeight) _logRow = _bufferHeight - 1;
+            s_bufferWidth = width;
+            s_bufferHeight = height;
+            if (s_logRow < LogStartRow) s_logRow = LogStartRow;
+            if (s_logRow >= s_bufferHeight) s_logRow = s_bufferHeight - 1;
         }
 
         private static void Redraw()
@@ -182,13 +182,13 @@ namespace StreamChatInator
 
         private static void DrawPanel()
         {
-            var w = _bufferWidth;
+            var w = s_bufferWidth;
             Console.SetCursorPosition(0, 0);
             Console.Write("╔" + new string('═', Math.Max(0, w - 2)) + "╗");
             WriteRow(1, "StreamChatInator");
-            WriteRow(2, string.IsNullOrEmpty(_pin) ? "" : "PIN: " + _pin);
-            WriteRow(3, "Open: " + _url);
-            WriteRow(4, "Status: " + _status);
+            WriteRow(2, string.IsNullOrEmpty(s_pin) ? "" : "PIN: " + s_pin);
+            WriteRow(3, "Open: " + s_url);
+            WriteRow(4, "Status: " + s_status);
             WriteRow(5, "");
             WriteRow(6, "Close this window to stop the app.");
             Console.SetCursorPosition(0, 7);
@@ -197,7 +197,7 @@ namespace StreamChatInator
 
         private static void WriteRow(int row, string text)
         {
-            var inner = Math.Max(1, _bufferWidth - 4);
+            var inner = Math.Max(1, s_bufferWidth - 4);
             if (text.Length > inner) text = text[..inner];
             Console.SetCursorPosition(0, row);
             Console.Write("║  " + text.PadRight(inner) + "  ║");
@@ -206,38 +206,38 @@ namespace StreamChatInator
         private static void SetScrollRegion()
         {
             var start = LogStartRow + 1; // 1-based
-            var end = Math.Max(_bufferHeight, start);
+            var end = Math.Max(s_bufferHeight, start);
             Console.Write($"\x1b[{start};{end}r");
         }
 
         private static void WriteLineInternal(string line)
         {
-            if (_logRow < LogStartRow) _logRow = LogStartRow;
-            if (_logRow >= _bufferHeight)
+            if (s_logRow < LogStartRow) s_logRow = LogStartRow;
+            if (s_logRow >= s_bufferHeight)
             {
                 // Area full: scroll the log region up one row, then write at the bottom.
-                Console.SetCursorPosition(0, _bufferHeight - 1);
+                Console.SetCursorPosition(0, s_bufferHeight - 1);
                 Console.Write("\n");
-                _logRow = _bufferHeight - 1;
+                s_logRow = s_bufferHeight - 1;
             }
 
-            var width = Math.Max(1, _bufferWidth);
+            var width = Math.Max(1, s_bufferWidth);
             if (line.Length > width) line = line[..width] + "\x1b[0m";
-            Console.SetCursorPosition(0, _logRow);
+            Console.SetCursorPosition(0, s_logRow);
             Console.Write(line);
-            _logRow++;
+            s_logRow++;
             PositionCursorToLogRow();
         }
 
         private static void PositionCursorToLogRow()
         {
-            var row = _logRow >= _bufferHeight ? _bufferHeight - 1 : Math.Max(LogStartRow, _logRow);
+            var row = s_logRow >= s_bufferHeight ? s_bufferHeight - 1 : Math.Max(LogStartRow, s_logRow);
             Console.SetCursorPosition(0, row);
         }
 
         private static void StartResizeWatcher()
         {
-            var token = _cts!.Token;
+            var token = s_cts!.Token;
             Task.Run(async () =>
             {
                 while (!token.IsCancellationRequested)
@@ -246,14 +246,14 @@ namespace StreamChatInator
                     {
                         await Task.Delay(300, token).ConfigureAwait(false);
                         int w, h;
-                        lock (Sync) { w = _bufferWidth; h = _bufferHeight; }
+                        lock (s_sync) { w = s_bufferWidth; h = s_bufferHeight; }
                         if (Console.WindowWidth != w || Console.WindowHeight != h)
                         {
-                            lock (Sync)
+                            lock (s_sync)
                             {
                                 ResizeBufferToWindow();
                                 Redraw();
-                                foreach (var line in History)
+                                foreach (var line in s_history)
                                 {
                                     WriteLineInternal(line);
                                 }

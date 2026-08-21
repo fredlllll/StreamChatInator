@@ -50,22 +50,22 @@ namespace StreamChatInator
 
             _client.OnMessageReceived += Client_OnMessageReceived;
             _client.OnAnnouncement += Client_OnAnnouncement;
-            _client.OnAnonGiftPaidUpgrade += _client_OnAnonGiftPaidUpgrade;
-            _client.OnBitsBadgeTier += _client_OnBitsBadgeTier;
-            _client.OnCommunityPayForward += _client_OnCommunityPayForward;
-            _client.OnCommunitySubscription += _client_OnCommunitySubscription;
-            _client.OnContinuedGiftedSubscription += _client_OnContinuedGiftedSubscription;
-            _client.OnGiftedSubscription += _client_OnGiftedSubscription;
-            _client.OnMessageCleared += _client_OnMessageCleared;
-            _client.OnNewSubscriber += _client_OnNewSubscriber;
-            _client.OnPrimePaidSubscriber += _client_OnPrimePaidSubscriber;
-            _client.OnReSubscriber += _client_OnReSubscriber;
-            _client.OnRitual += _client_OnRitual;
-            _client.OnStandardPayForward += _client_OnStandardPayForward;
-            _client.OnUserBanned += _client_OnUserBanned;
-            _client.OnUserJoined += _client_OnUserJoined;
-            _client.OnUserLeft += _client_OnUserLeft;
-            _client.OnUserTimedout += _client_OnUserTimedout;
+            _client.OnAnonGiftPaidUpgrade += Client_OnAnonGiftPaidUpgrade;
+            _client.OnBitsBadgeTier += Client_OnBitsBadgeTier;
+            _client.OnCommunityPayForward += Client_OnCommunityPayForward;
+            _client.OnCommunitySubscription += Client_OnCommunitySubscription;
+            _client.OnContinuedGiftedSubscription += Client_OnContinuedGiftedSubscription;
+            _client.OnGiftedSubscription += Client_OnGiftedSubscription;
+            _client.OnMessageCleared += Client_OnMessageCleared;
+            _client.OnNewSubscriber += Client_OnNewSubscriber;
+            _client.OnPrimePaidSubscriber += Client_OnPrimePaidSubscriber;
+            _client.OnReSubscriber += Client_OnReSubscriber;
+            _client.OnRitual += Client_OnRitual;
+            _client.OnStandardPayForward += Client_OnStandardPayForward;
+            _client.OnUserBanned += Client_OnUserBanned;
+            _client.OnUserJoined += Client_OnUserJoined;
+            _client.OnUserLeft += Client_OnUserLeft;
+            _client.OnUserTimedout += Client_OnUserTimedout;
         }
 
         private async Task Client_OnMessageReceived(object? sender, OnMessageReceivedArgs e)
@@ -77,52 +77,52 @@ namespace StreamChatInator
         private async Task Client_OnAnnouncement(object? sender, OnAnnouncementArgs e)
             => await HandleUserNoticeAsync(ChatEventType.Announcement, e.Announcement, id => ChatEventAnnouncement.FromAnnouncement(e.Announcement, id));
 
-        private async Task _client_OnAnonGiftPaidUpgrade(object? sender, OnAnonGiftPaidUpgradeArgs e)
+        private async Task Client_OnAnonGiftPaidUpgrade(object? sender, OnAnonGiftPaidUpgradeArgs e)
             => await HandleUserNoticeAsync(ChatEventType.AnonGiftPaidUpgrade, e.AnonGiftPaidUpgrade, id => ChatEventAnonGiftPaidUpgrade.FromAnonGiftPaidUpgrade(e.AnonGiftPaidUpgrade, id));
 
-        private async Task _client_OnBitsBadgeTier(object? sender, OnBitsBadgeTierArgs e)
+        private async Task Client_OnBitsBadgeTier(object? sender, OnBitsBadgeTierArgs e)
             => await HandleUserNoticeAsync(ChatEventType.BitsBadgeTier, e.BitsBadgeTier, id => ChatEventBitsBadgeTier.FromBitsBadgeTier(e.BitsBadgeTier, id));
 
-        private async Task _client_OnCommunityPayForward(object? sender, OnCommunityPayForwardArgs e)
+        private async Task Client_OnCommunityPayForward(object? sender, OnCommunityPayForwardArgs e)
             => await HandleUserNoticeAsync(ChatEventType.CommunityPayForward, e.CommunityPayForward, id => ChatEventCommunityPayForward.FromCommunityPayForward(e.CommunityPayForward, id));
 
-        private async Task _client_OnCommunitySubscription(object? sender, OnCommunitySubscriptionArgs e)
+        private async Task Client_OnCommunitySubscription(object? sender, OnCommunitySubscriptionArgs e)
             => await HandleUserNoticeAsync(ChatEventType.CommunitySubscription, e.GiftedSubscription, id => ChatEventCommunitySubscription.FromCommunitySubscription(e.GiftedSubscription, id));
 
-        private async Task _client_OnContinuedGiftedSubscription(object? sender, OnContinuedGiftedSubscriptionArgs e)
+        private async Task Client_OnContinuedGiftedSubscription(object? sender, OnContinuedGiftedSubscriptionArgs e)
             => await HandleUserNoticeAsync(ChatEventType.ContinuedGiftedSubscription, e.ContinuedGiftedSubscription, id => ChatEventContinuedGiftedSubscription.FromContinuedGiftedSubscription(e.ContinuedGiftedSubscription, id));
 
-        private async Task _client_OnGiftedSubscription(object? sender, OnGiftedSubscriptionArgs e)
+        private async Task Client_OnGiftedSubscription(object? sender, OnGiftedSubscriptionArgs e)
             => await HandleUserNoticeAsync(ChatEventType.GiftedSubscription, e.GiftedSubscription, id => ChatEventGiftedSubscription.FromGiftedSubscription(e.GiftedSubscription, id));
 
-        private async Task _client_OnMessageCleared(object? sender, OnMessageClearedArgs e)
+        private async Task Client_OnMessageCleared(object? sender, OnMessageClearedArgs e)
             => await HandleEventAsync(ChatEventType.MessageCleared, () => ChatEventMessageCleared.FromMessageCleared(e));
 
-        private async Task _client_OnNewSubscriber(object? sender, OnNewSubscriberArgs e)
+        private async Task Client_OnNewSubscriber(object? sender, OnNewSubscriberArgs e)
             => await HandleUserNoticeAsync(ChatEventType.NewSubscriber, e.Subscriber, id => ChatEventNewSubscriber.FromNewSubscriber(e.Subscriber, id));
 
-        private async Task _client_OnPrimePaidSubscriber(object? sender, OnPrimePaidSubscriberArgs e)
+        private async Task Client_OnPrimePaidSubscriber(object? sender, OnPrimePaidSubscriberArgs e)
             => await HandleUserNoticeAsync(ChatEventType.PrimePaidSubscriber, e.PrimePaidSubscriber, id => ChatEventPrimePaidSubscriber.FromPrimePaidSubscriber(e.PrimePaidSubscriber, id));
 
-        private async Task _client_OnReSubscriber(object? sender, OnReSubscriberArgs e)
+        private async Task Client_OnReSubscriber(object? sender, OnReSubscriberArgs e)
             => await HandleUserNoticeAsync(ChatEventType.ReSubscriber, e.ReSubscriber, id => ChatEventReSubscriber.FromReSubscriber(e.ReSubscriber, id));
 
-        private async Task _client_OnRitual(object? sender, OnRitualArgs e)
+        private async Task Client_OnRitual(object? sender, OnRitualArgs e)
             => await HandleUserNoticeAsync(ChatEventType.Ritual, e.Ritual, id => ChatEventRitual.FromRitual(e.Ritual, id));
 
-        private async Task _client_OnStandardPayForward(object? sender, OnStandardPayForwardArgs e)
+        private async Task Client_OnStandardPayForward(object? sender, OnStandardPayForwardArgs e)
             => await HandleUserNoticeAsync(ChatEventType.StandardPayForward, e.StandardPayForward, id => ChatEventStandardPayForward.FromStandardPayForward(e.StandardPayForward, id));
 
-        private async Task _client_OnUserBanned(object? sender, OnUserBannedArgs e)
+        private async Task Client_OnUserBanned(object? sender, OnUserBannedArgs e)
             => await HandleEventAsync(ChatEventType.UserBanned, () => ChatEventUserBanned.FromUserBanned(e.UserBan));
 
-        private async Task _client_OnUserJoined(object? sender, OnUserJoinedArgs e)
+        private async Task Client_OnUserJoined(object? sender, OnUserJoinedArgs e)
             => await HandleEventAsync(ChatEventType.UserJoined, () => ChatEventUserJoined.FromUserJoined(e));
 
-        private async Task _client_OnUserLeft(object? sender, OnUserLeftArgs e)
+        private async Task Client_OnUserLeft(object? sender, OnUserLeftArgs e)
             => await HandleEventAsync(ChatEventType.UserLeft, () => ChatEventUserLeft.FromUserLeft(e));
 
-        private async Task _client_OnUserTimedout(object? sender, OnUserTimedoutArgs e)
+        private async Task Client_OnUserTimedout(object? sender, OnUserTimedoutArgs e)
             => await HandleEventAsync(ChatEventType.UserTimedout, () => ChatEventUserTimedout.FromUserTimedout(e.UserTimeout));
 
         private async Task HandleEventAsync<TEvent>(ChatEventType eventType, Func<TEvent> createEvent) where TEvent : Model

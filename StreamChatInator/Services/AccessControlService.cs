@@ -12,8 +12,8 @@ namespace StreamChatInator.Services
     public class AccessControlService
     {
         private const int MaxFailedAttempts = 5;
-        private static readonly TimeSpan LockoutDuration = TimeSpan.FromSeconds(30);
-        private static readonly TimeSpan IdleRetention = TimeSpan.FromHours(1);
+        private static readonly TimeSpan s_lockoutDuration = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan s_idleRetention = TimeSpan.FromHours(1);
         // Bucket used when the client IP can't be determined (RemoteIpAddress is
         // null); all such clients share one bucket rather than sharing with real IPs.
         private const string UnknownIpKey = "unknown";
@@ -41,9 +41,9 @@ namespace StreamChatInator.Services
         public bool ValidatePin(string? pin)
         {
             if (string.IsNullOrEmpty(pin) || pin.Length != Pin.Length) return false;
-            var a = System.Text.Encoding.UTF8.GetBytes(pin);
-            var b = System.Text.Encoding.UTF8.GetBytes(Pin);
-            return CryptographicOperations.FixedTimeEquals(a, b); //i guess the AI really overshot here, a simple equals wouldve done too lol
+            var pinBytes = System.Text.Encoding.UTF8.GetBytes(pin);
+            var expectedBytes = System.Text.Encoding.UTF8.GetBytes(Pin);
+            return CryptographicOperations.FixedTimeEquals(pinBytes, expectedBytes); //i guess the AI really overshot here, a simple equals wouldve done too lol
         }
 
         public bool IsLockedOut(string? clientIp)
@@ -71,7 +71,7 @@ namespace StreamChatInator.Services
                 state.LastFailureUtc = DateTime.UtcNow;
                 if (state.FailedAttempts >= MaxFailedAttempts)
                 {
-                    state.LockedUntilUtc = DateTime.UtcNow + LockoutDuration;
+                    state.LockedUntilUtc = DateTime.UtcNow + s_lockoutDuration;
                     state.FailedAttempts = 0;
                 }
             }
@@ -108,7 +108,7 @@ namespace StreamChatInator.Services
             {
                 var state = kvp.Value;
                 var lockoutDone = state.LockedUntilUtc <= now;
-                var idle = now - state.LastFailureUtc > IdleRetention;
+                var idle = now - state.LastFailureUtc > s_idleRetention;
                 if (lockoutDone && (state.FailedAttempts == 0 || idle))
                 {
                     _attemptsByIp.Remove(kvp.Key);

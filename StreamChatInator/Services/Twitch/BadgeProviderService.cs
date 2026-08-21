@@ -17,7 +17,7 @@ namespace StreamChatInator.Services.Twitch
         private readonly TwitchAuthService _twitchAuthService;
         private readonly ConcurrentDictionary<string, Task<Dictionary<string, Dictionary<string, BadgeDto>>>> _inFlight = new();
 
-        private static readonly TimeSpan Ttl = TimeSpan.FromHours(24);
+        private static readonly TimeSpan s_ttl = TimeSpan.FromHours(24);
 
         public BadgeProviderService(
             TwitchApiService twitchApiService,
@@ -49,7 +49,7 @@ namespace StreamChatInator.Services.Twitch
             try
             {
                 var result = await FetchAsync(channelId);
-                _cache.Set(key, result, Ttl);
+                _cache.Set(key, result, s_ttl);
                 return result;
             }
             finally

@@ -7,7 +7,7 @@ namespace StreamChatInator
 {
     public class Program
     {
-        const int defaultPort = 17455;
+        const int DefaultPort = 17455;
 
         public static void Main(string[] args)
         {
@@ -15,7 +15,7 @@ namespace StreamChatInator
 
             // Configurable port (env `Port` or appsettings) so the published app
             // doesn't hard-code a fixed address; defaults to 17455.
-            var port = int.TryParse(builder.Configuration["Port"], out var p) ? p : defaultPort;
+            var port = int.TryParse(builder.Configuration["Port"], out var configuredPort) ? configuredPort : DefaultPort;
             var displayUrl = $"http://localhost:{port}";
 
             // Fancy console UI (info panel + scrolling log area). Falls back to

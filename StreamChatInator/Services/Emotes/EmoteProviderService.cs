@@ -16,7 +16,7 @@ namespace StreamChatInator.Services.Emotes
         private readonly IMemoryCache _cache;
         private readonly ConcurrentDictionary<string, Task<List<EmoteDto>>> _inFlight = new();
 
-        private static readonly TimeSpan Ttl = TimeSpan.FromHours(1);
+        private static readonly TimeSpan s_ttl = TimeSpan.FromHours(1);
 
         public EmoteProviderService(IEnumerable<IEmoteFetcher> fetchers, IMemoryCache cache)
         {
@@ -59,7 +59,7 @@ namespace StreamChatInator.Services.Emotes
             try
             {
                 var result = await factory();
-                _cache.Set(key, result, Ttl);
+                _cache.Set(key, result, s_ttl);
                 return result;
             }
             finally

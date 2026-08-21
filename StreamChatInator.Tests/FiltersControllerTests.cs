@@ -116,18 +116,18 @@ public class FiltersControllerTests : IDisposable
     public void GetMessages_PagesAcrossBatchBoundary_WithoutSkipsOrDuplicates()
     {
         var filter = CreateFilter();
-        var t = DateTime.UtcNow.AddMinutes(-1);
-        const int total = 250; // > batchSize (200)
-        for (int i = 0; i < total; i++)
+        var timestamp = DateTime.UtcNow.AddMinutes(-1);
+        const int Total = 250; // > BatchSize (200)
+        for (int i = 0; i < Total; i++)
         {
-            SeedUserJoined($"user{i:D3}", t);
+            SeedUserJoined($"user{i:D3}", timestamp);
         }
         _db.SaveChanges();
 
         var allIds = PageAll(filter.Id, take: 50);
 
-        Assert.Equal(total, allIds.Count);
-        Assert.Equal(total, allIds.Distinct().Count());
+        Assert.Equal(Total, allIds.Count);
+        Assert.Equal(Total, allIds.Distinct().Count());
     }
 
     [Fact]
@@ -151,10 +151,10 @@ public class FiltersControllerTests : IDisposable
     {
         var filter = CreateFilter(
             "function __matches(eventData) { return eventData.chatEventData.username === 'alice'; }");
-        var t = DateTime.UtcNow;
-        SeedUserJoined("alice", t);
-        SeedUserJoined("bob", t);
-        SeedUserJoined("alice", t.AddSeconds(1));
+        var timestamp = DateTime.UtcNow;
+        SeedUserJoined("alice", timestamp);
+        SeedUserJoined("bob", timestamp);
+        SeedUserJoined("alice", timestamp.AddSeconds(1));
         _db.SaveChanges();
 
         var response = NewController().GetMessages(filter.Id, null, 50).Value!;
@@ -168,15 +168,15 @@ public class FiltersControllerTests : IDisposable
     public void GetMessages_SkipsEventsWithMissingData()
     {
         var filter = CreateFilter();
-        var t = DateTime.UtcNow;
-        SeedUserJoined("good", t);
+        var timestamp = DateTime.UtcNow;
+        SeedUserJoined("good", timestamp);
         _db.Add(new ChatEvent
         {
             Id = Model.GetNewId<ChatEvent>(),
             ChatEventType = ChatEventType.UserJoined,
             EventId = "does-not-exist",
-            Created = t,
-            Updated = t,
+            Created = timestamp,
+            Updated = timestamp,
         });
         _db.SaveChanges();
 

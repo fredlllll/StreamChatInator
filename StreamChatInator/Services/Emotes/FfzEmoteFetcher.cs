@@ -18,7 +18,7 @@ namespace StreamChatInator.Services.Emotes
             {
                 if (root.TryGetProperty("set", out var set) && set.TryGetProperty("emoticons", out var emoticons))
                 {
-                    foreach (var item in emoticons.EnumerateArray()) AddFFZEmote(result, item);
+                    foreach (var item in emoticons.EnumerateArray()) AddFfzEmote(result, item);
                 }
             }
             else if (root.TryGetProperty("sets", out var sets))
@@ -27,7 +27,7 @@ namespace StreamChatInator.Services.Emotes
                 {
                     if (set.Value.TryGetProperty("emoticons", out var emoticons))
                     {
-                        foreach (var item in emoticons.EnumerateArray()) AddFFZEmote(result, item);
+                        foreach (var item in emoticons.EnumerateArray()) AddFfzEmote(result, item);
                     }
                 }
             }
@@ -44,7 +44,7 @@ namespace StreamChatInator.Services.Emotes
             return await FetchFromUrlAsync(url, channelId);
         }
 
-        private static void AddFFZEmote(List<EmoteDto> result, JsonElement item)
+        private static void AddFfzEmote(List<EmoteDto> result, JsonElement item)
         {
             if (!(item.TryGetProperty("id", out var id) && item.TryGetProperty("name", out var name)
                 && name.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(name.GetString())))

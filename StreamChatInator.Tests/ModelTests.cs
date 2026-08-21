@@ -21,14 +21,14 @@ public class ModelTests
     [Fact]
     public void Equals_ComparesIdCreatedAndUpdated()
     {
-        var t = DateTime.UtcNow;
-        var a = new ChatEventFilter { Id = "f_1", Name = "n", Code = "c", CodeJs = "c", Created = t, Updated = t };
-        var b = new ChatEventFilter { Id = "f_1", Name = "n", Code = "c", CodeJs = "c", Created = t, Updated = t };
-        var c = new ChatEventFilter { Id = "f_2", Name = "n", Code = "c", CodeJs = "c", Created = t, Updated = t };
+        var timestamp = DateTime.UtcNow;
+        var first = new ChatEventFilter { Id = "f_1", Name = "n", Code = "c", CodeJs = "c", Created = timestamp, Updated = timestamp };
+        var sameValues = new ChatEventFilter { Id = "f_1", Name = "n", Code = "c", CodeJs = "c", Created = timestamp, Updated = timestamp };
+        var differentId = new ChatEventFilter { Id = "f_2", Name = "n", Code = "c", CodeJs = "c", Created = timestamp, Updated = timestamp };
 
-        Assert.Equal(a, b);
-        Assert.NotEqual(a, c);
-        Assert.True(a == b);
-        Assert.True(a != c);
+        Assert.Equal(first, sameValues);
+        Assert.NotEqual(first, differentId);
+        Assert.True(first == sameValues);
+        Assert.True(first != differentId);
     }
 }

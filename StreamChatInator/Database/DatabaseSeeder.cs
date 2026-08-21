@@ -9,14 +9,14 @@ namespace StreamChatInator.Database
         {
             if (db.ChatEventFilters.Any()) return;
 
-            foreach (var f in Defaults)
+            foreach (var filterSpec in s_defaults)
             {
                 db.ChatEventFilters.Add(new ChatEventFilter
                 {
                     Id = Model.GetNewId<ChatEventFilter>(),
-                    Name = f.Name,
-                    Code = f.Code,
-                    CodeJs = f.CodeJs,
+                    Name = filterSpec.Name,
+                    Code = filterSpec.Code,
+                    CodeJs = filterSpec.CodeJs,
                 });
             }
             db.SaveChanges();
@@ -24,7 +24,7 @@ namespace StreamChatInator.Database
 
         private sealed record FilterSpec(string Name, string Code, string CodeJs);
 
-        private static readonly FilterSpec[] Defaults =
+        private static readonly FilterSpec[] s_defaults =
         {
             new(
                 "Everything",

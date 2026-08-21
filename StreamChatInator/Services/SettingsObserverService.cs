@@ -33,10 +33,10 @@ namespace StreamChatInator.Services
             }
         }
 
-        protected void SetValue(string token)
+        protected void SetValue(string value)
         {
-            Value.Post(token);
-            _db.SetSettingsValue(_settingName, token);
+            Value.Post(value);
+            _db.SetSettingsValue(_settingName, value);
         }
 
         protected void UnsetValue()

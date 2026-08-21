@@ -22,7 +22,7 @@ namespace StreamChatInator.Services
         /// Maps each chat event type to the DbSet that holds its detail rows. Used
         /// to load a batch one query per type without a per-type switch.
         /// </summary>
-        private static readonly Dictionary<ChatEventType, Func<DatabaseContext, IQueryable<Model>>> EventSets = new()
+        private static readonly Dictionary<ChatEventType, Func<DatabaseContext, IQueryable<Model>>> s_eventSets = new()
         {
             [ChatEventType.Announcement] = db => db.ChatEventAnnouncements,
             [ChatEventType.AnonGiftPaidUpgrade] = db => db.ChatEventAnonGiftPaidUpgrades,
@@ -72,10 +72,10 @@ namespace StreamChatInator.Services
             var matches = new List<FrontEndEventData>();
             bool exhausted = false;
 
-            const int batchSize = 200;
-            const int maxBatchesToScan = 20;
+            const int BatchSize = 200;
+            const int MaxBatchesToScan = 20;
 
-            for (int batch = 0; batch < maxBatchesToScan; batch++)
+            for (int batch = 0; batch < MaxBatchesToScan; batch++)
             {
                 IQueryable<ChatEvent> query = db.ChatEvents;
                 if (scanCreated.HasValue)
@@ -90,7 +90,7 @@ namespace StreamChatInator.Services
                 var candidates = query
                     .OrderByDescending(e => e.Created)
                     .ThenByDescending(e => e.Id)
-                    .Take(batchSize)
+                    .Take(BatchSize)
                     .ToList();
 
                 if (candidates.Count == 0) { exhausted = true; break; }
@@ -123,7 +123,7 @@ namespace StreamChatInator.Services
                 }
 
                 if (matches.Count >= take) break;
-                if (candidates.Count < batchSize) { exhausted = true; break; }
+                if (candidates.Count < BatchSize) { exhausted = true; break; }
             }
 
             var nextCursor = scanCreated.HasValue ? $"{scanCreated.Value:o}|{scanId}" : "";
@@ -174,7 +174,7 @@ namespace StreamChatInator.Services
                 // Only the event types actually present in this batch are queried, so
                 // adding a new event type means adding one entry to the map (not a
                 // new case in a switch). Unimplemented types are skipped entirely.
-                if (EventSets.TryGetValue(group.Key, out var getSet))
+                if (s_eventSets.TryGetValue(group.Key, out var getSet))
                 {
                     LoadDetails(eventDataById, baseIds, ids, getSet(db));
                 }

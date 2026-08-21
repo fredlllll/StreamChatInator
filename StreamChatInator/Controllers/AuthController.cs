@@ -48,7 +48,7 @@ namespace StreamChatInator.Controllers
             var response = await _twitchApiService.RequestDeviceCodeAsync(Scopes);
             if (response == null || string.IsNullOrEmpty(response.DeviceCode))
             {
-                return ResponseHelper.Reponse502("twitch_unavailable");
+                return ResponseHelper.Response502("twitch_unavailable");
             }
 
             PruneExpiredAttempts();

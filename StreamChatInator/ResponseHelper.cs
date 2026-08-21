@@ -4,7 +4,7 @@ namespace StreamChatInator
 {
     public static class ResponseHelper
     {
-        public static IActionResult Reponse502(string errorMessage)
+        public static IActionResult Response502(string errorMessage)
         {
             return new ObjectResult(new {error=errorMessage})
             {

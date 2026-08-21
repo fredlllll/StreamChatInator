@@ -44,8 +44,8 @@ namespace StreamChatInator.Database.Models
 
         public static string GetNewId<T>() where T:Model
         {
-            var t = typeof(T);
-            var typeId = t.Name.ToLower();
+            var type = typeof(T);
+            var typeId = type.Name.ToLower();
             var id = Uuid.NewDatabaseFriendly(UUIDNext.Database.SQLite);
             return $"{typeId}_{id}";
         }

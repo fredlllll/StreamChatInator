@@ -32,7 +32,7 @@ namespace StreamChatInator.Services.Emotes
             {
                 // First resolve the user's emote set id, then fetch that set's
                 // emotes. A missing/unresolvable set just means no channel emotes.
-                var resolved = await ResolveSevenTVSetUrlAsync(channelId);
+                var resolved = await ResolveSevenTvSetUrlAsync(channelId);
                 if (resolved is null) return [];
                 url = resolved;
             }
@@ -41,7 +41,7 @@ namespace StreamChatInator.Services.Emotes
         }
 
         /// <summary>Resolves a channel's 7TV emote set URL. Returns null (no channel emotes) on failure.</summary>
-        private async Task<string?> ResolveSevenTVSetUrlAsync(string channelId)
+        private async Task<string?> ResolveSevenTvSetUrlAsync(string channelId)
         {
             try
             {
@@ -50,7 +50,7 @@ namespace StreamChatInator.Services.Emotes
                 resp.EnsureSuccessStatusCode();
                 await using var stream = await resp.Content.ReadAsStreamAsync();
                 using var doc = await JsonDocument.ParseAsync(stream);
-                return ResolveSevenTVSetUrl(doc.RootElement);
+                return ResolveSevenTvSetUrl(doc.RootElement);
             }
             catch (Exception ex)
             {
@@ -59,7 +59,7 @@ namespace StreamChatInator.Services.Emotes
             }
         }
 
-        private static string? ResolveSevenTVSetUrl(JsonElement root)
+        private static string? ResolveSevenTvSetUrl(JsonElement root)
         {
             if (root.TryGetProperty("emote_set", out var set)
                 && set.TryGetProperty("id", out var setId) && setId.ValueKind == JsonValueKind.String

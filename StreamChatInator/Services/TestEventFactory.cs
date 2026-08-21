@@ -12,7 +12,7 @@ namespace StreamChatInator.Services
     /// </summary>
     public static class TestEventFactory
     {
-        private static readonly DateTime Now = DateTime.UtcNow;
+        private static readonly DateTime s_now = DateTime.UtcNow;
 
         /// <summary>One synthetic event: the type plus its per-type detail row and optional shared user-notice base row.</summary>
         public record TestEvent(ChatEventType Type, Model Data, Model? SubData);
@@ -57,7 +57,7 @@ namespace StreamChatInator.Services
                 Message = "Hey everyone! First time in this channel, love the vibe!",
                 Noisy = Noisy.NotSet,
                 SubscribedMonthCount = 6,
-                TmiSent = Now,
+                TmiSent = s_now,
                 ReplyParentMessageTwitchMessageId = null,
                 DisplayName = "AliceTheMod",
                 UserId = "1001",
@@ -176,7 +176,7 @@ namespace StreamChatInator.Services
                 Channel = "testchannel",
                 Message = "This message was deleted by a moderator",
                 TargetTwitchMessageId = "test-msg-2",
-                TmiSent = Now,
+                TmiSent = s_now,
             }, null);
         }
 
@@ -314,7 +314,7 @@ namespace StreamChatInator.Services
                 MsgId = msgId,
                 RoomId = "12345678",
                 SystemMsg = systemMsg,
-                TmiSent = Now,
+                TmiSent = s_now,
                 UserFlags = UserDetails.Subscriber | UserDetails.Vip,
                 Badges = BadgeSerializer.SerializeBadges(new List<KeyValuePair<string, string>> { new("subscriber", "1"), new("vip", "1") }),
                 UserId = $"u-{username}",
