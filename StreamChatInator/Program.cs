@@ -99,12 +99,12 @@ namespace StreamChatInator
                     };
                 });
             builder.Services.AddMemoryCache();
-            builder.Services.AddHttpClient("emotes", client =>
+            builder.Services.AddHttpClient(HttpClientName.Emotes.ToString(), client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(15);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
             });
-            builder.Services.AddHttpClient("twitch", client =>
+            builder.Services.AddHttpClient(HttpClientName.Twitch.ToString(), client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(15);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");

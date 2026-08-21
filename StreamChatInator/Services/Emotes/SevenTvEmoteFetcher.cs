@@ -38,7 +38,7 @@ namespace StreamChatInator.Services.Emotes
         {
             try
             {
-                var client = HttpFactory.CreateClient("emotes");
+                var client = HttpFactory.CreateClient(HttpClientName.Emotes.ToString());
                 using var resp = await client.GetAsync($"https://7tv.io/v3/users/twitch/{channelId}");
                 resp.EnsureSuccessStatusCode();
                 await using var stream = await resp.Content.ReadAsStreamAsync();

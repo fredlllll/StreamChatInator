@@ -23,7 +23,7 @@ namespace StreamChatInator.Services.Twitch
 
         private HttpClient GetHttpClient()
         {
-            return _httpClientFactory.CreateClient("twitch");
+            return _httpClientFactory.CreateClient(HttpClientName.Twitch.ToString());
         }
 
         public async Task<TokenResponse?> RefreshAccessTokenAsync(string refreshToken)

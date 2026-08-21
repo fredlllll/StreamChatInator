@@ -15,7 +15,7 @@ namespace StreamChatInator.Services.Emotes
         protected readonly IHttpClientFactory HttpFactory;
         private readonly string _provider;
 
-        protected EmoteFetcherBase(IHttpClientFactory httpFactory, ILogger logger, string provider)
+        public EmoteFetcherBase(IHttpClientFactory httpFactory, ILogger logger, string provider)
         {
             HttpFactory = httpFactory;
             _logger = logger;
@@ -28,7 +28,7 @@ namespace StreamChatInator.Services.Emotes
         {
             try
             {
-                var client = HttpFactory.CreateClient("emotes");
+                var client = HttpFactory.CreateClient(HttpClientName.Emotes.ToString());
                 using var resp = await client.GetAsync(url);
                 resp.EnsureSuccessStatusCode();
                 await using var stream = await resp.Content.ReadAsStreamAsync();
