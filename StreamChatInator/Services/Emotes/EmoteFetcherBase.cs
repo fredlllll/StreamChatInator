@@ -13,18 +13,21 @@ namespace StreamChatInator.Services.Emotes
     {
         private readonly ILogger _logger;
         protected readonly IHttpClientFactory HttpFactory;
-        private readonly string _provider;
+        private readonly string _providerName;
+        public string ProviderName => _providerName;
 
-        public EmoteFetcherBase(IHttpClientFactory httpFactory, ILogger logger, string provider)
+        public EmoteFetcherBase(IHttpClientFactory httpFactory, ILogger logger, string providerName)
         {
             HttpFactory = httpFactory;
             _logger = logger;
-            _provider = provider;
+            _providerName = providerName;
         }
+
+        public abstract List<EmoteDto> ExtractFromResponse(JsonDocument response, string? channelId);
 
         public abstract Task<List<EmoteDto>> FetchAsync(string? channelId);
 
-        protected async Task<List<EmoteDto>> FetchProviderAsync(string url, string? channelId, Action<JsonElement, List<EmoteDto>> extract)
+        protected async Task<List<EmoteDto>> FetchFromUrlAsync(string url, string? channelId)
         {
             try
             {
@@ -33,13 +36,11 @@ namespace StreamChatInator.Services.Emotes
                 resp.EnsureSuccessStatusCode();
                 await using var stream = await resp.Content.ReadAsStreamAsync();
                 using var doc = await JsonDocument.ParseAsync(stream);
-                var result = new List<EmoteDto>();
-                extract(doc.RootElement, result);
-                return result;
+                return ExtractFromResponse(doc,channelId);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to fetch {Provider} emotes for channel {ChannelId}", _provider, channelId);
+                _logger.LogWarning(ex, "Failed to fetch {Provider} emotes for channel {ChannelId}", _providerName, channelId);
                 return [];
             }
         }

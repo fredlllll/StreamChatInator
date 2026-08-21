@@ -12,6 +12,19 @@ namespace StreamChatInator.Services.Emotes
             _logger = logger;
         }
 
+        public override List<EmoteDto> ExtractFromResponse(JsonDocument response, string? channelId)
+        {
+            var root = response.RootElement;
+            var result = new List<EmoteDto>();
+
+            if (root.TryGetProperty("emotes", out var emotes))
+            {
+                foreach (var item in emotes.EnumerateArray()) AddNameCodeEmote(result, item, "name", "https://cdn.7tv.app/emote/{0}/1x.webp");
+            }
+
+            return result;
+        }
+
         public override async Task<List<EmoteDto>> FetchAsync(string? channelId)
         {
             string url = "https://7tv.io/v3/emote-sets/global";
@@ -24,13 +37,7 @@ namespace StreamChatInator.Services.Emotes
                 url = resolved;
             }
 
-            return await FetchProviderAsync(url, channelId, (root, result) =>
-            {
-                if (root.TryGetProperty("emotes", out var emotes))
-                {
-                    foreach (var item in emotes.EnumerateArray()) AddNameCodeEmote(result, item, "name", "https://cdn.7tv.app/emote/{0}/1x.webp");
-                }
-            });
+            return await FetchFromUrlAsync(url, channelId);
         }
 
         /// <summary>Resolves a channel's 7TV emote set URL. Returns null (no channel emotes) on failure.</summary>
@@ -69,5 +76,7 @@ namespace StreamChatInator.Services.Emotes
 
             return null;
         }
+
+        
     }
 }

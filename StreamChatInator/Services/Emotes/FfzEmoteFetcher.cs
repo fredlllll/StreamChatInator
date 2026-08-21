@@ -9,32 +9,39 @@ namespace StreamChatInator.Services.Emotes
         {
         }
 
+        public override List<EmoteDto> ExtractFromResponse(JsonDocument response, string? channelId)
+        {
+            var root = response.RootElement;
+            var result = new List<EmoteDto>();
+
+            if (channelId is null)
+            {
+                if (root.TryGetProperty("set", out var set) && set.TryGetProperty("emoticons", out var emoticons))
+                {
+                    foreach (var item in emoticons.EnumerateArray()) AddFFZEmote(result, item);
+                }
+            }
+            else if (root.TryGetProperty("sets", out var sets))
+            {
+                foreach (var set in sets.EnumerateObject())
+                {
+                    if (set.Value.TryGetProperty("emoticons", out var emoticons))
+                    {
+                        foreach (var item in emoticons.EnumerateArray()) AddFFZEmote(result, item);
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public override async Task<List<EmoteDto>> FetchAsync(string? channelId)
         {
             var url = channelId is null
                 ? "https://api.frankerfacez.com/v1/set/3"
                 : $"https://api.frankerfacez.com/v1/room/id/{channelId}";
 
-            return await FetchProviderAsync(url, channelId, (root, result) =>
-            {
-                if (channelId is null)
-                {
-                    if (root.TryGetProperty("set", out var set) && set.TryGetProperty("emoticons", out var emoticons))
-                    {
-                        foreach (var item in emoticons.EnumerateArray()) AddFFZEmote(result, item);
-                    }
-                }
-                else if (root.TryGetProperty("sets", out var sets))
-                {
-                    foreach (var set in sets.EnumerateObject())
-                    {
-                        if (set.Value.TryGetProperty("emoticons", out var emoticons))
-                        {
-                            foreach (var item in emoticons.EnumerateArray()) AddFFZEmote(result, item);
-                        }
-                    }
-                }
-            });
+            return await FetchFromUrlAsync(url, channelId);
         }
 
         private static void AddFFZEmote(List<EmoteDto> result, JsonElement item)
@@ -79,5 +86,7 @@ namespace StreamChatInator.Services.Emotes
         {
             return url.StartsWith("//", StringComparison.Ordinal) ? "https:" + url : url;
         }
+
+
     }
 }
