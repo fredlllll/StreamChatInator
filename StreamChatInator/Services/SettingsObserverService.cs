@@ -10,6 +10,10 @@ namespace StreamChatInator.Services
         private readonly IServiceScope _scope;
         private readonly DatabaseContext _db;
         private readonly string _settingName;
+        // DbContext is not thread-safe, and several singletons call these
+        // getters/setters concurrently (e.g. at startup); all database access
+        // must happen under this lock.
+        private readonly object _dbLock = new();
         public SettingsObserverService(string settingName, IServiceScopeFactory scopeFactory)
         {
             //we are cheating a bit here. we dont strictly need a scope, but we need a database context, and i dont see the sense in creating a new instance for every request. and to make asp.net happy, we just create a scope here once and use the db context from that.
@@ -21,30 +25,43 @@ namespace StreamChatInator.Services
 
         protected string? GetValue()
         {
-            if (string.IsNullOrWhiteSpace(Value.Value))
+            if (!string.IsNullOrWhiteSpace(Value.Value))
             {
+                return Value.Value;
+            }
+
+            lock (_dbLock)
+            {
+                // Another thread may have populated the cache while we waited.
+                if (!string.IsNullOrWhiteSpace(Value.Value))
+                {
+                    return Value.Value;
+                }
+
                 var val = _db.GetSettingsValueOrNull(_settingName);
                 Value.Post(val);
                 return val;
-            }
-            else
-            {
-                return Value.Value;
             }
         }
 
         protected void SetValue(string value)
         {
             Value.Post(value);
-            _db.SetSettingsValue(_settingName, value);
-            _db.SaveChanges();
+            lock (_dbLock)
+            {
+                _db.SetSettingsValue(_settingName, value);
+                _db.SaveChanges();
+            }
         }
 
         protected void UnsetValue()
         {
             Value.Post(null);
-            _db.UnsetSettingsValue(_settingName);
-            _db.SaveChanges();
+            lock (_dbLock)
+            {
+                _db.UnsetSettingsValue(_settingName);
+                _db.SaveChanges();
+            }
         }
 
         public async Task WaitOnValueAsync(CancellationToken stoppingToken)

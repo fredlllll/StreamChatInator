@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Open.Observable;
 using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
@@ -18,16 +19,17 @@ public class TwitchAuthServiceTests : IDisposable
     private sealed class FakeTwitchHandler : HttpMessageHandler
     {
         public int TokenRequests;
+        public HttpStatusCode TokenStatus = HttpStatusCode.OK;
+        public string TokenBody = """{"access_token":"tok2","refresh_token":"r2","expires_in":3600}""";
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "id.twitch.tv")
             {
                 TokenRequests++;
-                var body = """{"access_token":"tok2","refresh_token":"r2","expires_in":3600}""";
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                return Task.FromResult(new HttpResponseMessage(TokenStatus)
                 {
-                    Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                    Content = new StringContent(TokenBody, Encoding.UTF8, "application/json"),
                 });
             }
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
@@ -58,7 +60,8 @@ public class TwitchAuthServiceTests : IDisposable
             oauthClient,
             _scope.ServiceProvider.GetRequiredService<TwitchTokenSettingService>(),
             _scope.ServiceProvider.GetRequiredService<TwitchRefreshTokenSettingService>(),
-            _scope.ServiceProvider.GetRequiredService<TwitchTokenExpiresAtSettingService>());
+            _scope.ServiceProvider.GetRequiredService<TwitchTokenExpiresAtSettingService>(),
+            _scope.ServiceProvider.GetRequiredService<ILogger<TwitchAuthService>>());
     }
 
     public void Dispose()
@@ -129,5 +132,34 @@ public class TwitchAuthServiceTests : IDisposable
         await _auth.EnsureFreshTokenAsync();
 
         Assert.Equal(0, _handler.TokenRequests);
+    }
+
+    [Fact]
+    public async Task EnsureFreshTokenAsync_ClearsCredentials_WhenRefreshTokenIsRejected()
+    {
+        SeedToken("tok1", TimeSpan.FromMinutes(1));
+        _handler.TokenStatus = HttpStatusCode.BadRequest;
+        _handler.TokenBody = """{"error":"invalid_grant","error_description":"Invalid grant"}""";
+
+        await _auth.EnsureFreshTokenAsync();
+
+        Assert.Equal(1, _handler.TokenRequests);
+        Assert.Null(ReadSetting(SettingValue.SettingOAuthToken));
+        Assert.Null(ReadSetting(SettingValue.SettingOAuthRefreshToken));
+        Assert.Null(ReadSetting(SettingValue.SettingOAuthTokenExpiresAt));
+    }
+
+    [Fact]
+    public async Task EnsureFreshTokenAsync_KeepsCredentials_WhenRefreshFailsTransiently()
+    {
+        SeedToken("tok1", TimeSpan.FromMinutes(1), "r1");
+        _handler.TokenStatus = HttpStatusCode.InternalServerError;
+        _handler.TokenBody = """{"error":"server_error"}""";
+
+        await _auth.EnsureFreshTokenAsync();
+
+        Assert.Equal(1, _handler.TokenRequests);
+        Assert.Equal("tok1", ReadSetting(SettingValue.SettingOAuthToken));
+        Assert.Equal("r1", ReadSetting(SettingValue.SettingOAuthRefreshToken));
     }
 }

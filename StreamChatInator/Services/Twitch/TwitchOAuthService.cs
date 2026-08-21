@@ -23,7 +23,7 @@ namespace StreamChatInator.Services.Twitch
             _config = config;
         }
 
-        public async Task<TokenResponse?> RefreshAccessTokenAsync(string refreshToken)
+        public async Task<TokenRefreshResult> RefreshAccessTokenAsync(string refreshToken)
         {
             var content = new FormUrlEncodedContent(
             [
@@ -33,11 +33,34 @@ namespace StreamChatInator.Services.Twitch
             ]);
 
             using var response = await _httpClient.PostAsync(TokenUrl, content);
+            var body = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                return null;
+                // A rejected refresh token (revoked, expired, or superseded by
+                // a newer login) comes back as 400 invalid_grant; callers use
+                // that to stop retrying and require a fresh login.
+                MessageResponse? error = null;
+                try
+                {
+                    error = JsonSerializer.Deserialize<MessageResponse>(body);
+                }
+                catch (JsonException)
+                {
+                    // non-JSON error body - falls through to generic failure
+                }
+
+                return (error?.Error ?? error?.Message) == "invalid_grant"
+                    ? new TokenRefreshResult { Status = TokenRefreshStatus.InvalidGrant }
+                    : new TokenRefreshResult { Status = TokenRefreshStatus.Failed };
             }
-            return await response.Content.ReadFromJsonAsync<TokenResponse>();
+
+            var token = JsonSerializer.Deserialize<TokenResponse>(body);
+            if (token == null || string.IsNullOrEmpty(token.AccessToken))
+            {
+                return new TokenRefreshResult { Status = TokenRefreshStatus.Failed };
+            }
+            return new TokenRefreshResult { Status = TokenRefreshStatus.Success, Token = token };
         }
 
         public async Task<TokenValidationResponse?> ValidateTokenAsync(string bearerToken)

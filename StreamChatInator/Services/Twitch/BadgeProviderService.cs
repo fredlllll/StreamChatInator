@@ -20,6 +20,10 @@ namespace StreamChatInator.Services.Twitch
 
         private static readonly TimeSpan s_ttl = TimeSpan.FromHours(24);
 
+        // Failures and not-yet-authenticated states are cached only briefly,
+        // so a transient blip doesn't serve stale/empty badges for a full day.
+        private static readonly TimeSpan s_failureTtl = TimeSpan.FromMinutes(2);
+
         private const string CacheKeyPrefix = "badges:";
 
         public BadgeProviderService(
@@ -51,8 +55,33 @@ namespace StreamChatInator.Services.Twitch
         {
             try
             {
-                var result = await FetchAsync(channelId);
-                _cache.Set(key, result, s_ttl);
+                Dictionary<string, Dictionary<string, BadgeDto>> result;
+                TimeSpan ttl;
+
+                // Null means a transient state (no credentials yet or Twitch
+                // said no), not an authoritative "this channel has no badges".
+                var fetched = await FetchAsync(channelId);
+                if (fetched == null)
+                {
+                    result = [];
+                    ttl = s_failureTtl;
+                }
+                else
+                {
+                    result = fetched;
+                    ttl = s_ttl;
+                }
+
+                _cache.Set(key, result, ttl);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                // A transient Twitch API failure shouldn't 500 the badges
+                // endpoint; serve nothing now, retry after the failure TTL.
+                _logger.LogWarning(ex, "Failed to fetch Twitch badges for channel {ChannelId}", channelId);
+                var result = new Dictionary<string, Dictionary<string, BadgeDto>>();
+                _cache.Set(key, result, s_failureTtl);
                 return result;
             }
             finally
@@ -61,41 +90,32 @@ namespace StreamChatInator.Services.Twitch
             }
         }
 
-        private async Task<Dictionary<string, Dictionary<string, BadgeDto>>> FetchAsync(string? channelId)
+        private async Task<Dictionary<string, Dictionary<string, BadgeDto>>?> FetchAsync(string? channelId)
         {
             var merged = new Dictionary<string, Dictionary<string, BadgeDto>>();
 
-            try
+            // The background TwitchTokenRefreshService keeps the stored
+            // token fresh; no refresh handling needed here.
+            var token = _tokenService.GetToken();
+            if (string.IsNullOrEmpty(token))
             {
-                // The background TwitchTokenRefreshService keeps the stored
-                // token fresh; no refresh handling needed here.
-                var token = _tokenService.GetToken();
-                if (string.IsNullOrEmpty(token))
-                {
-                    return merged;
-                }
-
-                var globalBadges = await _twitchApiService.GetGlobalBadgesAsync(token);
-                if (globalBadges == null)
-                {
-                    return merged;
-                }
-                Merge(merged, globalBadges);
-
-                if (!string.IsNullOrEmpty(channelId))
-                {
-                    var channelBadges = await _twitchApiService.GetChannelBadgesAsync(token, channelId);
-                    if (channelBadges != null)
-                    {
-                        Merge(merged, channelBadges, overrideExisting: true);
-                    }
-                }
+                return null;
             }
-            catch (Exception ex)
+
+            var globalBadges = await _twitchApiService.GetGlobalBadgesAsync(token);
+            if (globalBadges == null)
             {
-                // A transient Twitch API failure shouldn't 500 the badges
-                // endpoint; return whatever we managed to fetch (or nothing).
-                _logger.LogWarning(ex, "Failed to fetch Twitch badges for channel {ChannelId}", channelId);
+                return null;
+            }
+            Merge(merged, globalBadges);
+
+            if (!string.IsNullOrEmpty(channelId))
+            {
+                var channelBadges = await _twitchApiService.GetChannelBadgesAsync(token, channelId);
+                if (channelBadges != null)
+                {
+                    Merge(merged, channelBadges, overrideExisting: true);
+                }
             }
 
             return merged;

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using StreamChatInator.Services.Twitch.Settings;
 using System.Globalization;
 
@@ -15,13 +16,15 @@ namespace StreamChatInator.Services.Twitch
         private readonly TwitchTokenSettingService _twitchTokenSettingService;
         private readonly TwitchRefreshTokenSettingService _twitchRefreshTokenSettingService;
         private readonly TwitchTokenExpiresAtSettingService _twitchTokenExpiresAtSettingService;
+        private readonly ILogger<TwitchAuthService> _logger;
 
-        public TwitchAuthService(TwitchOAuthService twitchOAuthService, TwitchTokenSettingService twitchTokenSettingService, TwitchRefreshTokenSettingService twitchRefreshTokenSettingService, TwitchTokenExpiresAtSettingService twitchTokenExpiresAtSettingService)
+        public TwitchAuthService(TwitchOAuthService twitchOAuthService, TwitchTokenSettingService twitchTokenSettingService, TwitchRefreshTokenSettingService twitchRefreshTokenSettingService, TwitchTokenExpiresAtSettingService twitchTokenExpiresAtSettingService, ILogger<TwitchAuthService> logger)
         {
             _twitchOAuthService = twitchOAuthService;
             _twitchTokenSettingService = twitchTokenSettingService;
             _twitchRefreshTokenSettingService = twitchRefreshTokenSettingService;
             _twitchTokenExpiresAtSettingService = twitchTokenExpiresAtSettingService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -50,14 +53,40 @@ namespace StreamChatInator.Services.Twitch
                 return;
             }
 
-            var refreshed = await _twitchOAuthService.RefreshAccessTokenAsync(refreshToken);
-            if (refreshed == null || string.IsNullOrEmpty(refreshed.AccessToken))
+            TokenRefreshResult result;
+            try
             {
+                result = await _twitchOAuthService.RefreshAccessTokenAsync(refreshToken);
+            }
+            catch (Exception ex)
+            {
+                // Network hiccups etc. are transient; the next tick retries.
+                _logger.LogWarning(ex, "twitch token refresh failed");
                 return;
             }
 
+            if (result.Status == TokenRefreshStatus.InvalidGrant)
+            {
+                // The refresh token is dead (revoked or superseded by a newer
+                // login). Clear everything so the app shows its logged-out
+                // state instead of retrying a doomed refresh every minute.
+                _logger.LogWarning("twitch refresh token was rejected; clearing stored credentials until re-login");
+                ClearCredentials();
+                return;
+            }
+
+            if (result.Status != TokenRefreshStatus.Success || result.Token == null || string.IsNullOrEmpty(result.Token.AccessToken))
+            {
+                // Keep the old credentials; a transient Twitch failure must
+                // not log the user out.
+                _logger.LogWarning("twitch token refresh failed; keeping existing credentials");
+                return;
+            }
+
+            var refreshed = result.Token;
+
             // Persist the rotation details first, then publish the new token
-            // through TwitchTokenService last, so watchers never see a new
+            // through the token service last, so watchers never see a new
             // token alongside a stale expiry.
             if (!string.IsNullOrEmpty(refreshed.RefreshToken))
             {
@@ -65,6 +94,13 @@ namespace StreamChatInator.Services.Twitch
             }
             _twitchTokenExpiresAtSettingService.SetTokenExpiresAt(DateTime.UtcNow.AddSeconds(refreshed.ExpiresIn).ToString("o"));
             _twitchTokenSettingService.SetToken(refreshed.AccessToken);
+        }
+
+        private void ClearCredentials()
+        {
+            _twitchRefreshTokenSettingService.UnsetRefreshToken();
+            _twitchTokenExpiresAtSettingService.UnsetTokenExpiresAt();
+            _twitchTokenSettingService.UnsetToken();
         }
 
         private bool NeedsRefresh()
