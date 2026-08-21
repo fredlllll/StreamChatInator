@@ -44,6 +44,7 @@ namespace StreamChatInator.Services
         {
             Value.Post(null);
             _db.UnsetSettingsValue(_settingName);
+            _db.SaveChanges();
         }
 
         public async Task WaitOnValueAsync(CancellationToken stoppingToken)
@@ -59,6 +60,18 @@ namespace StreamChatInator.Services
                 completionSource.SetResult();
             }));
             await completionSource.Task;
+        }
+
+        /// <summary>
+        /// Waits until the stored value differs from <paramref name="knownValue"/>.
+        /// Completes immediately when it already differs.
+        /// </summary>
+        public async Task WaitOnChangeFromAsync(string? knownValue, CancellationToken stoppingToken)
+        {
+            while (string.Equals(GetValue(), knownValue, StringComparison.Ordinal))
+            {
+                await WaitOnValueAsync(stoppingToken);
+            }
         }
     }
 }

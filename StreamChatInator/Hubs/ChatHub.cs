@@ -31,8 +31,8 @@ namespace StreamChatInator.Hubs
 
         /// <summary>
         /// Pauses/resumes recording chat events. Internally this just updates the
-        /// shared tracking flag, which the <see cref="ChatReader"/> checks before
-        /// saving each event, and broadcasts the new state to every client.
+        /// shared tracking flag, which the <see cref="Services.TwitchClientEventAdapter"/>
+        /// checks before saving each event, and broadcasts the new state to every client.
         /// </summary>
         public void SetTracking(bool enabled)
         {

@@ -56,8 +56,9 @@ public class TwitchAuthServiceTests : IDisposable
             _scope.ServiceProvider.GetRequiredService<ConfigService>());
         _auth = new TwitchAuthService(
             oauthClient,
-            _scope.ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
-            _scope.ServiceProvider.GetRequiredService<TwitchTokenSettingService>());
+            _scope.ServiceProvider.GetRequiredService<TwitchTokenSettingService>(),
+            _scope.ServiceProvider.GetRequiredService<TwitchRefreshTokenSettingService>(),
+            _scope.ServiceProvider.GetRequiredService<TwitchTokenExpiresAtSettingService>());
     }
 
     public void Dispose()

@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<ChatReaderService>();
         services.AddHostedService<TwitchTokenRefreshService>();
         services.AddSingleton<ChatHubData>();
+        services.AddSingleton<TwitchClientEventAdapter>();
         services.AddSingleton<TwitchAuthService>();
         services.AddSingleton<EmoteProviderService>();
         // Typed HTTP clients: each service/fetcher gets its own pre-configured
