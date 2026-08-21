@@ -85,7 +85,7 @@ namespace StreamChatInator.Database.Models
                 SystemMsg = unb.SystemMsg,
                 TmiSent = unb.TmiSent.UtcDateTime,
                 TwitchMessageId = unb.Id,
-                UserFlags = ReflectionHelper.GetPrivateFieldNotNull<UserDetails>(unb.UserDetail, "_flags"),
+                UserFlags = ReflectionHelper.GetPrivateFieldNotNull<UserDetails>(unb.UserDetail, Constants.TwitchLibUserFlagsFieldName),
                 UserId = unb.UserId,
                 UserType = unb.UserType,
                 Badges = BadgeSerializer.SerializeBadges(unb.Badges),

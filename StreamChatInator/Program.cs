@@ -88,7 +88,7 @@ namespace StreamChatInator
             }
 
             app.UseRouting();
-            app.UseCors("AllowReact");
+            app.UseCors(ServiceCollectionExtensions.CorsPolicyName);
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapStaticAssets();

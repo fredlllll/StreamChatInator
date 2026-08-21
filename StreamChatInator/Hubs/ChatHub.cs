@@ -19,13 +19,13 @@ namespace StreamChatInator.Hubs
         {
             if (_data.ChannelId.IsInitialized)
             {
-                await Clients.Caller.SendAsync("ChannelId", _data.ChannelId.Value);
+                await Clients.Caller.SendAsync(SignalREvents.ChannelId, _data.ChannelId.Value);
             }
             // Replay the current Twitch connection state so a client that joins
             // after the last broadcast still shows the correct indicator.
-            await Clients.Caller.SendAsync(_data.Connected.IsInitialized && _data.Connected.Value ? "Connection" : "NoConnection");
+            await Clients.Caller.SendAsync(_data.Connected.IsInitialized && _data.Connected.Value ? SignalREvents.Connection : SignalREvents.NoConnection);
             // Replay the current tracking state for the same reason.
-            await Clients.Caller.SendAsync("TrackingState", _data.Tracking.IsInitialized && _data.Tracking.Value);
+            await Clients.Caller.SendAsync(SignalREvents.TrackingState, _data.Tracking.IsInitialized && _data.Tracking.Value);
             await base.OnConnectedAsync();
         }
 
@@ -52,7 +52,7 @@ namespace StreamChatInator.Hubs
             chatEvent.Updated = DateTime.UtcNow;
             db.SaveChanges();
 
-            await Clients.All.SendAsync("EventSeen", eventId, seen);
+            await Clients.All.SendAsync(SignalREvents.EventSeen, eventId, seen);
         }
     }
 }

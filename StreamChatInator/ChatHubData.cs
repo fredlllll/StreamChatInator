@@ -23,14 +23,14 @@ namespace StreamChatInator
             ChannelId.Subscribe(Observer.ToObserver<string>(value =>
             {
                 if (!value.HasValue) return;
-                var task = hubContext.Clients.All.SendAsync("ChannelId", value.Value);
+                var task = hubContext.Clients.All.SendAsync(SignalREvents.ChannelId, value.Value);
                 // fire-and-forget; a broadcast failing during shutdown is non-fatal
                 _ = task.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
             }));
             Connected.Subscribe(Observer.ToObserver<bool>(value =>
             {
                 if (!value.HasValue) return;
-                var task = hubContext.Clients.All.SendAsync(value.Value ? "Connection" : "NoConnection");
+                var task = hubContext.Clients.All.SendAsync(value.Value ? SignalREvents.Connection : SignalREvents.NoConnection);
                 // fire-and-forget; a broadcast failing during shutdown is non-fatal
                 _ = task.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
             }));

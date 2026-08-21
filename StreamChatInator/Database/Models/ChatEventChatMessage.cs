@@ -153,7 +153,7 @@ namespace StreamChatInator.Database.Models
                 DisplayName = msg.DisplayName,
                 UserId = msg.UserId,
                 Username = msg.Username,
-                UserFlags = ReflectionHelper.GetPrivateFieldNotNull<UserDetails>(msg.UserDetail, "_flags"),
+                UserFlags = ReflectionHelper.GetPrivateFieldNotNull<UserDetails>(msg.UserDetail, Constants.TwitchLibUserFlagsFieldName),
                 UserType = msg.UserType,
                 HexColor = msg.HexColor,
                 Badges = BadgeSerializer.SerializeBadges(msg.Badges),

@@ -20,6 +20,9 @@ public static class ServiceCollectionExtensions
     /// <summary>Port the Vite dev server runs on (CORS origin).</summary>
     internal const int VitePort = 53401;
 
+    /// <summary>Name of the CORS policy allowing the Vite dev server origin.</summary>
+    internal const string CorsPolicyName = "AllowReact";
+
     /// <summary>
     /// Registers every application service. Expects the caller to have
     /// registered DatabaseContext (the sqlite location is host-specific).
@@ -31,6 +34,10 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton(configuration);
         services.AddLogging();
 
+        // Bind config sections to typed options; ConfigService is the facade over them.
+        services.Configure<TwitchOptions>(configuration.GetSection(TwitchOptions.SectionName));
+        services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
+
         services.AddControllers(options =>
         {
             // Gate every controller action behind the LAN PIN by default.
@@ -38,13 +45,18 @@ public static class ServiceCollectionExtensions
             options.Filters.Add(new AuthorizeFilter());
         });
         services.AddHostedService<ChatReaderService>();
-        services.AddSingleton<TwitchApiService>();
         services.AddSingleton<ChatHubData>();
         services.AddSingleton<TwitchAuthService>();
         services.AddSingleton<EmoteProviderService>();
-        services.AddSingleton<IEmoteFetcher, BttvEmoteFetcher>();
-        services.AddSingleton<IEmoteFetcher, SevenTvEmoteFetcher>();
-        services.AddSingleton<IEmoteFetcher, FfzEmoteFetcher>();
+        // Typed HTTP clients: each service/fetcher gets its own pre-configured
+        // HttpClient injected, so there are no named-client strings to keep in
+        // sync. The fetchers end up captured by the singleton EmoteProvider-
+        // Service; that's safe (handlers are kept alive while referenced) at
+        // the cost of a long-lived handler.
+        services.AddHttpClient<TwitchApiService>(ConfigureEmotesAndTwitchClient);
+        services.AddHttpClient<IEmoteFetcher, BttvEmoteFetcher>(ConfigureEmotesAndTwitchClient);
+        services.AddHttpClient<IEmoteFetcher, SevenTvEmoteFetcher>(ConfigureEmotesAndTwitchClient);
+        services.AddHttpClient<IEmoteFetcher, FfzEmoteFetcher>(ConfigureEmotesAndTwitchClient);
         services.AddSingleton<BadgeProviderService>();
         services.AddSingleton<AccessControlService>();
         services.AddSingleton<IAuthorizationHandler, AccessControlHandler>();
@@ -85,20 +97,10 @@ public static class ServiceCollectionExtensions
                 };
             });
         services.AddMemoryCache();
-        services.AddHttpClient(HttpClientName.Emotes.ToString(), client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(15);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
-        });
-        services.AddHttpClient(HttpClientName.Twitch.ToString(), client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(15);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
-        });
         services.AddSignalR();
         services.AddCors(options =>
         {
-            options.AddPolicy("AllowReact", policy =>
+            options.AddPolicy(CorsPolicyName, policy =>
                 policy.WithOrigins($"http://localhost:{VitePort}")
                       .AllowAnyHeader()
                       .AllowAnyMethod()
@@ -106,5 +108,11 @@ public static class ServiceCollectionExtensions
         });
 
         return services;
+    }
+
+    private static void ConfigureEmotesAndTwitchClient(HttpClient client)
+    {
+        client.Timeout = TimeSpan.FromSeconds(15);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("StreamChatInator/1.0");
     }
 }

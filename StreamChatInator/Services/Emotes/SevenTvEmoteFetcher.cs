@@ -6,8 +6,8 @@ namespace StreamChatInator.Services.Emotes
     {
         private readonly ILogger<SevenTvEmoteFetcher> _logger;
 
-        public SevenTvEmoteFetcher(IHttpClientFactory httpFactory, ILogger<SevenTvEmoteFetcher> logger)
-            : base(httpFactory, logger, "7TV")
+        public SevenTvEmoteFetcher(HttpClient http, ILogger<SevenTvEmoteFetcher> logger)
+            : base(http, logger, "7TV")
         {
             _logger = logger;
         }
@@ -45,7 +45,7 @@ namespace StreamChatInator.Services.Emotes
         {
             try
             {
-                var client = HttpFactory.CreateClient(HttpClientName.Emotes.ToString());
+                var client = Http;
                 using var resp = await client.GetAsync($"https://7tv.io/v3/users/twitch/{channelId}");
                 resp.EnsureSuccessStatusCode();
                 await using var stream = await resp.Content.ReadAsStreamAsync();

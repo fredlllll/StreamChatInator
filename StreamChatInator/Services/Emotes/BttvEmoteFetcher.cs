@@ -4,8 +4,8 @@ namespace StreamChatInator.Services.Emotes
 {
     public class BttvEmoteFetcher : EmoteFetcherBase
     {
-        public BttvEmoteFetcher(IHttpClientFactory httpFactory, ILogger<BttvEmoteFetcher> logger)
-            : base(httpFactory, logger, "BTTV")
+        public BttvEmoteFetcher(HttpClient http, ILogger<BttvEmoteFetcher> logger)
+            : base(http, logger, "BTTV")
         {
         }
 

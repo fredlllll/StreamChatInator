@@ -18,6 +18,9 @@ namespace StreamChatInator.Services.Emotes
 
         private static readonly TimeSpan s_ttl = TimeSpan.FromHours(1);
 
+        private const string GlobalCacheKey = "global";
+        private const string ChannelCacheKeyPrefix = "channel:";
+
         public EmoteProviderService(IEnumerable<IEmoteFetcher> fetchers, IMemoryCache cache)
         {
             _fetchers = fetchers;
@@ -26,14 +29,14 @@ namespace StreamChatInator.Services.Emotes
 
         public async Task<IReadOnlyList<EmoteDto>> GetEmotesAsync(string? channelId)
         {
-            var global = await GetOrFetchAsync("global", FetchAllGlobalAsync);
+            var global = await GetOrFetchAsync(GlobalCacheKey, FetchAllGlobalAsync);
 
             if (string.IsNullOrEmpty(channelId))
             {
                 return global;
             }
 
-            var channel = await GetOrFetchAsync($"channel:{channelId}", () => FetchAllChannelAsync(channelId!));
+            var channel = await GetOrFetchAsync($"{ChannelCacheKeyPrefix}{channelId}", () => FetchAllChannelAsync(channelId!));
 
             // Channel emotes take priority over global emotes on code collision.
             var merged = new Dictionary<string, EmoteDto>(StringComparer.OrdinalIgnoreCase);

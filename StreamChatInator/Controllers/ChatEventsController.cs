@@ -56,7 +56,7 @@ namespace StreamChatInator.Controllers
 
             await transaction.CommitAsync();
 
-            await _hub.Clients.All.SendAsync("EventsPurged");
+            await _hub.Clients.All.SendAsync(SignalREvents.EventsPurged);
             return Ok(new { numDeleted });
         }
 

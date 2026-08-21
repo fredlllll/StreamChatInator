@@ -13,22 +13,17 @@ namespace StreamChatInator.Services.Twitch
         private const string ChannelBadgesUrl = "https://api.twitch.tv/helix/chat/badges";
 
         private readonly ConfigService _config;
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly HttpClient _httpClient;
 
-        public TwitchApiService(ConfigService config, IHttpClientFactory httpClientFactory)
+        public TwitchApiService(HttpClient httpClient, ConfigService config)
         {
+            _httpClient = httpClient;
             _config = config;
-            _httpClientFactory = httpClientFactory;
-        }
-
-        private HttpClient GetHttpClient()
-        {
-            return _httpClientFactory.CreateClient(HttpClientName.Twitch.ToString());
         }
 
         public async Task<TokenResponse?> RefreshAccessTokenAsync(string refreshToken)
         {
-            var httpClient = GetHttpClient();
+            var httpClient = _httpClient;
 
             var content = new FormUrlEncodedContent(
             [
@@ -47,7 +42,7 @@ namespace StreamChatInator.Services.Twitch
 
         public async Task<TokenValidationResponse?> ValidateTokenAsync(string bearerToken)
         {
-            var httpClient = GetHttpClient();
+            var httpClient = _httpClient;
             using var request = new HttpRequestMessage(HttpMethod.Get, ValidateUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
 
@@ -66,7 +61,7 @@ namespace StreamChatInator.Services.Twitch
 
         public async Task<DeviceCodeResponse?> RequestDeviceCodeAsync(string scopes)
         {
-            var httpClient = GetHttpClient();
+            var httpClient = _httpClient;
             var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["client_id"] = _config.TwitchClientId,
@@ -83,7 +78,7 @@ namespace StreamChatInator.Services.Twitch
 
         public async Task<DevicePollResult> PollDeviceCodeAsync(string deviceCode, string scopes)
         {
-            var httpClient = GetHttpClient();
+            var httpClient = _httpClient;
             var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["client_id"] = _config.TwitchClientId,
@@ -115,20 +110,20 @@ namespace StreamChatInator.Services.Twitch
 
         public async Task<List<BadgeSet>?> GetGlobalBadgesAsync(string bearerToken)
         {
-            var httpClient = GetHttpClient();
+            var httpClient = _httpClient;
             return await GetBadgesAsync(bearerToken, GlobalBadgesUrl);
         }
 
         public async Task<List<BadgeSet>?> GetChannelBadgesAsync(string bearerToken, string broadcasterId)
         {
-            var httpClient = GetHttpClient();
+            var httpClient = _httpClient;
             var url = $"{ChannelBadgesUrl}?broadcaster_id={Uri.EscapeDataString(broadcasterId)}";
             return await GetBadgesAsync(bearerToken, url);
         }
 
         private async Task<List<BadgeSet>?> GetBadgesAsync(string bearerToken, string url)
         {
-            var httpClient = GetHttpClient();
+            var httpClient = _httpClient;
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
             request.Headers.Add("Client-Id", _config.TwitchClientId);

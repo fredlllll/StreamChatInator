@@ -19,6 +19,8 @@ namespace StreamChatInator.Services.Twitch
 
         private static readonly TimeSpan s_ttl = TimeSpan.FromHours(24);
 
+        private const string CacheKeyPrefix = "badges:";
+
         public BadgeProviderService(
             TwitchApiService twitchApiService,
             IMemoryCache cache,
@@ -33,7 +35,7 @@ namespace StreamChatInator.Services.Twitch
 
         public async Task<Dictionary<string, Dictionary<string, BadgeDto>>> GetBadgesAsync(string? channelId)
         {
-            var key = string.IsNullOrEmpty(channelId) ? "badges:global" : $"badges:{channelId}";
+            var key = string.IsNullOrEmpty(channelId) ? CacheKeyPrefix + "global" : $"{CacheKeyPrefix}{channelId}";
 
             if (_cache.TryGetValue(key, out Dictionary<string, Dictionary<string, BadgeDto>>? cached) && cached != null)
             {

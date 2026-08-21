@@ -4,8 +4,8 @@ namespace StreamChatInator.Services.Emotes
 {
     public class FfzEmoteFetcher : EmoteFetcherBase
     {
-        public FfzEmoteFetcher(IHttpClientFactory httpFactory, ILogger<FfzEmoteFetcher> logger)
-            : base(httpFactory, logger, "FFZ")
+        public FfzEmoteFetcher(HttpClient http, ILogger<FfzEmoteFetcher> logger)
+            : base(http, logger, "FFZ")
         {
         }
 

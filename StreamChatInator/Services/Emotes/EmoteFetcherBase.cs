@@ -12,13 +12,13 @@ namespace StreamChatInator.Services.Emotes
     public abstract class EmoteFetcherBase : IEmoteFetcher
     {
         private readonly ILogger _logger;
-        protected readonly IHttpClientFactory HttpFactory;
+        protected readonly HttpClient Http;
         private readonly string _providerName;
         public string ProviderName => _providerName;
 
-        public EmoteFetcherBase(IHttpClientFactory httpFactory, ILogger logger, string providerName)
+        public EmoteFetcherBase(HttpClient http, ILogger logger, string providerName)
         {
-            HttpFactory = httpFactory;
+            Http = http;
             _logger = logger;
             _providerName = providerName;
         }
@@ -31,7 +31,7 @@ namespace StreamChatInator.Services.Emotes
         {
             try
             {
-                var client = HttpFactory.CreateClient(HttpClientName.Emotes.ToString());
+                var client = Http;
                 using var resp = await client.GetAsync(url);
                 resp.EnsureSuccessStatusCode();
                 await using var stream = await resp.Content.ReadAsStreamAsync();
