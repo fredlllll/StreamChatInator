@@ -8,7 +8,7 @@ namespace StreamChatInator.Services.Twitch
     /// Twitch OAuth endpoints (id.twitch.tv): device-code login, token refresh
     /// and token validation. Helix API calls live in <see cref="TwitchApiService"/>.
     /// </summary>
-    public class TwitchOAuthClient
+    public class TwitchOAuthService
     {
         private const string TokenUrl = "https://id.twitch.tv/oauth2/token";
         private const string DeviceUrl = "https://id.twitch.tv/oauth2/device";
@@ -17,7 +17,7 @@ namespace StreamChatInator.Services.Twitch
         private readonly ConfigService _config;
         private readonly HttpClient _httpClient;
 
-        public TwitchOAuthClient(HttpClient httpClient, ConfigService config)
+        public TwitchOAuthService(HttpClient httpClient, ConfigService config)
         {
             _httpClient = httpClient;
             _config = config;

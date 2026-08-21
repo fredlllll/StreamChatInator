@@ -1,7 +1,5 @@
-﻿using StreamChatInator.Database;
-using StreamChatInator.Database.Models;
-using StreamChatInator.Services.Twitch;
-using System.Reactive;
+﻿using StreamChatInator.Services.Twitch;
+using StreamChatInator.Services.Twitch.Settings;
 
 namespace StreamChatInator.Services
 {
@@ -9,11 +7,11 @@ namespace StreamChatInator.Services
     {
         private readonly ILogger<ChatReaderService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly TwitchTokenService _tokenService;
+        private readonly TwitchTokenSettingService _tokenService;
         private readonly TwitchUsernameService _usernameService;
         private readonly ConfigService _config;
 
-        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenService tokenService, TwitchUsernameService usernameService, ConfigService config)
+        public ChatReaderService(ILogger<ChatReaderService> logger, IServiceScopeFactory scopeFactory, TwitchTokenSettingService tokenService, TwitchUsernameService usernameService, ConfigService config)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
@@ -33,7 +31,7 @@ namespace StreamChatInator.Services
                 try
                 {
                     var channelName = _usernameService.GetUsername();
-                    var oauthToken = _tokenService.GetAccessToken();
+                    var oauthToken = _tokenService.GetToken();
 
                     if (string.IsNullOrEmpty(channelName))
                     {
@@ -43,7 +41,7 @@ namespace StreamChatInator.Services
                     if (string.IsNullOrEmpty(oauthToken))
                     {
                         await _tokenService.WaitOnValueAsync(stoppingToken);
-                        oauthToken = _tokenService.GetAccessToken()!;
+                        oauthToken = _tokenService.GetToken()!;
                     }
 
                     string? joinChannel = _config.TwitchJoinChannel;

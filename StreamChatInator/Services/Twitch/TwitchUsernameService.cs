@@ -1,5 +1,4 @@
 ﻿using Open.Observable;
-using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 
 namespace StreamChatInator.Services.Twitch

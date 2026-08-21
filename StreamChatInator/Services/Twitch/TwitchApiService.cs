@@ -1,11 +1,10 @@
-﻿using StreamChatInator.Services.Twitch.Responses;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 
 namespace StreamChatInator.Services.Twitch
 {
     /// <summary>
     /// Helix API calls (api.twitch.tv). OAuth endpoints live in
-    /// <see cref="TwitchOAuthClient"/>.
+    /// <see cref="TwitchOAuthService"/>.
     /// </summary>
     public class TwitchApiService
     {

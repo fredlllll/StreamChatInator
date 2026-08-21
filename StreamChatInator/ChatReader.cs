@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using StreamChatInator.Database.Models;
-using StreamChatInator.Hubs;
+﻿using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;

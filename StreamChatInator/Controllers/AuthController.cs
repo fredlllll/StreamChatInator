@@ -7,6 +7,7 @@ using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
 using StreamChatInator.Services.Twitch;
+using StreamChatInator.Services.Twitch.Settings;
 using System.Collections.Concurrent;
 using System.Security.Claims;
 
@@ -25,16 +26,14 @@ namespace StreamChatInator.Controllers
         private const string Scopes = "chat:edit chat:read";
 
         private readonly DatabaseContext _db;
-        private readonly TwitchAuthService _twitchAuthService;
-        private readonly TwitchTokenService _twitchTokenService;
+        private readonly TwitchTokenSettingService _twitchTokenService;
         private readonly AccessControlService _lanAccess;
-        private readonly TwitchOAuthClient _twitchOAuthClient;
+        private readonly TwitchOAuthService _twitchOAuthClient;
 
-        public AuthController(DatabaseContext db, TwitchOAuthClient twitchOAuthClient, TwitchAuthService twitchAuthService, TwitchTokenService twitchTokenService, AccessControlService lanAccess)
+        public AuthController(DatabaseContext db, TwitchOAuthService twitchOAuthClient, TwitchTokenSettingService twitchTokenService, AccessControlService lanAccess)
         {
             _db = db;
             _twitchOAuthClient = twitchOAuthClient;
-            _twitchAuthService = twitchAuthService;
             _twitchTokenService = twitchTokenService;
             _lanAccess = lanAccess;
         }
@@ -119,8 +118,7 @@ namespace StreamChatInator.Controllers
             _db.SetSettingsValue(SettingValue.SettingUserName, validation.Login);
             _db.SaveChanges();
 
-            _twitchTokenService.SetAccessToken(token.AccessToken);
-            _twitchAuthService.SignalLogin();
+            _twitchTokenService.SetToken(token.AccessToken);
 
             return ResponseHelper.OkStatusUsername("ok", validation.Login);
         }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
+using StreamChatInator.Services.Twitch.Settings;
 
 namespace StreamChatInator.Services.Twitch
 {
@@ -14,7 +15,7 @@ namespace StreamChatInator.Services.Twitch
         private readonly TwitchApiService _twitchApiService;
         private readonly ILogger<BadgeProviderService> _logger;
         private readonly IMemoryCache _cache;
-        private readonly TwitchTokenService _tokenService;
+        private readonly TwitchTokenSettingService _tokenService;
         private readonly ConcurrentDictionary<string, Task<Dictionary<string, Dictionary<string, BadgeDto>>>> _inFlight = new();
 
         private static readonly TimeSpan s_ttl = TimeSpan.FromHours(24);
@@ -24,7 +25,7 @@ namespace StreamChatInator.Services.Twitch
         public BadgeProviderService(
             TwitchApiService twitchApiService,
             IMemoryCache cache,
-            TwitchTokenService tokenService,
+            TwitchTokenSettingService tokenService,
             ILogger<BadgeProviderService> logger)
         {
             _twitchApiService = twitchApiService;
@@ -68,7 +69,7 @@ namespace StreamChatInator.Services.Twitch
             {
                 // The background TwitchTokenRefreshService keeps the stored
                 // token fresh; no refresh handling needed here.
-                var token = _tokenService.GetAccessToken();
+                var token = _tokenService.GetToken();
                 if (string.IsNullOrEmpty(token))
                 {
                     return merged;

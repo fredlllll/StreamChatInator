@@ -6,6 +6,7 @@ using StreamChatInator.Database;
 using StreamChatInator.Database.Models;
 using StreamChatInator.Services;
 using StreamChatInator.Services.Twitch;
+using StreamChatInator.Services.Twitch.Settings;
 using System.Net;
 using System.Reactive;
 using System.Text;
@@ -50,13 +51,13 @@ public class TwitchAuthServiceTests : IDisposable
         _db = _scope.ServiceProvider.GetRequiredService<DatabaseContext>();
         _db.Database.EnsureCreated();
 
-        var oauthClient = new TwitchOAuthClient(
+        var oauthClient = new TwitchOAuthService(
             new HttpClient(_handler),
             _scope.ServiceProvider.GetRequiredService<ConfigService>());
         _auth = new TwitchAuthService(
             oauthClient,
             _scope.ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
-            _scope.ServiceProvider.GetRequiredService<TwitchTokenService>());
+            _scope.ServiceProvider.GetRequiredService<TwitchTokenSettingService>());
     }
 
     public void Dispose()
@@ -92,7 +93,7 @@ public class TwitchAuthServiceTests : IDisposable
     public async Task EnsureFreshTokenAsync_Refreshes_WhenTokenIsNearExpiry()
     {
         SeedToken("tok1", TimeSpan.FromMinutes(1));
-        var tokenService = _scope.ServiceProvider.GetRequiredService<TwitchTokenService>();
+        var tokenService = _scope.ServiceProvider.GetRequiredService<TwitchTokenSettingService>();
         var observed = new List<string?>();
         using var subscription = tokenService.Token.Subscribe(Observer.ToObserver<string?>(notification =>
         {

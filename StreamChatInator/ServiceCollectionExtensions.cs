@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StreamChatInator.Auth;
-using StreamChatInator.Hubs;
 using StreamChatInator.Services;
 using StreamChatInator.Services.Emotes;
 using StreamChatInator.Services.Twitch;
+using StreamChatInator.Services.Twitch.Settings;
 
 namespace StreamChatInator;
 
@@ -54,7 +54,7 @@ public static class ServiceCollectionExtensions
         // sync. The fetchers end up captured by the singleton EmoteProvider-
         // Service; that's safe (handlers are kept alive while referenced) at
         // the cost of a long-lived handler.
-        services.AddHttpClient<TwitchOAuthClient>(ConfigureEmotesAndTwitchClient);
+        services.AddHttpClient<TwitchOAuthService>(ConfigureEmotesAndTwitchClient);
         services.AddHttpClient<TwitchApiService>(ConfigureEmotesAndTwitchClient);
         services.AddHttpClient<IEmoteFetcher, BttvEmoteFetcher>(ConfigureEmotesAndTwitchClient);
         services.AddHttpClient<IEmoteFetcher, SevenTvEmoteFetcher>(ConfigureEmotesAndTwitchClient);
@@ -65,7 +65,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<EventRecorder>();
         services.AddSingleton<EventHistoryService>();
         services.AddSingleton<ConfigService>();
-        services.AddSingleton<TwitchTokenService>();
+        services.AddSingleton<TwitchTokenSettingService>();
+        services.AddSingleton<TwitchRefreshTokenSettingService>();
+        services.AddSingleton<TwitchTokenExpiresAtSettingService>();
         services.AddSingleton<TwitchUsernameService>();
         services.AddAuthorization(options =>
         {

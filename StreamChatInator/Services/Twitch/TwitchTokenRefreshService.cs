@@ -1,11 +1,12 @@
 using StreamChatInator.Services.Twitch;
+using StreamChatInator.Services.Twitch.Settings;
 
 namespace StreamChatInator.Services
 {
     /// <summary>
     /// Periodically asks <see cref="TwitchAuthService"/> to refresh the stored
     /// Twitch token before it expires, so consumers can read the current token
-    /// from <see cref="TwitchTokenService"/> at any time without refresh logic.
+    /// from <see cref="TwitchTokenSettingService"/> at any time without refresh logic.
     /// </summary>
     public class TwitchTokenRefreshService : BackgroundService
     {
