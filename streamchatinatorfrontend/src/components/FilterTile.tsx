@@ -6,18 +6,22 @@ type FilterTileProps = {
 };
 
 function FilterTile({ filterId }: FilterTileProps) {
-    const { filter, allEvents, hasMore, firstItemIndex, loadOlder } = useFilteredEvents(filterId);
+    const { filter, filterLoadFailed, allEvents, hasMore, firstItemIndex, loadOlder } = useFilteredEvents(filterId);
 
     return (
         <div className="filter-tile">
-            <h3>{filter ? filter.name : "..."}</h3>
+            <h3>{filter ? filter.name : filterLoadFailed ? "unavailable" : "..."}</h3>
             <div className="filter-tile-list">
-                <ChatEventList
-                    style={{ height: "100%" }}
-                    firstItemIndex={firstItemIndex}
-                    events={allEvents}
-                    onStartReached={hasMore ? loadOlder : undefined}
-                />
+                {filterLoadFailed ? (
+                    <p className="editor-hint">Couldn't load this filter.</p>
+                ) : (
+                    <ChatEventList
+                        style={{ height: "100%" }}
+                        firstItemIndex={firstItemIndex}
+                        events={allEvents}
+                        onStartReached={hasMore ? loadOlder : undefined}
+                    />
+                )}
             </div>
         </div>
     );

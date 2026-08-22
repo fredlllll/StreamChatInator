@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate, NavLink } from "react-router-dom";
 import FiltersPage from "./pages/FiltersPage";
 import FilterEditorPage from "./pages/FilterEditorPage";
@@ -17,24 +17,36 @@ function App() {
     const { tracking } = useChatState();
     const { setTracking } = useChatActions();
     const [authChecking, setAuthChecking] = useState(true);
+    const [authCheckFailed, setAuthCheckFailed] = useState(false);
     const [authenticated, setAuthenticated] = useState(false);
     const [authenticationEnabled, setAuthenticationEnabled] = useState(false);
+    // Guards against stale auth responses when the check is re-run via Retry.
+    const authRunRef = useRef(0);
 
-    useEffect(() => {
-        let cancelled = false;
+    function checkAuth() {
+        const runId = ++authRunRef.current;
+        setAuthChecking(true);
+        setAuthCheckFailed(false);
         getAuthStatus()
             .then((status) => {
-                if (!cancelled) {
-                    setAuthenticated(status.authenticated);
-                    setAuthenticationEnabled(status.authenticationEnabled);
-                }
+                if (authRunRef.current !== runId) return;
+                setAuthenticated(status.authenticated);
+                setAuthenticationEnabled(status.authenticationEnabled);
+            })
+            .catch(() => {
+                // "Not logged in" is a valid answer; failing to *ask* (backend
+                // down, network blip) must not kick a signed-in user to the
+                // PIN screen. Surface it as its own retryable state instead.
+                if (authRunRef.current !== runId) return;
+                setAuthCheckFailed(true);
             })
             .finally(() => {
-                if (!cancelled) setAuthChecking(false);
+                if (authRunRef.current === runId) setAuthChecking(false);
             });
-        return () => {
-            cancelled = true;
-        };
+    }
+
+    useEffect(() => {
+        checkAuth();
     }, []);
 
     function handleLogout() {
@@ -64,6 +76,20 @@ function App() {
 
     if (authChecking) {
         return <div className="auth-loading">Loading…</div>;
+    }
+
+    if (authCheckFailed) {
+        return (
+            <div className="auth-screen">
+                <div className="auth-card">
+                    <h1>StreamChatInator</h1>
+                    <p>Couldn't reach the server to check your session.</p>
+                    <button type="button" className="btn btn-primary" onClick={checkAuth}>
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     if (!authenticated) {

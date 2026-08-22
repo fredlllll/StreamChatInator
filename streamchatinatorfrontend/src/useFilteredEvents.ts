@@ -38,6 +38,7 @@ function filterSince(prev: FrontEndEventData[], events: readonly FrontEndEventDa
 
 export function useFilteredEvents(filterId: string | undefined) {
     const [filter, setFilter] = useState<EventFilter | null>(null);
+    const [filterLoadFailed, setFilterLoadFailed] = useState(false);
     const [history, setHistory] = useState<FrontEndEventData[]>([]);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
@@ -71,24 +72,57 @@ export function useFilteredEvents(filterId: string | undefined) {
 
     useEffect(() => {
         if (!filterId) return;
-        getFilterByIdCached(filterId).then(setFilter);
+        let cancelled = false;
+        // Drop the previous filter and its data up front so a slow response
+        // for the old id can't land after the new one's, and so the view
+        // doesn't render the outgoing filter's messages under "loading".
+        setFilter(null);
+        setFilterLoadFailed(false);
+        setHistory([]);
+        setNextCursor(null);
+        setHasMore(true);
+        setFirstItemIndex(FIRST_ITEM_INDEX_OFFSET);
+        setLive([]);
+        provenanceRef.current = { processedAbs: 0, matcher: null, seenVersion: 0 };
+        getFilterByIdCached(filterId)
+            .then((loaded) => {
+                if (!cancelled) setFilter(loaded);
+            })
+            .catch((err) => {
+                console.error("Failed to load filter:", err);
+                if (!cancelled) setFilterLoadFailed(true);
+            });
+        return () => {
+            cancelled = true;
+        };
     }, [filterId]);
 
     useEffect(() => {
         if (!filter || !signalRConnectedAt) return;
+        let cancelled = false;
         // Guard against a purge that lands while the request is in flight: the
         // events would already be deleted server-side, so this page must not be
         // applied. `purgeVersionRef.current` (not the closure) is the source of
-        // truth for the *current* purge state when the response arrives.
+        // truth for the *current* purge state when the response arrives. The
+        // cancelled flag likewise drops responses for a filter/signalR anchor
+        // this view has already moved on from.
         const startPurge = purgeVersionRef.current;
-        getFilterHistory(filter.id, signalRConnectedAt.toISOString(), 50).then((res) => {
-            if (purgeVersionRef.current !== startPurge) return;
-            setHistory([...res.events].reverse());
-            setNextCursor(res.nextCursor);
-            setHasMore(res.hasMore);
-            setFirstItemIndex(FIRST_ITEM_INDEX_OFFSET);
-            res.events.forEach((e) => registerSeen(e.eventId, e.seen));
-        });
+        getFilterHistory(filter.id, signalRConnectedAt.toISOString(), 50)
+            .then((res) => {
+                if (cancelled || purgeVersionRef.current !== startPurge) return;
+                setHistory([...res.events].reverse());
+                setNextCursor(res.nextCursor);
+                setHasMore(res.hasMore);
+                setFirstItemIndex(FIRST_ITEM_INDEX_OFFSET);
+                res.events.forEach((e) => registerSeen(e.eventId, e.seen));
+            })
+            .catch((err) => {
+                if (cancelled) return;
+                console.error("Failed to load history:", err);
+            });
+        return () => {
+            cancelled = true;
+        };
     }, [filter, signalRConnectedAt, registerSeen]);
 
     // A purge drops the events server-side; the live list is cleared by
@@ -123,6 +157,8 @@ export function useFilteredEvents(filterId: string | undefined) {
             setHasMore(res.hasMore);
             setFirstItemIndex((i) => i - res.events.length);
             res.events.forEach((e) => registerSeen(e.eventId, e.seen));
+        } catch (err) {
+            console.error("Failed to load older events:", err);
         } finally {
             setLoadingOlder(false);
         }
@@ -210,5 +246,5 @@ export function useFilteredEvents(filterId: string | undefined) {
         [filteredHistory, live]
     );
 
-    return { filter, allEvents, hasMore, firstItemIndex, loadOlder };
+    return { filter, filterLoadFailed, allEvents, hasMore, firstItemIndex, loadOlder };
 }
