@@ -21,6 +21,7 @@ function DashboardPage() {
 
     const [availableFilters, setAvailableFilters] = useState<EventFilter[]>([]);
     const [selectedFilterId, setSelectedFilterId] = useState("");
+    const [filtersLoadFailed, setFiltersLoadFailed] = useState(false);
     const [model, setModelState] = useState<Model>(loadModel);
     const modelRef = useRef(model);
     const layoutRef = useRef<ILayoutApi>(null);
@@ -34,42 +35,49 @@ function DashboardPage() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newModel.toJson()));
     }, []);
 
-    useEffect(() => {
+    function refreshFilters() {
+        setFiltersLoadFailed(false);
         getFilters()
             .then(setAvailableFilters)
-            .catch(() => {});
+            .catch(() => setFiltersLoadFailed(true));
+    }
+
+    useEffect(() => {
+        refreshFilters();
     }, []);
 
     useEffect(() => {
         if (urlFilterIds.length === 0 && addFilterIds.length === 0) return;
         let cancelled = false;
-        getFilters().then((filters) => {
-            if (cancelled) return;
-            if (urlFilterIds.length > 0) {
-                const selected = filters.filter((f) => urlFilterIds.includes(f.id));
-                if (selected.length > 0) {
-                    setModel(Model.fromJson(modelForFilters(selected)));
-                    return;
+        getFilters()
+            .then((filters) => {
+                if (cancelled) return;
+                if (urlFilterIds.length > 0) {
+                    const selected = filters.filter((f) => urlFilterIds.includes(f.id));
+                    if (selected.length > 0) {
+                        setModel(Model.fromJson(modelForFilters(selected)));
+                        return;
+                    }
                 }
-            }
-            if (addFilterIds.length > 0) {
-                const toAdd = filters.filter((f) => addFilterIds.includes(f.id));
-                toAdd.forEach(addFilterTab);
-                // Consume ?add= so reloads don't dock the same tab again.
-                setSearchParams(
-                    (prev) => {
-                        const next = new URLSearchParams(prev);
-                        next.delete("add");
-                        return next;
-                    },
-                    { replace: true }
-                );
-            }
-        });
+                if (addFilterIds.length > 0) {
+                    const toAdd = filters.filter((f) => addFilterIds.includes(f.id));
+                    toAdd.forEach(addFilterTab);
+                    // Consume ?add= so reloads don't dock the same tab again.
+                    setSearchParams(
+                        (prev) => {
+                            const next = new URLSearchParams(prev);
+                            next.delete("add");
+                            return next;
+                        },
+                        { replace: true }
+                    );
+                }
+            })
+            .catch((err) => console.error("Failed to load filters for URL seeding:", err));
         return () => {
             cancelled = true;
         };
-    }, [urlFilterIds, addFilterIds]);
+    }, [urlFilterIds, addFilterIds, setSearchParams]);
 
     const factory = useCallback((node: TabNode) => {
         switch (node.getComponent()) {
@@ -124,6 +132,12 @@ function DashboardPage() {
                     + Add view
                 </button>
                 <button type="button" className="btn" onClick={resetLayout}>Reset layout</button>
+                {filtersLoadFailed && (
+                    <>
+                        <span className="workspace-param-hint">Couldn't load filters.</span>
+                        <button type="button" className="btn" onClick={refreshFilters}>Retry</button>
+                    </>
+                )}
                 {urlFilterIds.length > 0 && (
                     <span className="workspace-param-hint">Seeded from ?filters= in the URL - remove it to keep your docked layout across reloads.</span>
                 )}

@@ -1,7 +1,3 @@
-export function isString(value: unknown): value is string {
-    return typeof value === "string";
-}
-
 /**
  * Extracts the event timestamp as a `Date`, preferring the Twitch server
  * timestamp (`tmiSent`) and falling back to the event's database `created`
@@ -83,12 +79,4 @@ export function formatTimeSpan(value: string | number): string {
     }
 
     return s;
-}
-
-export function isStringOrWrapper(value: unknown): value is string {
-    return (
-        typeof value === "string" ||
-        value instanceof String ||
-        Object.prototype.toString.call(value) === "[object String]"
-    );
 }

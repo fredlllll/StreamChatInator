@@ -24,12 +24,17 @@ function TwitchLoginButton() {
     const poll = async (d: DeviceStartResponse) => {
         const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
         const maxAttempts = Math.max(3, Math.ceil(d.expiresIn / d.interval));
+        // A single dropped request while polling shouldn't kill the sign-in
+        // flow; only give up after several consecutive failures.
+        const maxConsecutiveFailures = 5;
+        let consecutiveFailures = 0;
         for (let i = 0; i < maxAttempts; i++) {
             await wait(d.interval * 1000);
             if (cancelledRef.current) return;
             try {
                 const data = await getDeviceStatus(d.id);
                 if (cancelledRef.current) return;
+                consecutiveFailures = 0;
                 if (data.status === "ok") {
                     cancel();
                     window.location.reload();
@@ -41,9 +46,12 @@ function TwitchLoginButton() {
                     return;
                 }
             } catch {
-                cancel();
-                setError("Lost connection while waiting for sign-in.");
-                return;
+                consecutiveFailures += 1;
+                if (consecutiveFailures >= maxConsecutiveFailures) {
+                    cancel();
+                    setError("Lost connection while waiting for sign-in.");
+                    return;
+                }
             }
         }
         cancel();

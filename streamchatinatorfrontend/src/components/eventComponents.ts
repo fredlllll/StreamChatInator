@@ -21,7 +21,6 @@ import UserTimedoutItem from "./chatitems/UserTimedoutItem";
 
 const eventComponents: Record<ChatEventType, ComponentType<{ event: FrontEndEventData<any> }> | undefined> = {
     ChatMessage: ChatMessageItem,
-    //TODO: the rest
     Announcement: AnnouncementItem,
     AnonGiftPaidUpgrade: AnonGiftPaidUpgradeItem,
     BitsBadgeTier: BitsBadgeTierItem,
