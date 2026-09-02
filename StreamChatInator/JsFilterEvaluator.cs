@@ -24,7 +24,6 @@ namespace StreamChatInator
                 //ignore code that causes exception. filter will just return true if this is the case
             }
         }
-
         public bool Matches(FrontEndEventData eventData)
         {
             var json = JsonSerializer.Serialize(eventData, _jsonOptions);
@@ -44,6 +43,12 @@ namespace StreamChatInator
                 }
                 catch
                 {
+                    // Fail-open on runtime errors: a broken filter shows everything
+                    // rather than nothing, which is more noticeable in the UI.
+                    // TODO: surface filter errors to the frontend (e.g. an "error"
+                    // state on the filter) so broken code is flagged instead of
+                    // silently broadening to "match all". Deliberately deferred to
+                    // avoid a larger schema/API change right before release.
                     return true;
                 }
             }
