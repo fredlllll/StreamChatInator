@@ -9,7 +9,6 @@ A desktop/server app that records Twitch chat events in real time and lets you v
 - Real-time event streaming via SignalR with automatic reconnection.
 - Emote and badge rendering (7TV / BTTV / FFZ, Twitch badges).
 - Reachable from any device on your network; a PIN gates access (can be disabled).
-- Optional Twitch login (OAuth device flow) for the broadcaster channel.
 
 ## Download
 
@@ -34,11 +33,17 @@ On startup you'll see a console panel showing the app URL and a LAN access link 
 
 If the console panel can't be shown (piped output, service mode), the PIN is logged instead.
 
-### Optional: Twitch login
+### Twitch login (required)
 
-Without Twitch login, the app records events by joining your channel's IRC chat. To enable full Twitch integration (badge fetching, etc.), use the **Twitch login** button in the app and follow the device code flow.
+The app needs a Twitch account to connect to chat. On first launch, click the **Twitch login** button in the UI and follow the device code flow:
 
-### Optional: set your own PIN
+1. Click **Twitch login** — a code and link appear.
+2. Open the link in your browser, enter the code, and authorize.
+3. The app detects authorization automatically and connects.
+
+Login is remembered between restarts. If the token expires, the app prompts you to log in again.
+
+### Set your own PIN
 
 To lock the app to a fixed PIN (useful for headless / remote server setups), set it via environment variable or config:
 
