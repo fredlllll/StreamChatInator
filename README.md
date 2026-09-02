@@ -96,7 +96,3 @@ No need to run `dotnet ef database update` — the migration applies itself on n
 ```
 
 Output goes to `publish/<rid>/<mode>/`, with a zip alongside. `publish/` is git-ignored.
-
-## Frontend folder name note
-
-The folder is `streamchatinatorfrontend` (one 'm' after "stream"), which is intentional — not a typo.
