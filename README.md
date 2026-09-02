@@ -16,9 +16,9 @@ Grab the latest build from [GitHub Releases](https://github.com/fredlllll/Stream
 
 | Platform | Zip |
 | --- | --- |
-| Windows x64 | `StreamChatInator-win-x64.zip` |
-| Linux x64 | `StreamChatInator-linux-x64.zip` |
-| macOS ARM64 | `StreamChatInator-osx-arm64.zip` |
+| Windows x64 | `StreamChatInator-win-x64-framework-dependent.zip` |
+| Linux x64 | `StreamChatInator-linux-x64-framework-dependent.zip` |
+| macOS ARM64 | `StreamChatInator-osx-arm64-framework-dependent.zip` |
 | Windows x64 | `StreamChatInator-win-x64-self-contained.zip` |
 | Linux x64 | `StreamChatInator-linux-x64-self-contained.zip` |
 | macOS ARM64 | `StreamChatInator-osx-arm64-self-contained.zip` |
