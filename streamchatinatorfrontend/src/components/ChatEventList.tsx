@@ -10,10 +10,14 @@ type ChatEventListProps = {
     firstItemIndex: number;
     onStartReached?: () => void;
     style?: CSSProperties;
+    // Optional external handle for tests/harness that need to drive scroll
+    // position (e.g. keep the tail pinned while injecting bursts). Not used by
+    // the app itself.
+    virtuosoRef?: React.RefObject<VirtuosoHandle | null>;
 };
 
-function ChatEventList({ events, firstItemIndex, onStartReached, style }: ChatEventListProps) {
-    const virtuosoRef = useRef<VirtuosoHandle>(null);
+function ChatEventList({ events, firstItemIndex, onStartReached, style, virtuosoRef }: ChatEventListProps) {
+    const virtuosoInternalRef = useRef<VirtuosoHandle>(null);
     const [atBottom, setAtBottom] = useState(true);
     const { seenState } = useChatState();
 
@@ -25,13 +29,13 @@ function ChatEventList({ events, firstItemIndex, onStartReached, style }: ChatEv
     }
 
     const scrollToBottom = () => {
-        virtuosoRef.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" });
+        virtuosoInternalRef.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" });
     };
 
     return (
         <div className="chat-event-list" style={{ height: "80vh", ...style }}>
             <Virtuoso
-                ref={virtuosoRef}
+                ref={virtuosoRef ?? virtuosoInternalRef}
                 style={{ height: "100%" }}
                 data={events}
                 firstItemIndex={firstItemIndex}

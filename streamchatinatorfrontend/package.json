@@ -8,7 +8,9 @@
     "dev": "node scripts/generateEditorTypes.mjs && vite",
     "build": "node scripts/generateEditorTypes.mjs && tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "perf:harness": "node scripts/generateEditorTypes.mjs && vite build && vite preview --port 53401 --strictPort",
+    "perf:test": "playwright test"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",

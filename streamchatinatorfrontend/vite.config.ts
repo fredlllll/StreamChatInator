@@ -18,4 +18,15 @@ export default defineConfig({
             },
         },
     },
+    build: {
+        // The standalone frontend-perf harness is a separate HTML entry (it
+        // mounts the real render path with no backend and is driven by
+        // Playwright). Build it alongside the app so `vite preview` can serve it.
+        rollupOptions: {
+            input: {
+                app: 'index.html',
+                harness: 'harness.html',
+            },
+        },
+    },
 });
