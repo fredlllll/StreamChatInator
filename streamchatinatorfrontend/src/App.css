@@ -632,3 +632,14 @@
 *::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Inline error message (e.g. failed API calls). */
+.error {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 0.9em;
+}

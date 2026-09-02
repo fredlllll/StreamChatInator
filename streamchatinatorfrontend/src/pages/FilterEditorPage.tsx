@@ -14,6 +14,7 @@ function FilterEditorPage() {
     const [code, setCode] = useState(FILTER_TEMPLATE);
     const [loading, setLoading] = useState(!creating);
     const [notFound, setNotFound] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (creating) return;
@@ -37,14 +38,18 @@ function FilterEditorPage() {
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        const { source, codeJs } = await compileFilterSource(code);
-        if (creating) {
-            await createFilter(name, source, codeJs);
-        } else {
-            await updateFilter(filterId, name, source, codeJs);
-            invalidateFilter(filterId);
+        try {
+            const { source, codeJs } = await compileFilterSource(code);
+            if (creating) {
+                await createFilter(name, source, codeJs);
+            } else {
+                await updateFilter(filterId, name, source, codeJs);
+                invalidateFilter(filterId);
+            }
+            navigate("/filters");
+        } catch {
+            setError("Failed to save filter.");
         }
-        navigate("/filters");
     }
 
     if (loading) return <div className="page"><p>Loading filter...</p></div>;
@@ -57,6 +62,7 @@ function FilterEditorPage() {
             </div>
 
             <form className="card editor-card" onSubmit={handleSubmit}>
+                {error && <p className="error">{error}</p>}
                 <div className="editor-field">
                     <label htmlFor="filter-name">Name</label>
                     <input

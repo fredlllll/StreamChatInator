@@ -5,9 +5,15 @@ import { Link } from "react-router-dom";
 
 function FiltersPage() {
     const [filters, setFilters] = useState<EventFilter[]>([]);
+    const [error, setError] = useState<string | null>(null);
 
     async function refresh() {
-        setFilters(await getFilters());
+        try {
+            setFilters(await getFilters());
+            setError(null);
+        } catch {
+            setError("Failed to load filters.");
+        }
     }
 
     useEffect(() => {
@@ -15,9 +21,13 @@ function FiltersPage() {
     }, []);
 
     async function handleDelete(id: string) {
-        await deleteFilter(id);
-        invalidateFilter(id);
-        await refresh();
+        try {
+            await deleteFilter(id);
+            invalidateFilter(id);
+            await refresh();
+        } catch {
+            setError("Failed to delete filter.");
+        }
     }
 
     return (
@@ -26,6 +36,8 @@ function FiltersPage() {
                 <h2>Filters</h2>
                 <Link to="/filters/new" className="btn btn-primary">+ New Filter</Link>
             </div>
+
+            {error && <p className="error">{error}</p>}
 
             <ul className="filter-list">
                 {filters.map((f) => (

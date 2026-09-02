@@ -29,7 +29,7 @@ namespace StreamChatInator.Services
         /// </summary>
         public async Task RecordAsync(ChatEventType chatEventType, Model eventData, Model? subData = null)
         {
-            var scope = _scopeFactory.CreateScope();
+            using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             var chatEvent = new ChatEvent()
             {

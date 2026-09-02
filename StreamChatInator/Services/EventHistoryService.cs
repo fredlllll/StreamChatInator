@@ -57,7 +57,7 @@ namespace StreamChatInator.Services
         /// </summary>
         public HistoryResponse? GetMessages(string filterId, string? before, int take)
         {
-            var scope = _scopeFactory.CreateScope();
+            using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
             var filter = db.ChatEventFilters.Find(filterId);
@@ -162,7 +162,7 @@ namespace StreamChatInator.Services
         /// </summary>
         private Dictionary<string, object?> LoadEventDataBatch(IReadOnlyList<ChatEvent> chatEvents)
         {
-            var scope = _scopeFactory.CreateScope();
+            using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
             var eventDataById = new Dictionary<string, object?>(chatEvents.Count);
