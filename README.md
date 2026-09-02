@@ -74,7 +74,6 @@ Settings are read from `appsettings.json` and environment variables:
 | `Port` | `Port` | `17455` | HTTP port the backend listens on |
 | `Auth:Enabled` | `Auth__Enabled` | `true` | Toggle the LAN PIN gate |
 | `Auth:Pin` | `Auth__Pin` | auto-generated | Fixed LAN PIN |
-| `Twitch:ClientId` | `Twitch__ClientId` | built-in test client id | Twitch OAuth app client id |
 | `Twitch:JoinChannel` | `Twitch__JoinChannel` | current user | Channel to join for recording |
 
 ## Where is my data?
