@@ -590,6 +590,75 @@
   padding: 0 2px;
 }
 
+/* ===== Sound notification settings ===== */
+
+.sound-nav-wrapper {
+  position: relative;
+}
+
+.sound-nav-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 12px 14px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sound-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sound-nav-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.sound-nav-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.sound-muted {
+  opacity: 0.6;
+}
+
+/* Filter editor sound config */
+
+.sound-config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sound-config-name {
+  font-size: 13px;
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.sound-config-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.sound-file-input {
+  display: none;
+}
+
 /* ===== Responsive / small screens ===== */
 
 @media (max-width: 768px) {

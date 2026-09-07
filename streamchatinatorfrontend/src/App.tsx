@@ -6,7 +6,9 @@ import ViewPage from "./pages/ViewPage";
 import DashboardPage from "./pages/DashboardPage";
 import TwitchLoginButton from "./components/TwitchLoginButton";
 import LanLogin from "./components/Login";
+import SoundNotificationSettings from "./components/SoundNotificationSettings";
 import { useChatActions, useChatState } from "./ChatContext";
+import { useSoundNotification } from "./hooks/useSoundNotification";
 import { getAuthStatus, logout } from "./api/authApi";
 import { purgeEvents, generateTestEvents } from "./api/eventsApi";
 import { useTheme } from "./theme";
@@ -16,6 +18,7 @@ function App() {
     const { theme, toggleTheme } = useTheme();
     const { tracking } = useChatState();
     const { setTracking } = useChatActions();
+    const sound = useSoundNotification();
     const [authChecking, setAuthChecking] = useState(true);
     const [authCheckFailed, setAuthCheckFailed] = useState(false);
     const [authenticated, setAuthenticated] = useState(false);
@@ -111,6 +114,7 @@ function App() {
                     </div>
                     <div className="app-nav-actions">
                         <TwitchLoginButton />
+                        <SoundNotificationSettings {...sound} />
                         <button
                             type="button"
                             className={`btn btn-ghost${tracking ? "" : " tracking-paused"}`}
