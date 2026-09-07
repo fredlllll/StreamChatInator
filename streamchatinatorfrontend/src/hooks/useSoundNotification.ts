@@ -71,12 +71,15 @@ export function useSoundNotification(): SoundNotification {
     // Compiled matchers for filters that have a sound.
     const matchersRef = useRef<Map<string, (e: import("../types").FrontEndEventData) => boolean>>(new Map());
 
-    // --- Load filters + clean up orphaned sound entries ---
+    // --- Load filters + re-read config from localStorage ---
+    // Re-reads on every filter load so changes made by FilterEditorPage (which
+    // writes to localStorage independently) are picked up without a page reload.
     useEffect(() => {
         let cancelled = false;
         getFilters().then(async (all) => {
             if (cancelled) return;
             setFilters(all);
+            setConfig(loadConfig());
 
             // Clean up IndexedDB entries for deleted filters.
             const filterIds = new Set(all.map((f) => f.id));
