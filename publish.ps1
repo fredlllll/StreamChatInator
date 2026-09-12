@@ -30,8 +30,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-# Native stderr (e.g. MSBuild lines that land on stderr on some PS versions) must
-# not abort the script.
+# On PowerShell 7.3+ this stops native-command stderr (MSBuild warnings land
+# there) from being treated as a PowerShell error. It is ignored on Windows
+# PowerShell 5.1, where the same goal is achieved by never redirecting native
+# stderr into the pipeline (see Invoke-DotNetPublish below).
 $PSNativeCommandUseErrorActionPreference = $false
 
 $root = $PSScriptRoot
@@ -40,9 +42,13 @@ $project = Join-Path $root (Join-Path "StreamChatInator" "StreamChatInator.cspro
 $platforms = if ($Platform -eq "all") { @("win-x64", "linux-x64", "osx-arm64") } else { @($Platform) }
 $prefix = if ($Mode -eq "self-contained") { "SelfContained" } else { "FrameworkDependent" }
 
-# Runs dotnet publish and forwards every line to the console as it is produced,
-# so the script never goes silent while the build is working.
-function Invoke-StreamingDotNet {
+# Runs dotnet publish letting its stdout/stderr flow straight through to the
+# console; native-command output is already live, so no redirection is needed.
+# Do NOT wrap the call in "2>&1 | ForEach-Object {...}": on Windows PowerShell
+# 5.1 redirecting native stderr into a pipeline turns each line (warnings
+# included) into a NativeCommandError and, with $ErrorActionPreference=Stop,
+# aborts the script on the first warning while swallowing the real error.
+function Invoke-DotNetPublish {
     param(
         [Parameter(Mandatory)][string]$Project,
         [Parameter(Mandatory)][string]$Profile,
@@ -51,9 +57,9 @@ function Invoke-StreamingDotNet {
     )
     $extra = @("-p:PublishDir=$PublishDir")
     if ($SkipRestore) { $extra += "--no-restore" }
-    & dotnet publish $Project "-p:PublishProfile=$Profile" @extra 2>&1 | ForEach-Object { Write-Host $_ }
+    & dotnet publish $Project "-p:PublishProfile=$Profile" @extra
     if ($LASTEXITCODE -ne 0) {
-        throw "Publish failed for profile '$Profile'"
+        throw "Publish failed for profile '$Profile' (exit code $LASTEXITCODE); see the build output above."
     }
 }
 
@@ -74,7 +80,7 @@ foreach ($p in $platforms) {
         Write-Host "    (cleaning previous output)" -ForegroundColor DarkGray
         Remove-Item -Recurse -Force $targetDir
     }
-    Invoke-StreamingDotNet -Project $project -Profile $profile -PublishDir $targetDir -SkipRestore:$NoRestore
+    Invoke-DotNetPublish -Project $project -Profile $profile -PublishDir $targetDir -SkipRestore:$NoRestore
     $sw.Stop()
 
     $zip = $null
